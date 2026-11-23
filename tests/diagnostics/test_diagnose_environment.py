@@ -79,11 +79,13 @@ def test_every_component_passes_in_a_ready_environment() -> None:
 
     assert list(checks) == ["ffmpeg", "ffprobe", "deno", "database"]
     assert {check.outcome for check in checks.values()} == {CheckOutcome.PASSED}
+    # Las rutas se muestran con el separador del sistema (barra invertida en Windows).
     assert checks["ffmpeg"].detail == (
-        "ffmpeg version n9.0.2-39-g7adfbe40dc, bundled, in vendor/ffmpeg/build/bin"
+        "ffmpeg version n9.0.2-39-g7adfbe40dc, bundled, in "
+        f"{BUNDLED_FFMPEG.ffmpeg_location}"
     )
     assert checks["ffprobe"].detail == "ffprobe version n9.0.2-39-g7adfbe40dc"
-    assert checks["deno"].detail == "deno 2.9.8 in .venv/Scripts/deno.exe"
+    assert checks["deno"].detail == f"deno 2.9.8 in {SUPPORTED_DENO.path}"
     assert checks["database"].detail == "schema version 2"
 
 

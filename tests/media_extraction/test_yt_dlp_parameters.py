@@ -86,6 +86,9 @@ def test_audio_only_extracts_the_audio_without_reencoding() -> None:
     assert parameters["postprocessors"] == [
         {"key": "FFmpegExtractAudio", "preferredcodec": "best"}
     ]
+    # Una subcarpeta propia: ningún nombre de un job de solo audio, ni el de su
+    # descarga intermedia, puede coincidir con el de un video.
+    assert parameters["paths"] == {"home": str(Path("downloads") / "audio")}
 
 
 def test_media_with_video_has_no_postprocessors() -> None:

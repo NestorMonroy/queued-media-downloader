@@ -65,15 +65,24 @@ def program_for_tests(program: str) -> Path:
     return Path(program_path)
 
 
-@pytest.fixture
-def dash_manifest_url(local_media_server: str, tmp_path: Path) -> str:
-    """URL de un manifiesto DASH con video y audio separados, como en YouTube.
+# Video y audio en MP4 (.mp4 y .m4a), y en WebM (VP9 y Opus), como sirve YouTube
+# la mayoría de sus videos: ahí el audio y el video unido comparten extensión.
+MP4_CODEC_ARGUMENTS = ("-c:v", "mpeg4", "-c:a", "aac")
+WEBM_CODEC_ARGUMENTS = (
+    "-c:v",
+    "libvpx-vp9",
+    "-deadline",
+    "realtime",
+    "-cpu-used",
+    "8",
+    "-c:a",
+    "libopus",
+)
 
-    yt-dlp elige bv*+ba y necesita ffmpeg para unirlos. Los medios se generan
-    con ffmpeg en la carpeta que sirve local_media_server.
-    """
-    dash_directory = tmp_path / "served" / "dash"
-    dash_directory.mkdir()
+
+def write_dash_media(directory: Path, codec_arguments: tuple[str, ...]) -> None:
+    """Genera con ffmpeg un manifiesto DASH con video y audio separados."""
+    directory.mkdir()
     subprocess.run(
         [
             str(program_for_tests("ffmpeg")),
@@ -91,21 +100,35 @@ def dash_manifest_url(local_media_server: str, tmp_path: Path) -> str:
             "0:v",
             "-map",
             "1:a",
-            "-c:v",
-            "mpeg4",
-            "-c:a",
-            "aac",
+            *codec_arguments,
             "-f",
             "dash",
             "-seg_duration",
             "1",
             "sample.mpd",
         ],
-        cwd=dash_directory,
+        cwd=directory,
         check=True,
         timeout=60,
     )
+
+
+@pytest.fixture
+def dash_manifest_url(local_media_server: str, tmp_path: Path) -> str:
+    """URL de un manifiesto DASH en MP4 con video y audio separados.
+
+    yt-dlp elige bv*+ba y necesita ffmpeg para unirlos. Los medios se generan
+    con ffmpeg en la carpeta que sirve local_media_server.
+    """
+    write_dash_media(tmp_path / "served" / "dash", MP4_CODEC_ARGUMENTS)
     return f"{local_media_server}/dash/sample.mpd"
+
+
+@pytest.fixture
+def webm_dash_manifest_url(local_media_server: str, tmp_path: Path) -> str:
+    """URL de un manifiesto DASH en WebM: el video unido y el audio son .webm."""
+    write_dash_media(tmp_path / "served" / "dash-webm", WEBM_CODEC_ARGUMENTS)
+    return f"{local_media_server}/dash-webm/sample.mpd"
 
 
 @pytest.fixture

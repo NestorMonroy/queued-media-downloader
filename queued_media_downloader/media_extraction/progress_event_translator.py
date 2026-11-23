@@ -52,11 +52,15 @@ class DownloadProgressTranslator:
 def _download_progressed_from(hook: Mapping[str, Any]) -> DownloadProgressed:
     """Toma del hook solo los valores numéricos; los textos con formato no viajan."""
     total_bytes = hook.get("total_bytes") or hook.get("total_bytes_estimate")
+    downloaded_bytes = hook.get("downloaded_bytes")
     eta = hook.get("eta")
     if hook.get("status") == "finished":
         eta = 0
+        # Un archivo que ya estaba en disco llega terminado y sin
+        # downloaded_bytes: está completo.
+        downloaded_bytes = downloaded_bytes or total_bytes
     return DownloadProgressed(
-        downloaded_bytes=int(hook.get("downloaded_bytes") or 0),
+        downloaded_bytes=int(downloaded_bytes or 0),
         total_bytes=None if total_bytes is None else int(total_bytes),
         bytes_per_second=hook.get("speed"),
         eta_seconds=None if eta is None else int(eta),

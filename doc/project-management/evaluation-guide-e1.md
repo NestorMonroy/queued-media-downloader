@@ -19,12 +19,21 @@ El Evaluador sigue los pasos en orden, anota cada resultado en la [tabla de resu
 | Requisito | Comprobación |
 |---|---|
 | Windows 10 22H2 o Windows 11, x64 | `winver` |
+| Smart App Control desactivado o en evaluación ([ADR-0026](../notes/adr-0026-smart-app-control-precondition.md)) | El comando de abajo devuelve `0` o `2`, o no existe el valor |
 | Git con Git LFS | `git lfs version` |
 | uv | `uv --version` (si falta: `winget install astral-sh.uv`) |
 | PowerShell 5.1 o posterior | `$PSVersionTable.PSVersion` |
 | Conexión a internet y unos 2 GB libres | — |
 
 No hace falta Python instalado ni permisos de administrador (UC-01).
+
+Comprobación de Smart App Control:
+
+```powershell
+(Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy' -ErrorAction SilentlyContinue).VerifiedAndReputablePolicyState
+```
+
+Si devuelve `1`, Smart App Control está bloqueando y Windows impedirá ejecutar uv y la build de ffmpeg, que no están firmados. Desactivarlo es una decisión de seguridad que corresponde a quien administra el equipo (Seguridad de Windows → Control de aplicaciones y del explorador → Smart App Control). La alternativa es evaluar en otro equipo o en una máquina virtual sin Smart App Control; en ese caso, anotarlo, porque la medición de memoria representa peor un equipo real.
 
 ## Pasos
 
@@ -94,10 +103,15 @@ try {
                     'ffmpeg.exe' { 'ffmpeg' }
                     'deno.exe' { 'deno' }
                     default {
-                        if ($_.ExecutablePath -notlike "$venv*") { $null }
-                        elseif ($_.CommandLine -match '--multiprocessing-fork') { 'worker' }
-                        else { 'principal' }
+                        if ($_.CommandLine -match '--multiprocessing-fork') { 'worker' }
+                        elseif ($_.CommandLine -match 'queued-media-downloader') { 'principal' }
+                        else { $null }
                     }
+                }
+                # El python.exe del entorno virtual es un lanzador: arranca el
+                # Python real que instaló uv. Solo el real carga yt-dlp.
+                if ($role -in 'worker', 'principal') {
+                    $role += if ($_.ExecutablePath -like "$venv*") { ' lanzador' } else { ' real' }
                 }
                 $process = Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue
                 if ($role -and $process) {
@@ -112,12 +126,12 @@ try {
 }
 finally {
     $peaks.GetEnumerator() | Sort-Object Name | ForEach-Object {
-        '{0,-28} {1,8:N1} MiB' -f $_.Name, ($_.Value / 1MB)
+        '{0,-32} {1,8:N1} MiB' -f $_.Name, ($_.Value / 1MB)
     }
 }
 ```
 
-Si el script falla, anotar el error y medir con el Administrador de tareas: en la pestaña Detalles, añadir la columna «Espacio de trabajo máximo (memoria)».
+Para SUP-P04 cuentan los procesos `real`; los `lanzador` solo reenvían al Python real. Si el script falla, anotar el error y medir con el Administrador de tareas: en la pestaña Detalles, añadir la columna «Espacio de trabajo máximo (memoria)».
 
 ### Paso 7. Descarga real de YouTube con unión de audio y video (criterios 3 y 4)
 
@@ -133,10 +147,12 @@ echo $LASTEXITCODE
 
 El video elegido es corto (19 s), estable y el que yt-dlp usa en sus propias pruebas.
 
+Antes de repetir este paso, borrar `state\` y la carpeta de descargas para empezar sin jobs ni archivos previos.
+
 **Esperado:**
-- Código `0` y la línea `Using bundled ffmpeg: ffmpeg version n9.0.2-39-g7adfbe40dc`.
-- **Job 1:** `format` con dos formatos unidos (por ejemplo, `137+140`), `running Merger` y `completed, saved to …\Downloads\queued-media-downloader\Me at the zoo [jNQXAC9IVRw].mp4`.
-- **Job 2:** solo audio, terminado en `.m4a` (T17, T21).
+- Código `0` y la línea `Using bundled ffmpeg: ffmpeg version n9.0.2-39-g7adfbe40dc-20261031`.
+- **Job 1:** `format` con dos formatos unidos (en la primera evaluación, `395+251`: video AV1 y audio Opus), `running Merger` y `completed, saved to …\Downloads\queued-media-downloader\Me at the zoo [jNQXAC9IVRw].webm`. La extensión depende de los formatos que sirva YouTube.
+- **Job 2:** solo audio, en la subcarpeta `audio` (`…\audio\Me at the zoo [jNQXAC9IVRw].opus`, T23). La extensión es la del audio original, sin recodificar.
 - **Job 3:** `skipped: already downloaded or in the queue` (UC-03 A1).
 - Ninguna línea `ERROR:` ni `WARNING:` en la consola (T20).
 
@@ -147,11 +163,12 @@ Comprobar los archivos descargados con el ffprobe incluido:
 ```powershell
 $ffprobe = ".\vendor\ffmpeg\n9.0.2-39-g7adfbe40dc-win64-lgpl-shared\bin\ffprobe.exe"
 $downloads = "$HOME\Downloads\queued-media-downloader"
-& $ffprobe -v error -show_entries stream=codec_type -of csv=p=0 "$downloads\Me at the zoo [jNQXAC9IVRw].mp4"
-& $ffprobe -v error -show_entries stream=codec_type -of csv=p=0 "$downloads\Me at the zoo [jNQXAC9IVRw].m4a"
+Get-ChildItem $downloads -Recurse -File | ForEach-Object {
+    "$($_.FullName.Substring($downloads.Length + 1)): $(& $ffprobe -v error -show_entries stream=codec_type -of csv=p=0 $_.FullName)"
+}
 ```
 
-**Esperado:** el `.mp4` tiene `video` y `audio`; el `.m4a`, solo `audio`.
+**Esperado:** dos archivos. El de la carpeta principal tiene `video` y `audio`; el de `audio\`, solo `audio`. Si el video falta, se repitió el defecto de T23.
 
 ### Paso 8. Procesos al terminar (criterio 5, SUP-R02)
 
@@ -176,6 +193,7 @@ echo $LASTEXITCODE
 
 | Paso | Criterio | Resultado (sí/no) | Observaciones |
 |---|---|---|---|
+| 0. Smart App Control desactivado o en evaluación | — | | Equipo físico o máquina virtual: |
 | 1. Clon con Git LFS | 3 | | |
 | 2. `uv sync` | 3 | | Tiempo: |
 | 3. Cinco comprobaciones | 1 | | Pruebas pasadas, omitidas y fallidas: |
@@ -189,8 +207,8 @@ echo $LASTEXITCODE
 
 | Proceso | Pico (MiB) |
 |---|---|
-| Principal (`python.exe`) | |
-| Worker (`python.exe --multiprocessing-fork`) | |
+| Principal (`python.exe`, proceso `real`) | |
+| Worker (`python.exe --multiprocessing-fork`, proceso `real`) | |
 | ffmpeg | |
 | deno | |
 

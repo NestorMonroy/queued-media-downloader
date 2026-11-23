@@ -44,7 +44,7 @@ Fase           Elaboración
       └─ Tarea Un cambio en un componente con TDD: prueba primero, un PR revisable de una sentada
 ```
 
-Cada slice termina en algo que se ejecuta. Cada tarea termina cuando pasa la prueba indicada y cumple la [definición de terminado](../process/development-case.md#definición-de-terminado-por-cambio). El avance se mide en tareas terminadas sobre 20 (T05 se eliminó: [ADR-0025](../notes/adr-0025-reference-material-distribution.md); T20 y T21 se añadieron tras las revisiones de T15 y T17).
+Cada slice termina en algo que se ejecuta. Cada tarea termina cuando pasa la prueba indicada y cumple la [definición de terminado](../process/development-case.md#definición-de-terminado-por-cambio). El avance se mide en tareas terminadas sobre 22 (T05 se eliminó: [ADR-0025](../notes/adr-0025-reference-material-distribution.md); T20 y T21 se añadieron tras las revisiones de T15 y T17; T22 y T23, tras la primera ejecución de T19).
 
 Roles ([caso de desarrollo, §5](../process/development-case.md#roles)): **Responsable** del proyecto, **Agente** de implementación y **Evaluador** en Windows. Toda tarea del Agente termina con un *pull request*: las pruebas y las herramientas verifican el código, y el Responsable revisa que las pruebas expresen el criterio de terminado antes de integrar ([ADR-0024](../notes/adr-0024-verification-by-tdd-and-review-focus.md)).
 
@@ -96,6 +96,8 @@ Roles ([caso de desarrollo, §5](../process/development-case.md#roles)): **Respo
 |---|---|---|---|---|
 | T21 | La regla de duplicados distingue el tipo de archivo: mismo contenido con y sin `--audio-only` son dos descargas ([ADR-0012](../notes/adr-0012-no-download-archive-no-database-triggers.md), migración `0002`) | Agente | El mismo contenido se descarga como video y como audio; dos descargas del mismo tipo siguen quedando `SKIPPED`; la migración conserva los datos | T17 |
 | T20 | Configurar `logging` hacia un archivo en `state/logs/` (en la consola solo queda la presentación) y ocultar los pasos internos de yt-dlp, como `MoveFiles` | Agente | Un job fallido muestra su error una sola vez en la consola y completo en el log; `MoveFiles` no aparece | T15 |
+| T22 | Aserciones de prueba portables: la evaluación en Windows mostró dos pruebas que asumían Linux (rutas con `/` y ffmpeg del `PATH`) | Agente | `uv run pytest` pasa en Windows | T19 (primera ejecución) |
+| T23 | Los jobs de solo audio descargan en la subcarpeta `audio`: su descarga intermedia podía llamarse como el video unido de otro job, que yt-dlp reutilizaba y `ExtractAudio` borraba (hallado en T19) | Agente | Un DASH en WebM descargado como video y como audio deja los dos archivos | T19 (paso 7) |
 | T19 | Evaluación en Windows: `pytest -m windows`, flujo desde un clon nuevo, descarga real de YouTube, comprobación de procesos y medición de memoria | Evaluador | Los criterios de la sección 5 cumplidos; SUP-P04 fijado; lista de riesgos actualizada | Todas |
 
 ### 4.8 Camino crítico

@@ -43,3 +43,11 @@ Evaluación con las [guías de clean code](../reference/clean-code-guidelines/RE
 - **Regla:** `MediaKey` + `audio_only`. El índice `unique_active_download_per_media` lo lee de `download_options` con `json_extract`, sin duplicar el valor en una columna (**DRY**). Lo cambia la migración `0002`.
 - **El selector de formato no entra en la regla.** Dos calidades del mismo video usan la misma plantilla de salida y darían el mismo nombre de archivo: la segunda chocaría con la primera. El criterio es si se produciría el mismo archivo.
 - La regla sigue viviendo en Python (`JobEventApplier` y `JobStore.has_active_download`); el índice solo garantiza que no se guarde una segunda descarga activa del mismo tipo.
+
+## Seguimiento (T23, 2026-11-23)
+
+**El criterio de T21 solo se cumple si los nombres de cada tipo nunca coinciden, tampoco los intermedios.** En la evaluación en Windows (T19), un video de YouTube se unió en `.webm` y el job de solo audio del mismo contenido pidió el formato Opus, también `.webm`, con la misma plantilla. yt-dlp dio por descargado el video unido y `FFmpegExtractAudio` lo borró al extraer el audio: el job de video quedó `COMPLETED` con un archivo que ya no existía.
+
+- **Decisión:** los jobs de solo audio descargan en la subcarpeta `audio` de la carpeta de descargas. Ningún nombre suyo, tampoco el de la descarga intermedia, puede coincidir con el de un video, en cualquier orden de ejecución.
+- La regla vive en `media_extraction/yt_dlp_parameters.py`, donde se construyen las rutas de yt-dlp, para que valga para todo job de solo audio, lo cree quien lo cree.
+- Prueba de regresión: un DASH local en WebM (VP9 y Opus) reproduce el caso de Windows.

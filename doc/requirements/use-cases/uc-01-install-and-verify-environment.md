@@ -11,6 +11,7 @@ El User obtiene el proyecto, prepara el entorno con uv y comprueba que ffmpeg, f
 ## Precondiciones
 
 - Windows 10/11 x64.
+- Smart App Control desactivado o en modo de evaluación ([ADR-0026](../../notes/adr-0026-smart-app-control-precondition.md)).
 - uv instalado (por ejemplo, `winget install astral-sh.uv`).
 - Git con Git LFS instalado, si el proyecto se obtiene con `git clone`.
 - Conexión a internet.
@@ -35,6 +36,7 @@ El User obtiene el proyecto, prepara el entorno con uv y comprueba que ffmpeg, f
 - **A4. ffmpeg desde `PATH`** (paso 6): no hay ruta configurada ni binarios en `vendor/ffmpeg/`, pero sí un ffmpeg en el `PATH`. El sistema lo usa y avisa de que su versión no está validada.
 - **A5. Binario corrupto** (paso 7): el SHA-256 no coincide con el registrado en `SOURCE.md` o el binario no responde a `-version`. El sistema lo indica y termina con código `2`.
 - **A6. Configuración no válida** (paso 5): el sistema indica la clave y el valor no válidos y termina con código `2`.
+- **A7. Smart App Control activado** (paso 2 o posteriores): Windows bloquea `uv.exe`, o un binario sin firmar del proyecto, con el mensaje "Una directiva de Control de aplicaciones bloqueó este archivo". El sistema no llega a ejecutarse, así que no puede informar; el User comprueba la precondición ([ADR-0026](../../notes/adr-0026-smart-app-control-precondition.md)).
 
 ## Postcondiciones
 

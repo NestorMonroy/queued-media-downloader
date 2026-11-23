@@ -1,6 +1,7 @@
 """Parámetros de YoutubeDL que se fijan en cada job (diseño, Parte 2, §1.3)."""
 
 import logging
+from pathlib import Path
 from typing import Any
 
 from queued_media_downloader.jobs import DownloadOptions
@@ -12,6 +13,12 @@ YT_DLP_LOGGER_NAME = "queued_media_downloader.yt_dlp"
 
 # Extrae el audio sin recodificarlo cuando el formato lo permite.
 EXTRACT_AUDIO_POSTPROCESSOR = {"key": "FFmpegExtractAudio", "preferredcodec": "best"}
+
+# Los jobs de solo audio descargan en una subcarpeta propia. Con la misma
+# carpeta y plantilla, su descarga intermedia (por ejemplo, Opus en .webm) puede
+# llamarse igual que el video unido de otro job: yt-dlp la daría por descargada
+# y FFmpegExtractAudio borraría ese video al terminar (hallado en T19).
+AUDIO_ONLY_SUBDIRECTORY_NAME = "audio"
 
 # Reintentos ante archivos bloqueados un instante, algo habitual en Windows
 # cuando el antivirus o el indexador abren el archivo recién escrito.
@@ -55,7 +62,7 @@ def build_yt_dlp_parameters(
     """
     parameters: dict[str, Any] = {
         "format": download_options.format_selector,
-        "paths": {"home": str(download_options.download_directory)},
+        "paths": {"home": str(_download_directory_of(download_options))},
         "outtmpl": {"default": download_options.output_template},
         "cachedir": str(media_source_settings.cache_directory),
         "trim_file_name": media_source_settings.max_filename_length,
@@ -71,3 +78,10 @@ def build_yt_dlp_parameters(
     if media_source_settings.ffmpeg_location is not None:
         parameters["ffmpeg_location"] = str(media_source_settings.ffmpeg_location)
     return parameters
+
+
+def _download_directory_of(download_options: DownloadOptions) -> Path:
+    """Carpeta de destino; la de solo audio nunca coincide con la de los videos."""
+    if download_options.audio_only:
+        return download_options.download_directory / AUDIO_ONLY_SUBDIRECTORY_NAME
+    return download_options.download_directory

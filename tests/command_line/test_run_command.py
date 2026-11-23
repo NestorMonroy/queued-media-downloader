@@ -81,7 +81,12 @@ def test_separate_video_and_audio_are_merged_with_ffmpeg(
     assert exit_code == 0
     assert read_stored_job(1).output_path == str(output_path)
     assert stream_types(output_path) == ["audio", "video"]
-    assert "Using ffmpeg" in output
+    # Cuál se usa depende del sistema: la build incluida en Windows, la del PATH
+    # en otros sistemas.
+    assert any(
+        line.startswith("Using ") and ": ffmpeg version " in line
+        for line in output.splitlines()
+    )
     assert "Copyright" not in output
     assert "Job 1: running Merger" in output
 
@@ -96,7 +101,7 @@ def test_audio_only_keeps_only_the_audio(
 
     exit_code = main(["run"])
 
-    output_path = tmp_path / "downloads" / "sample [sample].m4a"
+    output_path = tmp_path / "downloads" / "audio" / "sample [sample].m4a"
     assert exit_code == 0
     assert read_stored_job(1).output_path == str(output_path)
     assert stream_types(output_path) == ["audio"]
@@ -139,7 +144,7 @@ def test_same_media_with_and_without_audio_only_gives_two_files(
         JobStatus.COMPLETED,
     ]
     assert stream_types(downloads / "sample [sample].mp4") == ["audio", "video"]
-    assert stream_types(downloads / "sample [sample].m4a") == ["audio"]
+    assert stream_types(downloads / "audio" / "sample [sample].m4a") == ["audio"]
 
 
 def test_failed_job_shows_its_error_once_and_in_full_in_the_log(
@@ -178,3 +183,25 @@ def test_internal_steps_are_hidden_and_logging_is_released(
         getattr(handler, "baseFilename", None)
         for handler in logging.getLogger().handlers
     }
+
+
+def test_audio_only_never_reuses_or_deletes_the_video_of_another_job(
+    webm_dash_manifest_url: str,
+    tmp_path: Path,
+    read_stored_job: Callable[[int], Job],
+    stream_types: Callable[[Path], list[str]],
+) -> None:
+    # Orden de la evaluación en Windows (T19): el video se une en un .webm y el
+    # audio solo, también .webm, se pide después con la misma plantilla.
+    main(["enqueue", webm_dash_manifest_url])
+    main(["enqueue", webm_dash_manifest_url, "--audio-only"])
+
+    exit_code = main(["run"])
+
+    video_path = tmp_path / "downloads" / "sample [sample].webm"
+    audio_path = tmp_path / "downloads" / "audio" / "sample [sample].opus"
+    assert exit_code == 0
+    assert read_stored_job(1).output_path == str(video_path)
+    assert read_stored_job(2).output_path == str(audio_path)
+    assert stream_types(video_path) == ["audio", "video"]
+    assert stream_types(audio_path) == ["audio"]

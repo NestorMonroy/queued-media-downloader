@@ -2,6 +2,7 @@
 
 - **Estado:** Aceptada
 - **Fecha:** 2026-11-22
+- **Nota:** [ADR-0026](adr-0026-smart-app-control-precondition.md) añade una precondición: Smart App Control desactivado o en modo de evaluación.
 
 ## Contexto
 

@@ -182,3 +182,23 @@ def test_ignored_postprocessors_are_not_published() -> None:
     )
 
     assert published_events == []
+
+
+def test_already_downloaded_file_is_presented_as_complete() -> None:
+    # yt-dlp informa así de un archivo que ya estaba en disco: sin
+    # downloaded_bytes (visto en la evaluación en Windows, T19).
+    published_events: list[JobEvent] = []
+    translator = download_translator(published_events, FakeClock())
+
+    translator.translate(
+        {"status": "finished", "filename": "video.webm", "total_bytes": 474521}
+    )
+
+    assert published_events == [
+        DownloadProgressed(
+            downloaded_bytes=474521,
+            total_bytes=474521,
+            bytes_per_second=None,
+            eta_seconds=0,
+        )
+    ]
