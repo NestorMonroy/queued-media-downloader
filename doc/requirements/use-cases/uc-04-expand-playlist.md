@@ -49,4 +49,4 @@ Durante la ejecución de la cola, un job de expansión resulta ser una playlist 
 | Creación de hijos por lotes, duplicados y no disponibles (A2, A3) | Cualquier sistema |
 | Playlists anidadas (A1) | Cualquier sistema |
 | `output_template_builder`: escapado de `%`, saneado y longitud | Cualquier sistema (`PureWindowsPath` para las reglas de Windows) |
-| `process=False` itera de forma perezosa un canal grande | Cualquier sistema, con red (marcador `network`), en la iteración E3 |
+| `process=False` itera de forma perezosa un canal grande | Cualquier sistema, con red (marcador `network`), en la iteración E2 |

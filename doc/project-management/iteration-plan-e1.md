@@ -1,10 +1,10 @@
 # Plan de iteración E1: esqueleto ejecutable
 
 - **Fase RUP:** Elaboración
-- **Iteración:** E1 de 3
+- **Iteración:** E1 de 2 (la Elaboración se acortó al pasar UC-04 a E2)
 - **Inicio:** al crear el repositorio (T01)
 - **Duración:** delimitada por alcance: la iteración se cierra cuando T19 confirma los criterios de la sección 5 ([caso de desarrollo, §5](../process/development-case.md#5-roles-y-duración-de-las-iteraciones))
-- **Estado:** planificada (enfoque híbrido, [ADR-0022](../notes/adr-0022-hybrid-approach-and-task-decomposition.md))
+- **Estado:** cerrada el 2026-11-23, con el criterio 6 trasladado a E2 (enfoque híbrido, [ADR-0022](../notes/adr-0022-hybrid-approach-and-task-decomposition.md))
 
 ---
 
@@ -126,4 +126,32 @@ La iteración se considera cumplida si:
 
 Guion para el Evaluador: [evaluation-guide-e1.md](evaluation-guide-e1.md).
 
-*Los resultados se completan al cerrar la iteración.*
+**Evaluada el 2026-11-23** en un equipo físico con Windows 11 x64, CPython 3.12.13 (descargado por uv) y uv 0.11.8, desde un clon nuevo de GitHub.
+
+### 6.1 Resultado por criterio
+
+| Criterio | Resultado | Evidencia |
+|---|---|---|
+| 1. Cinco comprobaciones | Cumplido | 287 pruebas pasan y 2 se omiten (scripts POSIX), tras T22 |
+| 2. `pytest -m windows` | Cumplido | 3 de 3 |
+| 3. Clon nuevo, `uv sync`, `diagnose`, `enqueue` y `run` con unión | Cumplido | `diagnose` con la build incluida y el deno del entorno; unión `395+251` en `.webm` con video y audio |
+| 4. Descarga real de YouTube con deno | Cumplido | "Me at the zoo" como video, como solo audio (`audio\….opus`) y como duplicado `SKIPPED` |
+| 5. Sin procesos al terminar | Cumplido | Sin ffmpeg, deno ni workers tras `run` |
+| 6. Memoria máxima y SUP-P04 | **Abierto, pasa a E2** | El script del guion necesitó una corrección (lanzador del entorno virtual frente al Python real); la medición se repite en la evaluación de E2 |
+
+Pasos adicionales: el fallo controlado (paso 9) termina con código `1`, un mensaje de una línea y el error completo en el log; una playlist termina en `UNSUPPORTED_URL` sin afectar al resto de la cola.
+
+### 6.2 Hallazgos
+
+| Hallazgo | Tipo | Resolución |
+|---|---|---|
+| Smart App Control bloquea `uv.exe` y la build de ffmpeg, sin firmar | Entorno | [ADR-0026](../notes/adr-0026-smart-app-control-precondition.md): precondición documentada; riesgo R-13 |
+| Dos pruebas asumían Linux (rutas con `/`, ffmpeg del `PATH`) | Pruebas | T22 |
+| Un job de solo audio reutilizó y borró el video unido de otro job | **Defecto con pérdida de datos** | T23: subcarpeta `audio` |
+| Un archivo ya descargado se mostraba al 0,0 % | Presentación | T23 (commit aparte) |
+| yt-dlp coloreaba `ERROR:` y el prefijo llegaba al mensaje y al log | Defecto | T24: `color="never"` |
+| El guion esperaba `.mp4` y `.m4a`, y el script de memoria medía los lanzadores | Guion | Corregido en el guion |
+
+### 6.3 Riesgos
+
+R-01 (pool con *spawn*) y R-03 (ffmpeg incluido) quedan mitigados con evidencia en Windows. R-12 (LGPL) queda mitigado con `LICENSE.txt` y `SOURCE.md`. R-02 (memoria) sigue abierto y pasa a E2. Se añade R-13 (Smart App Control).

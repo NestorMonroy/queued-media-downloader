@@ -28,15 +28,14 @@ Regla de equilibrio: se fija de antemano **lo que es caro cambiar** (alcance, ar
 | Fase | Iteraciones | Hito de cierre | Criterio |
 |---|---|---|---|
 | **Inicio** | 1 (completada con este conjunto de artefactos) | Objetivos del ciclo de vida | Visión, casos de uso significativos, riesgos y plan de E1 revisados y aceptados |
-| **Elaboración** | E1, E2, E3 | Arquitectura del ciclo de vida | Los seis casos de uso significativos funcionan de extremo a extremo; los riesgos R-01 a R-06 están neutralizados; las pruebas `windows` pasan en Windows |
+| **Elaboración** | E1, E2 (E3 solo si la evaluación de E2 deja riesgos sin neutralizar) | Arquitectura del ciclo de vida | Los seis casos de uso significativos funcionan de extremo a extremo; los riesgos R-01 a R-06 están neutralizados; las pruebas `windows` pasan en Windows |
 | **Construcción** | C1… (según el plan de desarrollo) | Capacidad operativa inicial | UC-07 a UC-10 implementados; procedimiento de actualización de yt-dlp documentado; README de instalación verificado en Windows |
 | **Transición** | T1 | Entrega del producto | Instalación desde un clon nuevo por una persona ajena al desarrollo, en Windows |
 
 | Iteración | Casos de uso | Riesgos |
 |---|---|---|
 | E1 | UC-01, UC-02, UC-03 (flujo básico) | R-01, R-02, R-03, R-12 |
-| E2 | UC-05, UC-06; flujos alternativos de UC-03 | R-04, R-05, R-10 |
-| E3 | UC-04 | R-06 |
+| E2 | UC-04, UC-05, UC-06; flujos alternativos de UC-03 | R-02, R-04, R-05, R-06, R-10 |
 
 ## 2. Artefactos
 
