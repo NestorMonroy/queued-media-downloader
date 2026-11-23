@@ -205,3 +205,40 @@ def test_audio_only_never_reuses_or_deletes_the_video_of_another_job(
     assert read_stored_job(2).output_path == str(audio_path)
     assert stream_types(video_path) == ["audio", "video"]
     assert stream_types(audio_path) == ["audio"]
+
+
+@pytest.mark.parametrize("worker_count", ["1", "2"])
+def test_enqueue_and_run_download_a_playlist_into_its_folder(
+    worker_count: str,
+    local_media_server: str,
+    tmp_path: Path,
+    read_stored_job: Callable[[int], Job],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # feed.xml: Video A (sample.mp4), Video B (other.mp4) y una lista anidada
+    # cuya única entrada vuelve a ser other.mp4.
+    main(["enqueue", f"{local_media_server}/feed.xml"])
+
+    exit_code = main(["run", "--worker-count", worker_count])
+
+    downloads = tmp_path / "downloads"
+    assert exit_code == 0
+    assert (downloads / "Local feed" / "1 - sample [sample].mp4").is_file()
+    # other.mp4 está en las dos listas y se descarga una sola vez. Con varios
+    # workers, la copia que se queda es la del primer job que lo encuentra.
+    other_files = [
+        path for path in downloads.rglob("*.mp4") if path.name.endswith("other].mp4")
+    ]
+    assert [path.relative_to(downloads) for path in other_files] in (
+        [Path("Local feed", "2 - other [other].mp4")],
+        [Path("Nested feed", "1 - other [other].mp4")],
+    )
+    playlist_job = read_stored_job(1)
+    assert playlist_job.kind is JobKind.EXPANSION
+    assert playlist_job.status is JobStatus.COMPLETED
+    assert read_stored_job(5).parent_id == 4
+    other_statuses = {read_stored_job(job_id).status for job_id in (3, 5)}
+    assert other_statuses == {JobStatus.COMPLETED, JobStatus.SKIPPED}
+    output = capsys.readouterr().out
+    assert "Job 1: found 3 entries in playlist 'Local feed'" in output
+    assert "Job 4: found 1 entry in playlist 'Nested feed'" in output

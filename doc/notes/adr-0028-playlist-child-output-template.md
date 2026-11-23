@@ -43,3 +43,4 @@ downloads\audio\Lo-fi beats\03 - First song [abc123].opus
 - Dos playlists distintas con el mismo título comparten carpeta. Los nombres de archivo llevan el id del contenido, así que no se pisan.
 - Sin el número de entradas, los índices no se rellenan. El Explorador de Windows ordena los números de forma natural, así que el orden se mantiene.
 - Un título que sea un nombre reservado de Windows (`CON`, `NUL`, …) no se trata, igual que en yt-dlp.
+- Un video que está en dos listas se descarga una vez, en la carpeta del primer job que lo encuentra; la otra copia queda `SKIPPED` (UC-04 A2). Con varios workers, cuál llega primero depende del orden de ejecución (hallado en T30).

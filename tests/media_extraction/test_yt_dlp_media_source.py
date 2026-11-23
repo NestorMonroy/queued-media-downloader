@@ -2,6 +2,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
+from yt_dlp import YoutubeDL
 
 from queued_media_downloader.jobs import (
     DownloadOptions,
@@ -287,6 +288,40 @@ def test_video_link_inside_a_list_expands_the_whole_list_with_the_option(
 
     assert isinstance(published_events[0], PlaylistEntriesFound)
     assert isinstance(published_events[-1], JobCompleted)
+
+
+class StopExpansion(BaseException):
+    """Detiene la expansión desde publish; no la captura el except Exception."""
+
+
+@pytest.mark.network
+def test_large_channel_is_expanded_lazily_page_by_page(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # R-06: con process=False, el primer lote llega tras pocas peticiones, no
+    # tras descargar todas las páginas de un canal con miles de videos.
+    request_count = 0
+    original_urlopen = YoutubeDL.urlopen
+
+    def counting_urlopen(youtube_dl: YoutubeDL, request: object) -> object:
+        nonlocal request_count
+        request_count += 1
+        return original_urlopen(youtube_dl, request)
+
+    def stop_after_the_first_batch(job_event: JobEvent) -> None:
+        if isinstance(job_event, PlaylistEntriesFound):
+            raise StopExpansion(job_event)
+
+    monkeypatch.setattr(YoutubeDL, "urlopen", counting_urlopen)
+    job = expansion_job("https://www.youtube.com/@YouTube/videos", tmp_path)
+
+    with pytest.raises(StopExpansion) as stopped:
+        media_source(tmp_path).expand(job, stop_after_the_first_batch)
+
+    [first_batch] = stopped.value.args
+    assert len(first_batch.playlist_entries) == 50
+    assert all(entry.kind is JobKind.DOWNLOAD for entry in first_batch.playlist_entries)
+    assert request_count < 10
 
 
 @pytest.mark.parametrize(
