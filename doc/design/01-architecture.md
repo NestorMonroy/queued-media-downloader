@@ -43,8 +43,10 @@ queued-media-downloader/               Proyecto (nombre de la distribución)
     │
     ├── jobs/                          Qué es un job
     │   ├── __init__.py                API pública: Job, JobKind, JobStatus, MediaKey, job events…
-    │   ├── job.py
-    │   ├── job_lifecycle.py           Transiciones permitidas
+    │   ├── job.py                     Job y JobId
+    │   ├── job_kind.py
+    │   ├── job_status.py
+    │   ├── job_lifecycle.py           Transiciones permitidas e InvalidJobTransitionError
     │   ├── job_events.py
     │   ├── media_key.py
     │   ├── playlist_context.py
