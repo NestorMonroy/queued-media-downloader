@@ -121,4 +121,6 @@ La iteración se considera cumplida si:
 
 ## 6. Evaluación
 
-*Se completa al cerrar la iteración.*
+Guion para el Evaluador: [evaluation-guide-e1.md](evaluation-guide-e1.md).
+
+*Los resultados se completan al cerrar la iteración.*
