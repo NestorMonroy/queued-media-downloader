@@ -17,6 +17,9 @@ from queued_media_downloader.jobs import (
     JobStarted,
     JobStatus,
     MediaKey,
+    PlaylistContext,
+    PlaylistEntriesFound,
+    PlaylistEntry,
     SingleMediaFound,
 )
 from queued_media_downloader.workers import WorkerMessage
@@ -31,6 +34,8 @@ DOWNLOAD_OPTIONS = DownloadOptions(
     output_template="%(title)s [%(id)s].%(ext)s",
     audio_only=False,
 )
+PLAYLIST_URL = "https://media.example/playlist?list=PL1"
+NESTED_PLAYLIST_URL = "https://media.example/playlist?list=PL2"
 PROGRESS = DownloadProgressed(
     downloaded_bytes=10, total_bytes=100, bytes_per_second=5.0, eta_seconds=18
 )
@@ -51,6 +56,51 @@ def single_media_script(url: str, media_id: str) -> dict[ScriptKey, list[JobEven
             JobCompleted(output_path=f"downloads/{media_id}.mp4"),
         ],
     }
+
+
+def video_url(media_id: str) -> str:
+    return f"https://media.example/watch?v={media_id}"
+
+
+def video_entry(
+    playlist_index: int, media_id: str, *, is_available: bool = True
+) -> PlaylistEntry:
+    """Entrada de playlist que es un video del sitio de ejemplo."""
+    return PlaylistEntry(
+        url=video_url(media_id),
+        playlist_index=playlist_index,
+        kind=JobKind.DOWNLOAD,
+        title=f"Title {media_id}",
+        media_key=MediaKey(extractor_key="Example", media_id=media_id),
+        is_available=is_available,
+    )
+
+
+def playlist_batch(
+    playlist_id: str, *playlist_entries: PlaylistEntry
+) -> PlaylistEntriesFound:
+    return PlaylistEntriesFound(
+        playlist_id=playlist_id,
+        playlist_title=f"Playlist {playlist_id}",
+        playlist_entries=playlist_entries,
+    )
+
+
+def download_script(*media_ids: str) -> dict[ScriptKey, list[JobEvent]]:
+    """Guion de descarga correcta para los videos indicados."""
+    return {
+        (JobKind.DOWNLOAD, video_url(media_id)): [
+            FormatSelected(selected_format_id="18"),
+            JobCompleted(output_path=f"downloads/{media_id}.mp4"),
+        ]
+        for media_id in media_ids
+    }
+
+
+def downloaded_urls(worker_pool: ScriptedWorkerPool) -> list[str]:
+    return [
+        job.url for job in worker_pool.submitted_jobs if job.kind is JobKind.DOWNLOAD
+    ]
 
 
 def run_queue_with(
@@ -197,3 +247,102 @@ def test_presentation_receives_the_job_as_the_event_left_it() -> None:
     ]
     assert found_statuses == [JobStatus.PENDING, JobStatus.SKIPPED]
     assert all(job is None for job_event, job in presented if job_event == PROGRESS)
+
+
+def test_playlist_batches_become_children_that_are_downloaded() -> None:
+    script: dict[ScriptKey, list[JobEvent]] = {
+        (JobKind.EXPANSION, PLAYLIST_URL): [
+            playlist_batch("PL1", video_entry(1, "a"), video_entry(2, "b")),
+            playlist_batch("PL1", video_entry(3, "c")),
+            JobCompleted(output_path=None),
+        ],
+        **download_script("a", "b", "c"),
+    }
+    job_store, worker_pool, run_queue = run_queue_with([PLAYLIST_URL], script)
+
+    run_result = run_queue.execute()
+
+    playlist_job, *children = job_store.all_jobs()
+    assert playlist_job.status is JobStatus.COMPLETED
+    assert playlist_job.kind is JobKind.EXPANSION
+    assert [child.url for child in children] == [video_url(m) for m in "abc"]
+    assert {child.parent_id for child in children} == {playlist_job.job_id}
+    assert children[2].playlist_context == PlaylistContext(
+        playlist_id="PL1",
+        playlist_title="Playlist PL1",
+        playlist_index=3,
+        playlist_entry_count=None,
+    )
+    assert {child.status for child in children} == {JobStatus.COMPLETED}
+    assert downloaded_urls(worker_pool) == [video_url(m) for m in "abc"]
+    assert run_result.failed_job_count == 0
+
+
+def test_duplicate_and_unavailable_entries_are_skipped_children() -> None:
+    script: dict[ScriptKey, list[JobEvent]] = {
+        **single_media_script(video_url("a"), "a"),
+        (JobKind.EXPANSION, PLAYLIST_URL): [
+            playlist_batch(
+                "PL1",
+                video_entry(1, "a"),  # A2: ya descargado por el job 1
+                video_entry(2, "b"),
+                video_entry(3, "b"),  # A2: repetido en el mismo lote
+                video_entry(4, "p", is_available=False),  # A3: privado
+            ),
+            playlist_batch("PL1", video_entry(5, "b")),  # A2: de un lote anterior
+            JobCompleted(output_path=None),
+        ],
+        **download_script("b"),
+    }
+    job_store, worker_pool, run_queue = run_queue_with(
+        [video_url("a"), PLAYLIST_URL], script
+    )
+
+    run_result = run_queue.execute()
+
+    children = [job for job in job_store.all_jobs() if job.parent_id is not None]
+    assert [child.status for child in children] == [
+        JobStatus.SKIPPED,
+        JobStatus.COMPLETED,
+        JobStatus.SKIPPED,
+        JobStatus.SKIPPED,
+        JobStatus.SKIPPED,
+    ]
+    assert downloaded_urls(worker_pool) == [video_url("a"), video_url("b")]
+    assert run_result.failed_job_count == 0
+
+
+def test_nested_playlist_entry_is_expanded_in_turn() -> None:
+    nested_entry = PlaylistEntry(
+        url=NESTED_PLAYLIST_URL,
+        playlist_index=2,
+        kind=JobKind.EXPANSION,
+        title="Tab",
+        media_key=None,
+        is_available=True,
+    )
+    script: dict[ScriptKey, list[JobEvent]] = {
+        (JobKind.EXPANSION, PLAYLIST_URL): [
+            playlist_batch("PL1", video_entry(1, "a"), nested_entry),
+            JobCompleted(output_path=None),
+        ],
+        (JobKind.EXPANSION, NESTED_PLAYLIST_URL): [
+            playlist_batch("PL2", video_entry(1, "d")),
+            JobCompleted(output_path=None),
+        ],
+        **download_script("a", "d"),
+    }
+    job_store, worker_pool, run_queue = run_queue_with([PLAYLIST_URL], script)
+
+    run_queue.execute()
+
+    nested_job = job_store.get(JobId(3))
+    assert nested_job.kind is JobKind.EXPANSION
+    assert nested_job.status is JobStatus.COMPLETED
+    assert nested_job.parent_id == JobId(1)
+    grandchild = job_store.get(JobId(4))
+    assert grandchild.parent_id == JobId(3)
+    assert grandchild.playlist_context is not None
+    assert grandchild.playlist_context.playlist_id == "PL2"
+    assert sorted(downloaded_urls(worker_pool)) == [video_url("a"), video_url("d")]
+    assert {job.status for job in job_store.all_jobs()} == {JobStatus.COMPLETED}

@@ -12,6 +12,8 @@ from queued_media_downloader.jobs import (
     JobKind,
     JobStatus,
     MediaKey,
+    PlaylistContext,
+    PlaylistEntry,
 )
 
 URL = "https://media.example/watch?v=abc123"
@@ -122,3 +124,106 @@ def test_fail_records_the_reason_and_message() -> None:
 def test_cancellation_cannot_be_confirmed_unless_it_was_requested() -> None:
     with pytest.raises(InvalidJobTransitionError):
         RUNNING_EXPANSION.confirm_cancellation()
+
+
+def make_running_expansion(*, whole_playlist: bool = False) -> Job:
+    """Expansión guardada como job 7 y enviada a un worker."""
+    download_options = replace(make_download_options(), whole_playlist=whole_playlist)
+    return replace(Job.new_expansion(URL, download_options), job_id=JobId(7)).start()
+
+
+def make_entry(
+    *, kind: JobKind = JobKind.DOWNLOAD, is_available: bool = True
+) -> PlaylistEntry:
+    """Tercera entrada de una playlist: un video o, con EXPANSION, otra lista."""
+    return PlaylistEntry(
+        url="https://media.example/watch?v=c",
+        playlist_index=3,
+        kind=kind,
+        title="Entry c",
+        media_key=(
+            MediaKey(extractor_key="Example", media_id="c")
+            if kind is JobKind.DOWNLOAD
+            else None
+        ),
+        is_available=is_available,
+    )
+
+
+def test_playlist_child_is_a_pending_job_linked_to_its_playlist() -> None:
+    parent = make_running_expansion()
+
+    child = Job.new_playlist_child(
+        parent, make_entry(), "PL1", "Mix", is_duplicate=False
+    )
+
+    assert child.job_id is None
+    assert child.status is JobStatus.PENDING
+    assert child.kind is JobKind.DOWNLOAD
+    assert child.url == "https://media.example/watch?v=c"
+    assert child.title == "Entry c"
+    assert child.media_key == MediaKey(extractor_key="Example", media_id="c")
+    assert child.parent_id == JobId(7)
+    assert child.playlist_context == PlaylistContext(
+        playlist_id="PL1",
+        playlist_title="Mix",
+        playlist_index=3,
+        playlist_entry_count=None,
+    )
+    assert child.download_options.format_selector == "bv*+ba/b"
+
+
+def test_nested_playlist_entry_becomes_a_pending_expansion() -> None:
+    child = Job.new_playlist_child(
+        make_running_expansion(),
+        make_entry(kind=JobKind.EXPANSION),
+        "PL1",
+        None,
+        is_duplicate=False,
+    )
+
+    assert child.kind is JobKind.EXPANSION
+    assert child.status is JobStatus.PENDING
+    assert child.media_key is None
+
+
+def test_child_does_not_inherit_the_whole_playlist_option() -> None:
+    # --playlist decide sobre la URL encolada (ADR-0027), no sobre sus entradas.
+    parent = make_running_expansion(whole_playlist=True)
+
+    child = Job.new_playlist_child(
+        parent, make_entry(), "PL1", None, is_duplicate=False
+    )
+
+    assert child.download_options.whole_playlist is False
+
+
+def test_unavailable_entry_becomes_a_skipped_child() -> None:
+    child = Job.new_playlist_child(
+        make_running_expansion(),
+        make_entry(is_available=False),
+        "PL1",
+        None,
+        is_duplicate=False,
+    )
+
+    assert child.status is JobStatus.SKIPPED
+
+
+def test_duplicate_entry_becomes_a_skipped_child() -> None:
+    child = Job.new_playlist_child(
+        make_running_expansion(), make_entry(), "PL1", None, is_duplicate=True
+    )
+
+    assert child.status is JobStatus.SKIPPED
+    assert child.media_key == MediaKey(extractor_key="Example", media_id="c")
+
+
+def test_only_a_stored_expansion_has_playlist_children() -> None:
+    unstored = Job.new_expansion(URL, make_download_options())
+    download = replace(make_running_expansion(), kind=JobKind.DOWNLOAD)
+
+    with pytest.raises(ValueError, match="stored"):
+        Job.new_playlist_child(unstored, make_entry(), "PL1", None, is_duplicate=False)
+    with pytest.raises(ValueError, match="EXPANSION"):
+        Job.new_playlist_child(download, make_entry(), "PL1", None, is_duplicate=False)

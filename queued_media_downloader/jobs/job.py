@@ -10,6 +10,7 @@ from queued_media_downloader.jobs.job_lifecycle import ensure_transition_allowed
 from queued_media_downloader.jobs.job_status import JobStatus
 from queued_media_downloader.jobs.media_key import MediaKey
 from queued_media_downloader.jobs.playlist_context import PlaylistContext
+from queued_media_downloader.jobs.playlist_entry import PlaylistEntry
 
 JobId = NewType("JobId", int)
 
@@ -47,6 +48,49 @@ class Job:
             status=JobStatus.PENDING,
             url=url,
             download_options=download_options,
+        )
+
+    @classmethod
+    def new_playlist_child(
+        cls,
+        parent: "Job",
+        playlist_entry: PlaylistEntry,
+        playlist_id: str,
+        playlist_title: str | None,
+        *,
+        is_duplicate: bool,
+    ) -> Self:
+        """Crea, aún sin guardar, el job hijo de una entrada de playlist (UC-04).
+
+        Nace SKIPPED si la entrada no está disponible (A3) o si su contenido ya
+        tiene una descarga (A2); si no, PENDING. Hereda las opciones de la
+        expansión salvo whole_playlist: --playlist decide sobre la URL
+        encolada, no sobre las de sus entradas (ADR-0027).
+        """
+        if parent.job_id is None:
+            message = "Only a stored job can have playlist children"
+            raise ValueError(message)
+        if parent.kind is not JobKind.EXPANSION:
+            message = (
+                f"Only an EXPANSION job has playlist children, not {parent.kind.value}"
+            )
+            raise ValueError(message)
+        is_skipped = is_duplicate or not playlist_entry.is_available
+        return cls(
+            job_id=None,
+            kind=playlist_entry.kind,
+            status=JobStatus.SKIPPED if is_skipped else JobStatus.PENDING,
+            url=playlist_entry.url,
+            download_options=replace(parent.download_options, whole_playlist=False),
+            parent_id=parent.job_id,
+            playlist_context=PlaylistContext(
+                playlist_id=playlist_id,
+                playlist_title=playlist_title,
+                playlist_index=playlist_entry.playlist_index,
+                playlist_entry_count=None,
+            ),
+            media_key=playlist_entry.media_key,
+            title=playlist_entry.title,
         )
 
     def transition_to(self, target_status: JobStatus) -> Self:

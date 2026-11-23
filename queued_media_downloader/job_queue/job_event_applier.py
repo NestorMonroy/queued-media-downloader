@@ -11,6 +11,10 @@ from queued_media_downloader.jobs import (
     JobCancelled,
     JobCompleted,
     JobFailed,
+    JobStatus,
+    MediaKey,
+    PlaylistEntriesFound,
+    PlaylistEntry,
     SingleMediaFound,
 )
 from queued_media_downloader.workers import WorkerMessage
@@ -39,16 +43,62 @@ class JobEventApplier:
     def apply(self, message: WorkerMessage) -> Job | None:
         """Aplica el job event del mensaje, si cambia algo del job.
 
+        Un lote de playlist no cambia la expansión: crea sus jobs hijos.
+
         Returns:
-            El job tal como quedó guardado; None si el job event solo informa
-            del avance y no cambia el job.
+            El job tal como quedó guardado; None si el job event no cambia el
+            job del mensaje.
         """
         job_event = message.job_event
+        if isinstance(job_event, PlaylistEntriesFound):
+            self._create_playlist_children(
+                self._job_store.get(message.job_id), job_event
+            )
+            return None
         if not isinstance(job_event, PERSISTENT_JOB_EVENT_TYPES):
             return None
         updated_job = self._job_after(self._job_store.get(message.job_id), job_event)
         self._job_store.update(updated_job)
         return updated_job
+
+    def _create_playlist_children(
+        self, expansion: Job, playlist_batch: PlaylistEntriesFound
+    ) -> None:
+        """Guarda de una vez un job hijo por entrada del lote (UC-04, paso 4).
+
+        Una entrada repetida dentro del mismo lote cuenta como duplicada (A2),
+        aunque su primera aparición aún no esté guardada.
+        """
+        claimed_media_keys: set[MediaKey] = set()
+        children: list[Job] = []
+        for playlist_entry in playlist_batch.playlist_entries:
+            child = Job.new_playlist_child(
+                expansion,
+                playlist_entry,
+                playlist_batch.playlist_id,
+                playlist_batch.playlist_title,
+                is_duplicate=self._is_duplicate(
+                    playlist_entry, claimed_media_keys, expansion
+                ),
+            )
+            if child.media_key is not None and child.status is JobStatus.PENDING:
+                claimed_media_keys.add(child.media_key)
+            children.append(child)
+        self._job_store.create_many(children)
+
+    def _is_duplicate(
+        self,
+        playlist_entry: PlaylistEntry,
+        claimed_media_keys: set[MediaKey],
+        expansion: Job,
+    ) -> bool:
+        """Indica si el contenido de la entrada ya tiene una descarga (A2)."""
+        media_key = playlist_entry.media_key
+        if media_key is None:
+            return False
+        return media_key in claimed_media_keys or self._job_store.has_active_download(
+            media_key, audio_only=expansion.download_options.audio_only
+        )
 
     def _job_after(self, job: Job, job_event: PersistentJobEvent) -> Job:
         """Devuelve el job tal como queda tras job_event."""

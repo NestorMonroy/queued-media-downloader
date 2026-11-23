@@ -25,3 +25,4 @@ Con las playlists (UC-04), un enlace como `youtube.com/watch?v=XXXX&list=YYYY` a
 - Las URL de lista, de canal o de pestaña se expanden igual que antes.
 - Pruebas con red (marcador `network`): el enlace de "Me at the zoo" dentro de una lista se expande a un solo contenido y, con la opción, a la lista entera. Se ejecutan en la evaluación de E2.
 - Los jobs guardados antes de T43 no tienen `whole_playlist` en sus download options; al leerlos vale `False`.
+- La opción decide sobre la URL encolada, no sobre las de sus entradas: los jobs hijos de una playlist nacen con `whole_playlist=False` (T28). Una entrada que es una lista pura (una pestaña de canal) se expande igual.

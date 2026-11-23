@@ -96,7 +96,7 @@ def presented_line(job_event: JobEvent, job: Job | None = None) -> str:
                     PlaylistEntry(
                         url="https://media.example/a",
                         playlist_index=1,
-                        kind=JobKind.DOWNLOAD,
+                        kind=JobKind.EXPANSION,
                         title=None,
                         media_key=None,
                         is_available=True,
