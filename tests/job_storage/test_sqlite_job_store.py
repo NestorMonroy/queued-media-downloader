@@ -218,6 +218,34 @@ def test_next_pending_jobs_come_in_creation_order_up_to_the_limit(
     assert [job.job_id for job in next_pending] == [first_id, third_id]
 
 
+def test_jobs_with_the_given_statuses_come_in_creation_order(
+    job_store: SqliteJobStore,
+) -> None:
+    job_ids = [
+        job_store.create(make_job(f"https://media.example/{n}")) for n in range(4)
+    ]
+    for job_id in (job_ids[3], job_ids[1]):
+        job_store.update(job_store.get(job_id).transition_to(JobStatus.RUNNING))
+    job_store.update(
+        job_store.get(job_ids[1]).transition_to(JobStatus.CANCELLATION_REQUESTED)
+    )
+
+    found_jobs = job_store.get_with_status(
+        {JobStatus.RUNNING, JobStatus.CANCELLATION_REQUESTED}
+    )
+
+    assert [(job.job_id, job.status) for job in found_jobs] == [
+        (job_ids[1], JobStatus.CANCELLATION_REQUESTED),
+        (job_ids[3], JobStatus.RUNNING),
+    ]
+
+
+def test_no_status_finds_no_jobs(job_store: SqliteJobStore) -> None:
+    job_store.create(make_job())
+
+    assert job_store.get_with_status(set()) == []
+
+
 def test_active_download_is_detected_by_media_key(job_store: SqliteJobStore) -> None:
     job_store.update(make_download(job_store, JobStatus.PENDING))
 

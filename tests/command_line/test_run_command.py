@@ -5,7 +5,15 @@ from pathlib import Path
 import pytest
 
 from queued_media_downloader.command_line import main
-from queued_media_downloader.jobs import FailureReason, Job, JobKind, JobStatus
+from queued_media_downloader.job_storage.sqlite_connection import open_database
+from queued_media_downloader.job_storage.sqlite_job_store import SqliteJobStore
+from queued_media_downloader.jobs import (
+    FailureReason,
+    Job,
+    JobId,
+    JobKind,
+    JobStatus,
+)
 from tests.command_line.conftest import ENVIRONMENT_PREFIX
 
 
@@ -242,3 +250,35 @@ def test_enqueue_and_run_download_a_playlist_into_its_folder(
     output = capsys.readouterr().out
     assert "Job 1: found 3 entries in playlist 'Local feed'" in output
     assert "Job 4: found 1 entry in playlist 'Nested feed'" in output
+
+
+def test_run_recovers_a_job_left_running_and_finishes_it(
+    local_media_server: str,
+    state_directory: Path,
+    read_stored_job: Callable[[int], Job],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    main(["enqueue", f"{local_media_server}/sample.mp4"])
+    # Un run anterior se cerró a la fuerza con el job en curso.
+    connection = open_database(state_directory / "queue.sqlite3")
+    try:
+        job_store = SqliteJobStore(connection)
+        job_store.update(job_store.get(JobId(1)).start())
+    finally:
+        connection.close()
+
+    exit_code = main(["run"])
+
+    assert exit_code == 0
+    assert read_stored_job(1).status is JobStatus.COMPLETED
+    assert "Recovered 1 interrupted job" in capsys.readouterr().out
+
+
+def test_run_without_interrupted_jobs_does_not_mention_recovery(
+    local_media_server: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    main(["enqueue", f"{local_media_server}/sample.mp4"])
+
+    main(["run"])
+
+    assert "Recovered" not in capsys.readouterr().out

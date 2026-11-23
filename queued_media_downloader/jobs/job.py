@@ -129,6 +129,24 @@ class Job:
         """El worker confirmó la cancelación pedida."""
         return self.transition_to(JobStatus.CANCELLED)
 
+    def recover_from_interruption(self) -> Self:
+        """Corrige un job que un cierre inesperado dejó a medias (UC-06, paso 2).
+
+        Un job en curso vuelve a la cola y conserva lo que registró, como el
+        formato elegido; uno con la cancelación pedida queda cancelado.
+
+        Raises:
+            ValueError: Si el job no estaba en curso ni cancelándose.
+        """
+        match self.status:
+            case JobStatus.RUNNING:
+                return self.transition_to(JobStatus.PENDING)
+            case JobStatus.CANCELLATION_REQUESTED:
+                return self.transition_to(JobStatus.CANCELLED)
+            case _:
+                message = f"A {self.status.value} job was not interrupted"
+                raise ValueError(message)
+
     def _as_download(self, media_key: MediaKey, title: str) -> Self:
         """Copia de una expansión convertida en la descarga de media_key."""
         if self.kind is not JobKind.EXPANSION:

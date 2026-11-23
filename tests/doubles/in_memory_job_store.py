@@ -1,6 +1,6 @@
 """JobStore en memoria con las mismas reglas que SqliteJobStore."""
 
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import replace
 
 from queued_media_downloader.job_storage import (
@@ -56,6 +56,10 @@ class InMemoryJobStore:
     def all_jobs(self) -> list[Job]:
         """Todos los jobs guardados, en orden de creación (solo para pruebas)."""
         return list(self._jobs.values())
+
+    def get_with_status(self, statuses: Collection[JobStatus]) -> list[Job]:
+        """Devuelve los jobs en alguno de esos estados, en orden de creación."""
+        return [job for job in self._jobs.values() if job.status in statuses]
 
     def has_active_download(self, media_key: MediaKey, *, audio_only: bool) -> bool:
         """Indica si hay una descarga no omitida del contenido con ese tipo."""

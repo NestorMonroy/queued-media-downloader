@@ -238,3 +238,27 @@ def test_only_a_stored_expansion_has_playlist_children() -> None:
         child_of(unstored, make_entry())
     with pytest.raises(ValueError, match="EXPANSION"):
         child_of(download, make_entry())
+
+
+def test_running_job_interrupted_returns_to_pending() -> None:
+    running = make_running_expansion()
+
+    assert running.recover_from_interruption().status is JobStatus.PENDING
+
+
+def test_job_interrupted_while_cancelling_ends_cancelled() -> None:
+    cancelling = make_running_expansion().transition_to(
+        JobStatus.CANCELLATION_REQUESTED
+    )
+
+    assert cancelling.recover_from_interruption().status is JobStatus.CANCELLED
+
+
+@pytest.mark.parametrize(
+    "status", [JobStatus.PENDING, JobStatus.COMPLETED, JobStatus.FAILED]
+)
+def test_only_an_interrupted_job_can_be_recovered(status: JobStatus) -> None:
+    job = replace(make_running_expansion(), status=status)
+
+    with pytest.raises(ValueError, match="interrupted"):
+        job.recover_from_interruption()

@@ -2,7 +2,7 @@
 
 import json
 import sqlite3
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -123,6 +123,16 @@ class SqliteJobStore:
         rows = self._connection.execute(
             f"{SELECT_JOB_COLUMNS} WHERE status = ? ORDER BY id LIMIT ?",
             (JobStatus.PENDING.value, limit),
+        ).fetchall()
+        return [_job_from_row(row) for row in rows]
+
+    def get_with_status(self, statuses: Collection[JobStatus]) -> list[Job]:
+        """Devuelve los jobs en alguno de esos estados, en orden de creación."""
+        status_values = [status.value for status in statuses]
+        placeholders = ", ".join("?" * len(status_values))
+        rows = self._connection.execute(
+            f"{SELECT_JOB_COLUMNS} WHERE status IN ({placeholders}) ORDER BY id",
+            status_values,
         ).fetchall()
         return [_job_from_row(row) for row in rows]
 

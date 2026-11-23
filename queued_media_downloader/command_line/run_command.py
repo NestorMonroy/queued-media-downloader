@@ -20,7 +20,11 @@ from queued_media_downloader.ffmpeg_discovery import (
     FfmpegSource,
     FfmpegUnavailableError,
 )
-from queued_media_downloader.job_queue import RunQueue
+from queued_media_downloader.job_queue import (
+    RecoverInterruptedJobs,
+    RecoveryResult,
+    RunQueue,
+)
 
 # Cómo se presenta cada origen de ffmpeg al arrancar la cola.
 FFMPEG_SOURCE_DESCRIPTIONS = {
@@ -61,6 +65,8 @@ def run_run_command(arguments: argparse.Namespace) -> int:
         open_job_store(settings.state_directory) as job_store,
         open_worker_pool(settings, ffmpeg_installation.ffmpeg_location) as worker_pool,
     ):
+        # Antes de enviar ningún job (UC-06): nada queda RUNNING sin worker.
+        _report_recovery(RecoverInterruptedJobs(job_store).execute())
         run_result = RunQueue(
             job_store, worker_pool, present=JobPresenter(sys.stdout).present
         ).execute()
@@ -71,6 +77,19 @@ def run_run_command(arguments: argparse.Namespace) -> int:
     print(f"All jobs finished; {run_result.failed_job_count} {noun} failed")
     print(f"See the log for details: {log_path}")
     return ExitCode.JOBS_FAILED
+
+
+def _report_recovery(recovery_result: RecoveryResult) -> None:
+    """Avisa de los jobs que dejó a medias un cierre inesperado, si los hay."""
+    recovered_job_count = recovery_result.recovered_job_count
+    if recovered_job_count == 0:
+        return
+    noun = "job" if recovered_job_count == 1 else "jobs"
+    print(
+        f"Recovered {recovered_job_count} interrupted {noun}: "
+        f"{recovery_result.requeued_job_count} back in the queue, "
+        f"{recovery_result.cancelled_job_count} cancelled"
+    )
 
 
 def _describe_ffmpeg(ffmpeg_installation: FfmpegInstallation) -> str:

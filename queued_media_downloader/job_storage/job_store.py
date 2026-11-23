@@ -1,9 +1,9 @@
 """Contrato de persistencia de los jobs."""
 
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from typing import Protocol
 
-from queued_media_downloader.jobs import Job, JobId, MediaKey
+from queued_media_downloader.jobs import Job, JobId, JobStatus, MediaKey
 
 
 class JobNotFoundError(Exception):
@@ -63,6 +63,10 @@ class JobStore(Protocol):
 
     def get_next_pending(self, limit: int) -> list[Job]:
         """Devuelve hasta limit jobs pendientes, en orden de creación."""
+        ...
+
+    def get_with_status(self, statuses: Collection[JobStatus]) -> list[Job]:
+        """Devuelve los jobs en alguno de esos estados, en orden de creación."""
         ...
 
     def has_active_download(self, media_key: MediaKey, *, audio_only: bool) -> bool:
