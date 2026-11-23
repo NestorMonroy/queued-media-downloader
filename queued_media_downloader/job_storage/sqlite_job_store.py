@@ -1,0 +1,197 @@
+"""Implementación de JobStore sobre SQLite."""
+
+import json
+import sqlite3
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+
+from queued_media_downloader.job_storage.job_store import (
+    DuplicateActiveDownloadError,
+    JobNotFoundError,
+)
+from queued_media_downloader.jobs import (
+    DownloadOptions,
+    FailureReason,
+    Job,
+    JobId,
+    JobKind,
+    JobStatus,
+    MediaKey,
+)
+
+SELECT_JOB_COLUMNS = """
+    SELECT id, kind, status, url, extractor_key, media_id, title,
+           selected_format_id, download_options, output_path, attempt_count,
+           failure_reason, failure_message
+    FROM jobs
+"""
+
+INSERT_JOB = """
+    INSERT INTO jobs (
+        kind, status, url, extractor_key, media_id, title, selected_format_id,
+        download_options, output_path, attempt_count, failure_reason,
+        failure_message, created_at, updated_at
+    ) VALUES (
+        :kind, :status, :url, :extractor_key, :media_id, :title,
+        :selected_format_id, :download_options, :output_path, :attempt_count,
+        :failure_reason, :failure_message, :now, :now
+    )
+"""
+
+UPDATE_JOB = """
+    UPDATE jobs SET
+        kind = :kind, status = :status, url = :url,
+        extractor_key = :extractor_key, media_id = :media_id, title = :title,
+        selected_format_id = :selected_format_id,
+        download_options = :download_options, output_path = :output_path,
+        attempt_count = :attempt_count, failure_reason = :failure_reason,
+        failure_message = :failure_message, updated_at = :now
+    WHERE id = :job_id
+"""
+
+# Mismo criterio que el índice unique_active_download_per_media.
+SELECT_ACTIVE_DOWNLOAD = """
+    SELECT 1 FROM jobs
+    WHERE kind = 'DOWNLOAD' AND extractor_key = ? AND media_id = ?
+      AND status <> 'SKIPPED'
+    LIMIT 1
+"""
+
+DUPLICATE_MEDIA_INDEX_MESSAGE = "UNIQUE constraint failed: jobs.extractor_key"
+
+
+class SqliteJobStore:
+    """Guarda los jobs en la tabla jobs de una base de datos SQLite."""
+
+    def __init__(self, connection: sqlite3.Connection) -> None:
+        """Usa una conexión ya abierta con open_database."""
+        self._connection = connection
+
+    def create(self, job: Job) -> JobId:
+        """Guarda un job nuevo y devuelve el identificador que se le asignó."""
+        with self._connection:
+            cursor = self._execute_write(INSERT_JOB, job)
+        return JobId(cursor.lastrowid or 0)
+
+    def get(self, job_id: JobId) -> Job:
+        """Devuelve el job guardado; JobNotFoundError si no existe."""
+        row = self._connection.execute(
+            f"{SELECT_JOB_COLUMNS} WHERE id = ?", (job_id,)
+        ).fetchone()
+        if row is None:
+            raise JobNotFoundError(job_id)
+        return _job_from_row(row)
+
+    def update(self, job: Job) -> None:
+        """Sustituye el job guardado por esta versión."""
+        if job.job_id is None:
+            message = "Job must be stored before it can be updated"
+            raise ValueError(message)
+        with self._connection:
+            cursor = self._execute_write(UPDATE_JOB, job)
+        if cursor.rowcount == 0:
+            raise JobNotFoundError(job.job_id)
+
+    def get_next_pending(self, limit: int) -> list[Job]:
+        """Devuelve hasta limit jobs pendientes, en orden de creación."""
+        rows = self._connection.execute(
+            f"{SELECT_JOB_COLUMNS} WHERE status = ? ORDER BY id LIMIT ?",
+            (JobStatus.PENDING.value, limit),
+        ).fetchall()
+        return [_job_from_row(row) for row in rows]
+
+    def has_active_download(self, media_key: MediaKey) -> bool:
+        """Indica si hay un job de descarga no omitido para ese contenido."""
+        row = self._connection.execute(
+            SELECT_ACTIVE_DOWNLOAD, (media_key.extractor_key, media_key.media_id)
+        ).fetchone()
+        return row is not None
+
+    def _execute_write(self, statement: str, job: Job) -> sqlite3.Cursor:
+        """Ejecuta una escritura y traduce la violación del índice de duplicados."""
+        try:
+            return self._connection.execute(statement, _parameters_from(job))
+        except sqlite3.IntegrityError as integrity_error:
+            if job.media_key is not None and DUPLICATE_MEDIA_INDEX_MESSAGE in str(
+                integrity_error
+            ):
+                raise DuplicateActiveDownloadError(job.media_key) from integrity_error
+            raise
+
+
+def _parameters_from(job: Job) -> dict[str, Any]:
+    """Convierte un job en los parámetros con nombre de las sentencias SQL."""
+    media_key = job.media_key
+    return {
+        "job_id": job.job_id,
+        "kind": job.kind.value,
+        "status": job.status.value,
+        "url": job.url,
+        "extractor_key": media_key.extractor_key if media_key else None,
+        "media_id": media_key.media_id if media_key else None,
+        "title": job.title,
+        "selected_format_id": job.selected_format_id,
+        "download_options": _serialize_download_options(job.download_options),
+        "output_path": job.output_path,
+        "attempt_count": job.attempt_count,
+        "failure_reason": job.failure_reason.value if job.failure_reason else None,
+        "failure_message": job.failure_message,
+        "now": datetime.now(UTC).isoformat(),
+    }
+
+
+def _job_from_row(row: tuple[Any, ...]) -> Job:
+    """Reconstruye un job a partir de una fila de SELECT_JOB_COLUMNS."""
+    (
+        job_id,
+        kind,
+        status,
+        url,
+        extractor_key,
+        media_id,
+        title,
+        selected_format_id,
+        download_options,
+        output_path,
+        attempt_count,
+        failure_reason,
+        failure_message,
+    ) = row
+    return Job(
+        job_id=JobId(job_id),
+        kind=JobKind(kind),
+        status=JobStatus(status),
+        url=url,
+        download_options=_deserialize_download_options(download_options),
+        media_key=MediaKey(extractor_key, media_id) if extractor_key else None,
+        title=title,
+        selected_format_id=selected_format_id,
+        attempt_count=attempt_count,
+        failure_reason=FailureReason(failure_reason) if failure_reason else None,
+        failure_message=failure_message,
+        output_path=output_path,
+    )
+
+
+def _serialize_download_options(download_options: DownloadOptions) -> str:
+    """Guarda las download options como JSON (diseño, Parte 2, §2.3)."""
+    return json.dumps(
+        {
+            "format_selector": download_options.format_selector,
+            "download_directory": str(download_options.download_directory),
+            "output_template": download_options.output_template,
+            "audio_only": download_options.audio_only,
+        }
+    )
+
+
+def _deserialize_download_options(serialized: str) -> DownloadOptions:
+    """Reconstruye las download options guardadas como JSON."""
+    values = json.loads(serialized)
+    return DownloadOptions(
+        format_selector=values["format_selector"],
+        download_directory=Path(values["download_directory"]),
+        output_template=values["output_template"],
+        audio_only=values["audio_only"],
+    )

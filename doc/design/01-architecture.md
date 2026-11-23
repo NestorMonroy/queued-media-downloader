@@ -69,7 +69,8 @@ queued-media-downloader/               Proyecto (nombre de la distribución)
     │   ├── __init__.py                API pública: JobStore, JobRequestInbox
     │   ├── job_store.py               Contrato
     │   ├── job_request_inbox.py       Contrato
-    │   ├── sqlite_connection.py       Implementación (interna)
+    │   ├── sqlite_connection.py       Implementación (interna): apertura y PRAGMAs
+    │   ├── sqlite_migrations.py       Implementación (interna): aplica las migraciones
     │   ├── sqlite_job_store.py        Implementación (interna)
     │   ├── sqlite_job_request_inbox.py
     │   └── migrations/0001_create_jobs.sql
