@@ -71,6 +71,12 @@ def test_package_without_violations_keeps_every_contract(tmp_path: Path) -> None
             id="component imports an internal module of another",
         ),
         pytest.param(
+            "command_line/internal_import.py",
+            "import queued_media_downloader.job_storage.internal_module\n",
+            "job_storage is only used through its public API",
+            id="command_line outside composition_root imports an internal module",
+        ),
+        pytest.param(
             "workers/yt_dlp_import.py",
             "import yt_dlp\n",
             "Only media_extraction imports yt_dlp",

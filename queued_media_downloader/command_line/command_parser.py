@@ -4,19 +4,23 @@ import argparse
 from collections.abc import Sequence
 from importlib.metadata import version
 
+from queued_media_downloader.command_line.enqueue_command import add_enqueue_command
 from queued_media_downloader.command_line.exit_code import ExitCode
 
 DISTRIBUTION_NAME = "queued-media-downloader"
 
 
 def build_command_parser() -> argparse.ArgumentParser:
-    """Crea el intérprete de argumentos con las opciones globales del programa."""
+    """Crea el intérprete de argumentos con las opciones y los comandos."""
     command_parser = argparse.ArgumentParser(prog=DISTRIBUTION_NAME)
     command_parser.add_argument(
         "--version",
         action="version",
         version=f"{DISTRIBUTION_NAME} {version(DISTRIBUTION_NAME)}",
     )
+    command_parser.set_defaults(program_name=DISTRIBUTION_NAME)
+    commands = command_parser.add_subparsers(metavar="COMMAND", required=True)
+    add_enqueue_command(commands)
     return command_parser
 
 
@@ -32,12 +36,13 @@ def main(arguments: Sequence[str] | None = None) -> int:
     """
     command_parser = build_command_parser()
     try:
-        command_parser.parse_args(arguments)
+        parsed_arguments = command_parser.parse_args(arguments)
     except SystemExit as parser_exit:
         # argparse termina el proceso al mostrar la versión o un error de uso;
         # se convierte en un código de salida para que main sea comprobable.
         return _exit_code_from(parser_exit)
-    return ExitCode.SUCCESS
+    exit_code: int = parsed_arguments.run_command(parsed_arguments)
+    return exit_code
 
 
 def _exit_code_from(parser_exit: SystemExit) -> int:

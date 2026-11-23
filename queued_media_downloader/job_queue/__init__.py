@@ -1,1 +1,8 @@
 """Lo que el usuario hace con la cola: encolar, ejecutar, cancelar, reintentar."""
+
+from queued_media_downloader.job_queue.enqueue_media import (
+    EnqueueMedia,
+    InvalidUrlError,
+)
+
+__all__ = ["EnqueueMedia", "InvalidUrlError"]

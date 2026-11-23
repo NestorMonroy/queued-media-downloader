@@ -105,56 +105,80 @@ layers = [
 
 # API pública: fuera de un componente solo se importa su __init__.py. Un contrato
 # por componente; uno compartido autorizaría a cada paquete a usar el interior
-# de los demás (ADR-0017). Cuando exista command_line.composition_root (T15), se
-# añade a allowed_importers: import-linter no admite módulos que aún no existen.
+# de los demás (ADR-0017). La única excepción es command_line.composition_root,
+# que crea las implementaciones.
 
 [[tool.importlinter.contracts]]
 name = "jobs is only used through its public API"
 type = "protected"
 protected_modules = ["queued_media_downloader.jobs.*"]
-allowed_importers = ["queued_media_downloader.jobs"]
+allowed_importers = [
+    "queued_media_downloader.jobs",
+    "queued_media_downloader.command_line.composition_root",
+]
 
 [[tool.importlinter.contracts]]
 name = "job_queue is only used through its public API"
 type = "protected"
 protected_modules = ["queued_media_downloader.job_queue.*"]
-allowed_importers = ["queued_media_downloader.job_queue"]
+allowed_importers = [
+    "queued_media_downloader.job_queue",
+    "queued_media_downloader.command_line.composition_root",
+]
 
 [[tool.importlinter.contracts]]
 name = "job_storage is only used through its public API"
 type = "protected"
 protected_modules = ["queued_media_downloader.job_storage.*"]
-allowed_importers = ["queued_media_downloader.job_storage"]
+allowed_importers = [
+    "queued_media_downloader.job_storage",
+    "queued_media_downloader.command_line.composition_root",
+]
 
 [[tool.importlinter.contracts]]
 name = "workers is only used through its public API"
 type = "protected"
 protected_modules = ["queued_media_downloader.workers.*"]
-allowed_importers = ["queued_media_downloader.workers"]
+allowed_importers = [
+    "queued_media_downloader.workers",
+    "queued_media_downloader.command_line.composition_root",
+]
 
 [[tool.importlinter.contracts]]
 name = "media_extraction is only used through its public API"
 type = "protected"
 protected_modules = ["queued_media_downloader.media_extraction.*"]
-allowed_importers = ["queued_media_downloader.media_extraction"]
+allowed_importers = [
+    "queued_media_downloader.media_extraction",
+    "queued_media_downloader.command_line.composition_root",
+]
 
 [[tool.importlinter.contracts]]
 name = "ffmpeg_discovery is only used through its public API"
 type = "protected"
 protected_modules = ["queued_media_downloader.ffmpeg_discovery.*"]
-allowed_importers = ["queued_media_downloader.ffmpeg_discovery"]
+allowed_importers = [
+    "queued_media_downloader.ffmpeg_discovery",
+    "queued_media_downloader.command_line.composition_root",
+]
 
 [[tool.importlinter.contracts]]
 name = "diagnostics is only used through its public API"
 type = "protected"
 protected_modules = ["queued_media_downloader.diagnostics.*"]
-allowed_importers = ["queued_media_downloader.diagnostics"]
+allowed_importers = [
+    "queued_media_downloader.diagnostics",
+    "queued_media_downloader.command_line.composition_root",
+]
 
 [[tool.importlinter.contracts]]
 name = "configuration is only used through its public API"
 type = "protected"
 protected_modules = ["queued_media_downloader.configuration.*"]
-allowed_importers = ["queued_media_downloader.configuration"]
+allowed_importers = [
+    "queued_media_downloader.configuration",
+    "queued_media_downloader.command_line.composition_root",
+]
 
 [[tool.importlinter.contracts]]
 name = "command_line is only used through its public API"

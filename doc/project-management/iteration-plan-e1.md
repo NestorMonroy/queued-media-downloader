@@ -64,7 +64,7 @@ Roles ([caso de desarrollo, §5](../process/development-case.md#roles)): **Respo
 | T06 | `jobs/`: `Job`, `JobKind`, `JobStatus`, `MediaKey`, `DownloadOptions`, `FailureReason` y `job_lifecycle` | Agente | Prueba de la tabla completa de transiciones, permitidas y rechazadas | T02 |
 | T07 | `job_storage/`: contratos, `SqliteJobStore`, migración `0001_create_jobs.sql` y PRAGMAs | Agente | Pruebas de integración sobre SQLite real, incluido el índice de duplicados | T06 |
 | T08 | `configuration/`: `Settings` y carga con su orden de prioridad | Agente | Pruebas de prioridad entre argumentos, entorno, `config.toml` y valores por defecto | T02 |
-| T09 | `job_queue/enqueue_media.py` y comando `enqueue` | Agente | `enqueue URL` crea un job `EXPANSION` `PENDING`; una URL no válida no crea ninguno | T07, T08 |
+| T09 | `job_queue/enqueue_media.py`, comando `enqueue` y `composition_root` mínimo (abre el job store; se autoriza en los contratos `protected`) | Agente | `enqueue URL` crea un job `EXPANSION` `PENDING`; una URL no válida no crea ninguno | T07, T08 |
 
 ### 4.4 Slice B: descargar sin unir (UC-03, servidor HTTP local)
 
@@ -75,7 +75,7 @@ Roles ([caso de desarrollo, §5](../process/development-case.md#roles)): **Respo
 | T12 | `media_extraction/`: `download`, `SelectedFormatRecorder`, `FinalPathRecorder`, `progress_event_translator` y `failure_classifier` | Agente | Pruebas de contrato con las excepciones reales de yt-dlp; descarga contra el servidor local | T11 |
 | T13 | `workers/`: contrato `WorkerPool`, `ProcessWorkerPool` y `worker_loop` (`RunJob`, `ShutDown`; sin cancelación ni reciclado) | Agente | Pruebas con `get_context("spawn")` y `FakeMediaSource` | T10, T11 |
 | T14 | `job_queue/`: `RunQueue` (sin job requests) y `JobEventApplier` | Agente | Pruebas con `ScriptedWorkerPool` e `InMemoryJobStore` | T07, T13 |
-| T15 | Comando `run`, `composition_root` (y su autorización en los contratos `protected`, que no admiten módulos inexistentes) y presentación del progreso | Agente | `enqueue` + `run` descargan un archivo del servidor local y el job queda `COMPLETED` | T09, T12, T14 |
+| T15 | Comando `run`, `composition_root` completo (creado en T09) y presentación del progreso | Agente | `enqueue` + `run` descargan un archivo del servidor local y el job queda `COMPLETED` | T09, T12, T14 |
 
 ### 4.5 Slice C: descargar uniendo con ffmpeg (UC-03 completo)
 
