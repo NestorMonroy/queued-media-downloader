@@ -100,8 +100,9 @@ queued-media-downloader/               Proyecto (nombre de la distribución)
     ├── ffmpeg_discovery/              Dónde está ffmpeg y si es válido
     │   ├── __init__.py                API pública: FfmpegLocator, FfmpegInstallation
     │   ├── ffmpeg_locator.py          Contrato
-    │   ├── vendored_ffmpeg_locator.py
-    │   └── ffmpeg_binary_verifier.py
+    │   ├── file_system_ffmpeg_locator.py  Orden de ADR-0006: configurado, vendor/ y PATH
+    │   ├── vendored_build.py          Comprobación de la build contra SOURCE.md
+    │   └── checksum_cache.py          SHA-256 recalculado solo si cambian tamaño o fecha
     │
     ├── diagnostics/
     │   ├── __init__.py                API pública: DiagnoseEnvironment

@@ -82,7 +82,7 @@ Roles ([caso de desarrollo, §5](../process/development-case.md#roles)): **Respo
 | ID | Tarea | Rol | Terminada cuando | Depende de |
 |---|---|---|---|---|
 | T16 | `ffmpeg_discovery/`: localización (configurada y `vendor/`), verificación con `-version`, punteros de Git LFS y caché del hash | Agente | Pruebas con archivos ficticios | T04 |
-| T17 | Descarga de extremo a extremo con unión de audio y video, y efecto de `--audio-only` (extracción del audio, que requiere ffmpeg) | Agente | Un video y un audio generados con ffmpeg se descargan del servidor local y se unen en un solo archivo; con `--audio-only` queda solo el audio | T15, T16 |
+| T17 | Verificación de ffmpeg al arrancar `run` (UC-03, paso 2), descarga de extremo a extremo con unión de audio y video, y efecto de `--audio-only` (extracción del audio, que requiere ffmpeg) | Agente | Un video y un audio generados con ffmpeg se descargan del servidor local y se unen en un solo archivo; con `--audio-only` queda solo el audio | T15, T16 |
 
 ### 4.6 Slice D: diagnosticar (UC-01)
 
