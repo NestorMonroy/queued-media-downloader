@@ -16,3 +16,5 @@ class MediaSourceSettings:
     ffmpeg_location: Path | None
     max_filename_length: int
     progress_interval_seconds: float
+    # Entradas por lote de PlaylistEntriesFound (UC-04, paso 3).
+    playlist_batch_size: int = 50

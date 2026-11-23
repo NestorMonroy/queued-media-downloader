@@ -30,6 +30,7 @@ Cada decisión se registra en un archivo con: contexto, opciones consideradas, d
 | [0024](adr-0024-verification-by-tdd-and-review-focus.md) | Verificación por TDD y revisión centrada en las pruebas | Aceptada |
 | [0025](adr-0025-reference-material-distribution.md) | Distribución del material de referencia | Aceptada |
 | [0026](adr-0026-smart-app-control-precondition.md) | Smart App Control desactivado como precondición de E1 | Aceptada |
+| [0027](adr-0027-video-links-inside-lists.md) | Un enlace a un video dentro de una lista descarga solo el video | Aceptada |
 
 ## Convenciones de este registro
 

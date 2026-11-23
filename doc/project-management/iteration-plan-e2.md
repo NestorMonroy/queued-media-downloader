@@ -105,7 +105,7 @@ Los slices A, B y C pueden avanzar en paralelo. T33 es el primer punto de decisi
 | ID | Decisión | Cuándo |
 |---|---|---|
 | D1 | Implementación para Windows del `ProcessTreeTerminator` (ADR-0013 dejó el contrato, no la implementación) | T33 |
-| D2 | Una URL de un video dentro de una lista (`watch?v=…&list=…`): descargar solo el video o la lista entera. Por defecto, yt-dlp descarga la lista | T27 |
+| D2 | Una URL de un video dentro de una lista (`watch?v=…&list=…`): descargar solo el video o la lista entera. Por defecto, yt-dlp descarga la lista | T27, **resuelta**: solo el video ([ADR-0027](../notes/adr-0027-video-links-inside-lists.md)) |
 | D3 | Plantilla por defecto de los hijos de una playlist (`playlist_output_template`): carpeta por playlist, índice y longitud | T29 |
 
 ---

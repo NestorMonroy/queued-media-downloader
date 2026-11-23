@@ -94,6 +94,8 @@ queued-media-downloader/               Proyecto (nombre de la distribución)
     │   ├── media_source_settings.py   Configuración común a los jobs de un worker
     │   ├── javascript_runtime.py      Deno que usa yt-dlp (valor público, sin yt_dlp)
     │   ├── yt_dlp_javascript_runtime.py  Pregunta a yt-dlp qué deno usará
+    │   ├── yt_dlp_expansion.py        Un contenido o una playlist por lotes; sigue redirecciones
+    │   ├── yt_dlp_playlist_entries.py Entradas de yt-dlp → PlaylistEntry (tipo, media key, disponibilidad)
     │   ├── yt_dlp_media_source.py
     │   ├── yt_dlp_parameters.py
     │   ├── output_template_builder.py

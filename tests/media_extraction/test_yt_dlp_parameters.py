@@ -42,6 +42,8 @@ def test_parameters_carry_the_job_options_and_the_fixed_values() -> None:
     assert parameters["trim_file_name"] == 150
     assert parameters["js_runtimes"] == {"deno": {}}
     assert parameters["continuedl"] is True
+    # Un enlace a un video dentro de una lista descarga solo el video (D2).
+    assert parameters["noplaylist"] is True
     assert parameters["noprogress"] is True
     assert isinstance(parameters["logger"], YtDlpLogger)
 

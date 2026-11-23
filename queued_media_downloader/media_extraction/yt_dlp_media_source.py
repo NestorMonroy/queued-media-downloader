@@ -1,16 +1,10 @@
 """MediaSource implementada con la librería yt-dlp."""
 
-from typing import Any
-
 from yt_dlp import YoutubeDL
 
 from queued_media_downloader.jobs import (
-    FailureReason,
     Job,
     JobCompleted,
-    JobFailed,
-    MediaKey,
-    SingleMediaFound,
 )
 from queued_media_downloader.media_extraction.failure_classifier import (
     classify_failure,
@@ -28,13 +22,10 @@ from queued_media_downloader.media_extraction.recording_postprocessors import (
     FinalPathRecorder,
     SelectedFormatRecorder,
 )
+from queued_media_downloader.media_extraction.yt_dlp_expansion import expand_url
 from queued_media_downloader.media_extraction.yt_dlp_parameters import (
     build_yt_dlp_parameters,
 )
-
-# Tipos de resultado de yt-dlp que son un solo contenido. Un multi_video (un
-# contenido partido en varios videos) también lo es (diseño, Parte 2, §1.2).
-SINGLE_MEDIA_RESULT_TYPES = frozenset({"video", "multi_video"})
 
 
 class YtDlpMediaSource:
@@ -57,14 +48,17 @@ class YtDlpMediaSource:
             job.download_options, self._media_source_settings
         )
         try:
+            # Las entradas de una playlist se recorren dentro del bloque: yt-dlp
+            # puede pedir más páginas mientras se iteran.
             with YoutubeDL(parameters) as youtube_dl:
-                # process=False no resuelve formatos ni recorre playlists: solo
-                # identifica qué hay detrás de la URL.
-                result = youtube_dl.extract_info(job.url, download=False, process=False)
+                expand_url(
+                    youtube_dl,
+                    job.url,
+                    publish,
+                    self._media_source_settings.playlist_batch_size,
+                )
         except Exception as extraction_error:
             publish(classify_failure(extraction_error))
-            return
-        publish(_expansion_event_from(result))
 
     def download(self, job: Job, publish: Publish) -> None:
         """Descarga el contenido y publica el formato, el avance y el resultado."""
@@ -100,18 +94,3 @@ class YtDlpMediaSource:
             publish,
             interval_seconds=self._media_source_settings.progress_interval_seconds,
         )
-
-
-def _expansion_event_from(result: dict[str, Any]) -> SingleMediaFound | JobFailed:
-    """Decide qué publicar según el tipo de resultado de la extracción."""
-    result_type = result.get("_type", "video")
-    if result_type not in SINGLE_MEDIA_RESULT_TYPES:
-        return JobFailed(
-            failure_reason=FailureReason.UNSUPPORTED_URL,
-            failure_message=f"Results of type {result_type} are not supported",
-        )
-    media_id = str(result["id"])
-    return SingleMediaFound(
-        media_key=MediaKey(extractor_key=result["extractor_key"], media_id=media_id),
-        title=result.get("title") or media_id,
-    )

@@ -68,6 +68,9 @@ def build_yt_dlp_parameters(
         "trim_file_name": media_source_settings.max_filename_length,
         "js_runtimes": {"deno": {}},
         "continuedl": True,
+        # Un enlace a un video dentro de una lista (watch?v=…&list=…) descarga
+        # solo el video; la lista se encola con su propia URL (ADR-0027).
+        "noplaylist": True,
         "noprogress": True,
         # Sin secuencias de terminal: los mensajes de yt-dlp van al log y a los
         # job events, nunca a una consola. Con color, "ERROR:" llegaba envuelto
