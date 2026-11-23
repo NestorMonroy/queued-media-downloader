@@ -51,14 +51,20 @@ UPDATE_JOB = """
 """
 
 # Mismo criterio que el índice unique_active_download_per_media.
+# Misma expresión que el índice unique_active_download_per_media, para que
+# SQLite lo use en la consulta.
 SELECT_ACTIVE_DOWNLOAD = """
     SELECT 1 FROM jobs
     WHERE kind = 'DOWNLOAD' AND extractor_key = ? AND media_id = ?
+      AND json_extract(download_options, '$.audio_only') = ?
       AND status <> 'SKIPPED'
     LIMIT 1
 """
 
-DUPLICATE_MEDIA_INDEX_MESSAGE = "UNIQUE constraint failed: jobs.extractor_key"
+# SQLite nombra el índice, y no las columnas, cuando incluye una expresión.
+DUPLICATE_MEDIA_INDEX_MESSAGE = (
+    "UNIQUE constraint failed: index 'unique_active_download_per_media'"
+)
 
 
 class SqliteJobStore:
@@ -101,10 +107,11 @@ class SqliteJobStore:
         ).fetchall()
         return [_job_from_row(row) for row in rows]
 
-    def has_active_download(self, media_key: MediaKey) -> bool:
-        """Indica si hay un job de descarga no omitido para ese contenido."""
+    def has_active_download(self, media_key: MediaKey, *, audio_only: bool) -> bool:
+        """Indica si hay una descarga no omitida del contenido con ese tipo."""
         row = self._connection.execute(
-            SELECT_ACTIVE_DOWNLOAD, (media_key.extractor_key, media_key.media_id)
+            SELECT_ACTIVE_DOWNLOAD,
+            (media_key.extractor_key, media_key.media_id, audio_only),
         ).fetchone()
         return row is not None
 

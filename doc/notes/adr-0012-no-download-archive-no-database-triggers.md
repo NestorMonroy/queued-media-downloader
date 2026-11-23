@@ -35,3 +35,11 @@ Evaluación con las [guías de clean code](../reference/clean-code-guidelines/RE
 
 - Las reglas de negocio viven solo en el código Python de `download_queue/`; la base de datos solo guarda.
 - **Extensión prevista, no implementada:** si hace falta importar el `download_archive` de alguien que ya usaba yt-dlp por consola, se añadirá un caso de uso `import_download_archive` que lea el archivo y cree jobs `COMPLETED`. Se añade sin modificar lo existente (**abierto/cerrado**).
+
+## Seguimiento (T21, 2026-11-23)
+
+**Un duplicado es el mismo contenido con el mismo tipo de archivo de salida**, no solo el mismo contenido. La prueba manual de T17 mostró que el mismo video pedido con y sin `--audio-only` quedaba `SKIPPED`, aunque produce dos archivos distintos (`.mp4` y `.m4a`) y pedir ambos es legítimo.
+
+- **Regla:** `MediaKey` + `audio_only`. El índice `unique_active_download_per_media` lo lee de `download_options` con `json_extract`, sin duplicar el valor en una columna (**DRY**). Lo cambia la migración `0002`.
+- **El selector de formato no entra en la regla.** Dos calidades del mismo video usan la misma plantilla de salida y darían el mismo nombre de archivo: la segunda chocaría con la primera. El criterio es si se produciría el mismo archivo.
+- La regla sigue viviendo en Python (`JobEventApplier` y `JobStore.has_active_download`); el índice solo garantiza que no se guarde una segunda descarga activa del mismo tipo.

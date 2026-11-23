@@ -118,3 +118,24 @@ def test_run_stops_before_any_job_when_ffmpeg_is_not_usable(
     assert exit_code == 2
     assert "ffmpeg_path" in capsys.readouterr().err
     assert read_stored_job(1).status is JobStatus.PENDING
+
+
+def test_same_media_with_and_without_audio_only_gives_two_files(
+    dash_manifest_url: str,
+    tmp_path: Path,
+    read_stored_job: Callable[[int], Job],
+    stream_types: Callable[[Path], list[str]],
+) -> None:
+    main(["enqueue", dash_manifest_url])
+    main(["enqueue", dash_manifest_url, "--audio-only"])
+
+    exit_code = main(["run"])
+
+    downloads = tmp_path / "downloads"
+    assert exit_code == 0
+    assert [read_stored_job(job_id).status for job_id in (1, 2)] == [
+        JobStatus.COMPLETED,
+        JobStatus.COMPLETED,
+    ]
+    assert stream_types(downloads / "sample [sample].mp4") == ["audio", "video"]
+    assert stream_types(downloads / "sample [sample].m4a") == ["audio"]

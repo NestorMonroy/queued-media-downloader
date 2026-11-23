@@ -48,7 +48,9 @@ class JobEventApplier:
         """Devuelve el job tal como queda tras job_event."""
         match job_event:
             case SingleMediaFound(media_key=media_key, title=title):
-                if self._job_store.has_active_download(media_key):
+                if self._job_store.has_active_download(
+                    media_key, audio_only=job.download_options.audio_only
+                ):
                     return job.skip_as_duplicate(media_key, title)
                 return job.found_single_media(media_key, title)
             case FormatSelected(selected_format_id=selected_format_id):

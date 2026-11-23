@@ -7,7 +7,16 @@ import pytest
 from queued_media_downloader.job_storage.sqlite_connection import open_database
 from queued_media_downloader.job_storage.sqlite_migrations import (
     LATEST_SCHEMA_VERSION,
+    load_migrations,
 )
+
+# Descarga activa mínima, con las columnas obligatorias de la versión 1.
+INSERT_DOWNLOAD = """
+    INSERT INTO jobs (kind, status, url, extractor_key, media_id,
+                      download_options, attempt_count, created_at, updated_at)
+    VALUES ('DOWNLOAD', 'PENDING', 'https://media.example/abc', ?, ?, ?, 0,
+            '2026-11-23T00:00:00+00:00', '2026-11-23T00:00:00+00:00')
+"""
 
 
 @pytest.fixture
@@ -61,3 +70,25 @@ def test_connection_applies_the_designed_pragmas(
     connection: sqlite3.Connection, name: str, expected_value: object
 ) -> None:
     assert pragma(connection, name) == expected_value
+
+
+def test_migration_2_keeps_jobs_and_tells_duplicates_by_output_kind(
+    tmp_path: Path,
+) -> None:
+    database_path = tmp_path / "queue.sqlite3"
+    version_1 = sqlite3.connect(database_path)
+    version_1.executescript(f"{load_migrations()[0].script}\nPRAGMA user_version = 1;")
+    version_1.execute(INSERT_DOWNLOAD, ("Youtube", "abc", '{"audio_only": false}'))
+    version_1.commit()
+    version_1.close()
+
+    migrated = open_database(database_path)
+    migrated.execute(INSERT_DOWNLOAD, ("Youtube", "abc", '{"audio_only": true}'))
+    with pytest.raises(sqlite3.IntegrityError):
+        migrated.execute(INSERT_DOWNLOAD, ("Youtube", "abc", '{"audio_only": false}'))
+    job_count = migrated.execute("SELECT count(*) FROM jobs").fetchone()[0]
+    schema_version = pragma(migrated, "user_version")
+    migrated.close()
+
+    assert schema_version == 2
+    assert job_count == 2

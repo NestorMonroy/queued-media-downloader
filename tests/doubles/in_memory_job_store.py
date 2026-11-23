@@ -47,25 +47,36 @@ class InMemoryJobStore:
         """Todos los jobs guardados, en orden de creación (solo para pruebas)."""
         return list(self._jobs.values())
 
-    def has_active_download(self, media_key: MediaKey) -> bool:
-        """Indica si hay un job de descarga no omitido para ese contenido."""
+    def has_active_download(self, media_key: MediaKey, *, audio_only: bool) -> bool:
+        """Indica si hay una descarga no omitida del contenido con ese tipo."""
         return any(
-            _is_active_download_of(job, media_key) for job in self._jobs.values()
+            _is_active_download_of(job, media_key, audio_only=audio_only)
+            for job in self._jobs.values()
         )
 
     def _ensure_no_duplicate(self, job: Job, job_id: JobId) -> None:
-        """Aplica la regla del índice único de descargas activas (ADR-0012)."""
-        if job.media_key is None or not _is_active_download_of(job, job.media_key):
+        """Aplica la regla del índice único de descargas activas (ADR-0012).
+
+        Igual que en SQLite, compara el contenido y el tipo de archivo.
+        """
+        media_key = job.media_key
+        audio_only = job.download_options.audio_only
+        if media_key is None or not _is_active_download_of(
+            job, media_key, audio_only=audio_only
+        ):
             return
         for other_id, other in self._jobs.items():
-            if other_id != job_id and _is_active_download_of(other, job.media_key):
-                raise DuplicateActiveDownloadError(job.media_key)
+            if other_id != job_id and _is_active_download_of(
+                other, media_key, audio_only=audio_only
+            ):
+                raise DuplicateActiveDownloadError(media_key)
 
 
-def _is_active_download_of(job: Job, media_key: MediaKey) -> bool:
-    """Un job DOWNLOAD de ese contenido que no está SKIPPED."""
+def _is_active_download_of(job: Job, media_key: MediaKey, *, audio_only: bool) -> bool:
+    """Un job DOWNLOAD de ese contenido y ese tipo que no está SKIPPED."""
     return (
         job.kind is JobKind.DOWNLOAD
         and job.media_key == media_key
+        and job.download_options.audio_only is audio_only
         and job.status is not JobStatus.SKIPPED
     )

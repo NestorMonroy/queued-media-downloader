@@ -51,10 +51,17 @@ def make_job(url: str = "https://media.example/watch?v=abc123") -> Job:
     return Job.new_expansion(url, download_options)
 
 
-def make_download(job_store: SqliteJobStore, status: JobStatus) -> Job:
+def make_download(
+    job_store: SqliteJobStore, status: JobStatus, *, audio_only: bool = True
+) -> Job:
     stored_job = job_store.get(job_store.create(make_job()))
+    download_options = replace(stored_job.download_options, audio_only=audio_only)
     return replace(
-        stored_job, kind=JobKind.DOWNLOAD, status=status, media_key=MEDIA_KEY
+        stored_job,
+        kind=JobKind.DOWNLOAD,
+        status=status,
+        media_key=MEDIA_KEY,
+        download_options=download_options,
     )
 
 
@@ -129,14 +136,16 @@ def test_next_pending_jobs_come_in_creation_order_up_to_the_limit(
 def test_active_download_is_detected_by_media_key(job_store: SqliteJobStore) -> None:
     job_store.update(make_download(job_store, JobStatus.PENDING))
 
-    assert job_store.has_active_download(MEDIA_KEY)
-    assert not job_store.has_active_download(MediaKey("Youtube", "other"))
+    assert job_store.has_active_download(MEDIA_KEY, audio_only=True)
+    assert not job_store.has_active_download(
+        MediaKey("Youtube", "other"), audio_only=True
+    )
 
 
 def test_skipped_download_does_not_count_as_active(job_store: SqliteJobStore) -> None:
     job_store.update(make_download(job_store, JobStatus.SKIPPED))
 
-    assert not job_store.has_active_download(MEDIA_KEY)
+    assert not job_store.has_active_download(MEDIA_KEY, audio_only=True)
 
 
 def test_second_active_download_of_the_same_media_is_rejected(
@@ -146,6 +155,27 @@ def test_second_active_download_of_the_same_media_is_rejected(
 
     with pytest.raises(DuplicateActiveDownloadError):
         job_store.update(make_download(job_store, JobStatus.PENDING))
+
+
+def test_active_download_is_detected_by_media_key_and_output_kind(
+    job_store: SqliteJobStore,
+) -> None:
+    job_store.update(make_download(job_store, JobStatus.PENDING, audio_only=False))
+
+    assert job_store.has_active_download(MEDIA_KEY, audio_only=False)
+    assert not job_store.has_active_download(MEDIA_KEY, audio_only=True)
+
+
+def test_same_media_can_be_downloaded_as_video_and_as_audio(
+    job_store: SqliteJobStore,
+) -> None:
+    video_download = make_download(job_store, JobStatus.PENDING, audio_only=False)
+    audio_download = make_download(job_store, JobStatus.PENDING, audio_only=True)
+
+    job_store.update(video_download)
+    job_store.update(audio_download)
+
+    assert job_store.get(audio_download.job_id or JobId(0)) == audio_download
 
 
 def test_duplicate_download_can_be_stored_as_skipped(

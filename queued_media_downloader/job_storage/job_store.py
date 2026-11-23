@@ -55,6 +55,10 @@ class JobStore(Protocol):
         """Devuelve hasta limit jobs pendientes, en orden de creación."""
         ...
 
-    def has_active_download(self, media_key: MediaKey) -> bool:
-        """Indica si hay un job de descarga no omitido para ese contenido."""
+    def has_active_download(self, media_key: MediaKey, *, audio_only: bool) -> bool:
+        """Indica si hay una descarga no omitida del contenido con ese tipo.
+
+        El mismo contenido como video y como solo audio son dos archivos
+        distintos, no un duplicado (ADR-0012).
+        """
         ...

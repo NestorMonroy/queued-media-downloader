@@ -1,4 +1,5 @@
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
 from pathlib import Path
 
 from queued_media_downloader.job_queue import RunQueue
@@ -157,3 +158,16 @@ def test_empty_queue_finishes_without_submitting_anything() -> None:
 
     assert worker_pool.submitted_jobs == []
     assert run_result.failed_job_count == 0
+
+
+def test_same_media_is_downloaded_once_as_video_and_once_as_audio() -> None:
+    job_store = InMemoryJobStore()
+    job_store.create(Job.new_expansion(URL, DOWNLOAD_OPTIONS))
+    job_store.create(Job.new_expansion(URL, replace(DOWNLOAD_OPTIONS, audio_only=True)))
+    worker_pool = ScriptedWorkerPool(1, single_media_script(URL, "a"))
+
+    RunQueue(job_store, worker_pool).execute()
+
+    assert {job.status for job in job_store.all_jobs()} == {JobStatus.COMPLETED}
+    downloads = [j for j in worker_pool.submitted_jobs if j.kind is JobKind.DOWNLOAD]
+    assert [job.download_options.audio_only for job in downloads] == [False, True]

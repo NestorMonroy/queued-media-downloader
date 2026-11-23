@@ -398,8 +398,9 @@ CREATE INDEX jobs_by_status ON jobs (status, id);
 
 CREATE INDEX jobs_by_parent ON jobs (parent_id);
 
+-- Migración 0002 (T21): mismo contenido y mismo tipo de archivo de salida.
 CREATE UNIQUE INDEX unique_active_download_per_media
-    ON jobs (extractor_key, media_id)
+    ON jobs (extractor_key, media_id, json_extract(download_options, '$.audio_only'))
     WHERE kind = 'DOWNLOAD' AND media_id IS NOT NULL AND status <> 'SKIPPED';
 
 CREATE TABLE job_requests (
