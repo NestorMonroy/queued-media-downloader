@@ -95,3 +95,14 @@ def test_enqueue_with_invalid_setting_names_it_and_stores_nothing(
 @pytest.mark.usefixtures("state_directory")
 def test_enqueue_without_url_is_a_usage_error() -> None:
     assert main(["enqueue"]) == 2
+
+
+def test_audio_only_without_format_selects_the_best_audio(
+    state_directory: Path,
+) -> None:
+    exit_code = main(["enqueue", "https://example.com/a", "--audio-only"])
+
+    [job] = stored_jobs(state_directory)
+    assert exit_code == 0
+    assert job.download_options.audio_only is True
+    assert job.download_options.format_selector == "ba/b"

@@ -7,13 +7,26 @@ from queued_media_downloader.command_line.command_settings import (
     load_command_settings,
 )
 from queued_media_downloader.command_line.composition_root import (
+    create_ffmpeg_locator,
     open_job_store,
     open_worker_pool,
 )
 from queued_media_downloader.command_line.exit_code import ExitCode
 from queued_media_downloader.command_line.job_presenter import JobPresenter
 from queued_media_downloader.configuration import SettingsError
+from queued_media_downloader.ffmpeg_discovery import (
+    FfmpegInstallation,
+    FfmpegSource,
+    FfmpegUnavailableError,
+)
 from queued_media_downloader.job_queue import RunQueue
+
+# Cómo se presenta cada origen de ffmpeg al arrancar la cola.
+FFMPEG_SOURCE_DESCRIPTIONS = {
+    FfmpegSource.CONFIGURED: "Using ffmpeg from ffmpeg_path",
+    FfmpegSource.VENDORED: "Using bundled ffmpeg",
+    FfmpegSource.SYSTEM_PATH: "Using ffmpeg from PATH (version not validated)",
+}
 
 
 def add_run_command(
@@ -26,20 +39,25 @@ def add_run_command(
 
 
 def run_run_command(arguments: argparse.Namespace) -> int:
-    """Ejecuta la cola y resume el resultado.
+    """Verifica ffmpeg, ejecuta la cola y resume el resultado.
 
     Returns:
         SUCCESS si ningún job falló, JOBS_FAILED si alguno falló y
-        USAGE_ERROR si la configuración no es válida.
+        USAGE_ERROR si la configuración no es válida o no hay un ffmpeg
+        utilizable; en ese caso no se ejecuta ningún job.
     """
     try:
         settings = load_command_settings({"worker_count": arguments.worker_count})
-    except SettingsError as settings_error:
-        print(f"{arguments.program_name}: error: {settings_error}", file=sys.stderr)
+        # Se verifica antes de ejecutar nada: un ffmpeg roto se descubre al
+        # arrancar y no al final de la primera descarga (ADR-0006).
+        ffmpeg_installation = create_ffmpeg_locator(settings).locate()
+    except (SettingsError, FfmpegUnavailableError) as usage_error:
+        print(f"{arguments.program_name}: error: {usage_error}", file=sys.stderr)
         return ExitCode.USAGE_ERROR
+    print(_describe_ffmpeg(ffmpeg_installation))
     with (
         open_job_store(settings.state_directory) as job_store,
-        open_worker_pool(settings) as worker_pool,
+        open_worker_pool(settings, ffmpeg_installation.ffmpeg_location) as worker_pool,
     ):
         run_result = RunQueue(
             job_store, worker_pool, present=JobPresenter(sys.stdout).present
@@ -50,3 +68,11 @@ def run_run_command(arguments: argparse.Namespace) -> int:
     noun = "job" if run_result.failed_job_count == 1 else "jobs"
     print(f"All jobs finished; {run_result.failed_job_count} {noun} failed")
     return ExitCode.JOBS_FAILED
+
+
+def _describe_ffmpeg(ffmpeg_installation: FfmpegInstallation) -> str:
+    """Qué ffmpeg se usa y su versión, para saber con qué se une cada archivo."""
+    description = FFMPEG_SOURCE_DESCRIPTIONS[ffmpeg_installation.source]
+    # La primera línea de -version sigue con el copyright, que aquí sobra.
+    version, _, _ = ffmpeg_installation.ffmpeg_version.partition(" Copyright")
+    return f"{description}: {version}"

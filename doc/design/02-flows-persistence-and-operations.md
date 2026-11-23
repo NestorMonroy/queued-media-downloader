@@ -491,6 +491,9 @@ Los comandos usan los mismos verbos que los casos de uso, para que haya una sola
 | `purge [--completed] [--cancelled]` | `purge_finished_jobs` |
 | `diagnose` | `diagnose_environment` |
 
+- **`--audio-only`:** sin `--format`, pide el mejor audio (`ba/b`) en lugar del selector por defecto. En la descarga, yt-dlp extrae el audio con `FFmpegExtractAudio` sin recodificarlo cuando el formato lo permite (`preferredcodec: best`); así también sirve con un formato que traiga video.
+- **`run` verifica ffmpeg antes de ejecutar ningún job** ([ADR-0006](../notes/adr-0006-ffmpeg-resolution-and-verification.md)). Si no hay uno utilizable, termina con código `2`; si lo hay, muestra cuál usa y su versión.
+
 - **`--keep-waiting`** (antes `--watch`): `run` no termina al vaciarse la cola y espera jobs nuevos. El nombre dice lo que hace.
 - **`Ctrl+C` durante `run`:** deja de enviar jobs, solicita la cancelación de los jobs en curso y termina sus workers tras `cancellation_grace_seconds`. Un segundo `Ctrl+C` termina de inmediato. Los jobs interrumpidos se recuperan en el siguiente `run`.
 - **Librería:** `argparse` (biblioteca estándar).

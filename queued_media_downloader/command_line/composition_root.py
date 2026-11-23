@@ -9,7 +9,12 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-from queued_media_downloader.configuration import Settings
+from queued_media_downloader.configuration import Settings, project_root
+from queued_media_downloader.ffmpeg_discovery import FfmpegLocator
+from queued_media_downloader.ffmpeg_discovery.file_system_ffmpeg_locator import (
+    VENDORED_BUILD_NAME,
+    FileSystemFfmpegLocator,
+)
 from queued_media_downloader.job_storage import JobStore
 from queued_media_downloader.job_storage.sqlite_connection import open_database
 from queued_media_downloader.job_storage.sqlite_job_store import SqliteJobStore
@@ -22,6 +27,20 @@ from queued_media_downloader.workers.process_worker_pool import ProcessWorkerPoo
 
 DATABASE_FILE_NAME = "queue.sqlite3"
 YT_DLP_CACHE_DIRECTORY_NAME = "yt-dlp-cache"
+FFMPEG_VERIFICATION_FILE_NAME = "ffmpeg-verification.json"
+
+
+def create_ffmpeg_locator(settings: Settings) -> FfmpegLocator:
+    """Localizador de ffmpeg con la build de vendor/ y la caché en state/."""
+    return FileSystemFfmpegLocator(
+        configured_path=settings.ffmpeg_path,
+        vendored_build_directory=project_root()
+        / "vendor"
+        / "ffmpeg"
+        / VENDORED_BUILD_NAME,
+        verification_cache_file=settings.state_directory
+        / FFMPEG_VERIFICATION_FILE_NAME,
+    )
 
 
 @contextmanager
@@ -36,15 +55,18 @@ def open_job_store(state_directory: Path) -> Iterator[JobStore]:
 
 
 @contextmanager
-def open_worker_pool(settings: Settings) -> Iterator[WorkerPool]:
+def open_worker_pool(
+    settings: Settings, ffmpeg_location: Path | None
+) -> Iterator[WorkerPool]:
     """Arranca el pool de procesos con yt-dlp y lo apaga al terminar.
 
-    La fábrica de MediaSource es un functools.partial de una clase, que pickle
-    puede enviar a cada worker.
+    ffmpeg_location es el de la instalación ya verificada; None deja que
+    yt-dlp busque ffmpeg en el PATH. La fábrica de MediaSource es un
+    functools.partial de una clase, que pickle puede enviar a cada worker.
     """
     media_source_settings = MediaSourceSettings(
         cache_directory=settings.state_directory / YT_DLP_CACHE_DIRECTORY_NAME,
-        ffmpeg_location=settings.ffmpeg_path,
+        ffmpeg_location=ffmpeg_location,
         max_filename_length=settings.max_filename_length,
         progress_interval_seconds=settings.progress_interval_seconds,
     )

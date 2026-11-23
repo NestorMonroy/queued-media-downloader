@@ -10,6 +10,9 @@ from queued_media_downloader.media_extraction.media_source_settings import (
 
 YT_DLP_LOGGER_NAME = "queued_media_downloader.yt_dlp"
 
+# Extrae el audio sin recodificarlo cuando el formato lo permite.
+EXTRACT_AUDIO_POSTPROCESSOR = {"key": "FFmpegExtractAudio", "preferredcodec": "best"}
+
 # Reintentos ante archivos bloqueados un instante, algo habitual en Windows
 # cuando el antivirus o el indexador abren el archivo recién escrito.
 FILE_ACCESS_RETRIES = 10
@@ -62,6 +65,9 @@ def build_yt_dlp_parameters(
         "file_access_retries": FILE_ACCESS_RETRIES,
         "logger": YtDlpLogger(),
     }
+    if download_options.audio_only:
+        # También cubre un formato con video: de él se extrae solo el audio.
+        parameters["postprocessors"] = [dict(EXTRACT_AUDIO_POSTPROCESSOR)]
     if media_source_settings.ffmpeg_location is not None:
         parameters["ffmpeg_location"] = str(media_source_settings.ffmpeg_location)
     return parameters

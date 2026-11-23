@@ -12,6 +12,9 @@ from queued_media_downloader.configuration import SettingsError
 from queued_media_downloader.job_queue import EnqueueMedia, InvalidUrlError
 from queued_media_downloader.jobs import DownloadOptions
 
+# Con --audio-only y sin --format se pide el mejor audio en lugar del video.
+AUDIO_ONLY_FORMAT_SELECTOR = "ba/b"
+
 
 def add_enqueue_command(
     commands: "argparse._SubParsersAction[argparse.ArgumentParser]",
@@ -32,10 +35,13 @@ def run_enqueue_command(arguments: argparse.Namespace) -> int:
         SUCCESS si se encolaron todas; USAGE_ERROR si una URL o un valor de
         configuración no es válido, sin encolar ninguna.
     """
+    format_selector = arguments.format_selector
+    if arguments.audio_only and format_selector is None:
+        format_selector = AUDIO_ONLY_FORMAT_SELECTOR
     try:
         settings = load_command_settings(
             {
-                "default_format_selector": arguments.format_selector,
+                "default_format_selector": format_selector,
                 "download_directory": arguments.download_directory,
             }
         )

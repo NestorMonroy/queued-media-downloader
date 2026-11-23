@@ -1,4 +1,5 @@
 import logging
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -75,3 +76,19 @@ def test_yt_dlp_output_goes_to_python_logging(
     messages = {(record.levelno, record.getMessage()) for record in caplog.records}
     assert (logging.DEBUG, "[info] screen message") in messages
     assert (logging.WARNING, "warning message") in messages
+
+
+def test_audio_only_extracts_the_audio_without_reencoding() -> None:
+    audio_only_options = replace(DOWNLOAD_OPTIONS, audio_only=True)
+
+    parameters = build_yt_dlp_parameters(audio_only_options, MEDIA_SOURCE_SETTINGS)
+
+    assert parameters["postprocessors"] == [
+        {"key": "FFmpegExtractAudio", "preferredcodec": "best"}
+    ]
+
+
+def test_media_with_video_has_no_postprocessors() -> None:
+    parameters = build_yt_dlp_parameters(DOWNLOAD_OPTIONS, MEDIA_SOURCE_SETTINGS)
+
+    assert "postprocessors" not in parameters
