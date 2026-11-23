@@ -76,12 +76,13 @@ queued-media-downloader/               Proyecto (nombre de la distribución)
     │   └── migrations/0001_create_jobs.sql
     │
     ├── workers/                       Quién ejecuta los jobs
-    │   ├── __init__.py                API pública: WorkerPool
+    │   ├── __init__.py                API pública: WorkerPool, WorkerMessage
     │   ├── worker_pool.py             Contrato
     │   ├── process_worker_pool.py
     │   ├── thread_worker_pool.py      Para el prototipo
     │   ├── worker_loop.py
     │   ├── worker_instructions.py     RunJob, CancelJob, ShutDown
+    │   ├── worker_message.py          WorkerMessage: job event con su job y su worker
     │   ├── process_tree_terminator.py         Contrato interno del componente (ADR-0013)
     │   └── windows_process_tree_terminator.py
     │
@@ -346,7 +347,7 @@ classDiagram
             +submit(job) None
             +request_cancellation(job_id) None
             +terminate_worker_running(job_id) None
-            +collect_events(timeout_seconds) list~JobEvent~
+            +collect_events(timeout_seconds) list~WorkerMessage~
             +count_idle_workers() int
             +shut_down() None
         }
@@ -392,6 +393,7 @@ classDiagram
 - **`FailureReason` es una clasificación de dominio,** no la excepción de yt-dlp. `failure_classifier.py` traduce.
 - **El estado de una playlist no se almacena:** se deriva de sus hijos.
 - **Los job events viven en `jobs/`, no en `workers/`.** Describen lo que le pasó a un job. En `workers/` crearían un ciclo: `media_extraction/` los publica y `workers/` depende del contrato de `media_extraction/`.
+- **`collect_events` devuelve `WorkerMessage`, no `JobEvent`.** El job event no lleva el identificador del job; el mensaje sí, junto con el worker y el número de secuencia, y `job_event_applier` lo necesita para saber a qué job aplicarlo.
 
 ---
 

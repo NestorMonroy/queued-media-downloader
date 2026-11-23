@@ -71,6 +71,9 @@ max-complexity = 8
 python_version = "3.11"
 strict = true
 files = ["queued_media_downloader", "tests"]
+# Nombres de módulo desde la raíz del proyecto, como los importan las pruebas
+# (tests.doubles.fake_media_source), aunque tests/ no tenga __init__.py.
+explicit_package_bases = true
 
 # yt-dlp no publica anotaciones de tipos (ni py.typed ni stubs): sus objetos se
 # tratan como Any y el contrato se cubre con pruebas (ADR-0002).
@@ -80,6 +83,9 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# La raíz del proyecto en sys.path permite importar tests.doubles; los procesos
+# arrancados con spawn heredan sys.path y también pueden importarlos.
+pythonpath = ["."]
 addopts = [
     "--import-mode=importlib",
     "--strict-markers",
