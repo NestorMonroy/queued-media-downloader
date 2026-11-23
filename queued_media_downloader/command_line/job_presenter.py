@@ -5,17 +5,21 @@ from typing import TextIO
 from queued_media_downloader.jobs import (
     DownloadProgressed,
     FormatSelected,
+    Job,
     JobCancelled,
     JobCompleted,
     JobEvent,
     JobFailed,
     JobStarted,
+    JobStatus,
     PostprocessingProgressed,
     PostprocessingStage,
     SingleMediaFound,
 )
 from queued_media_downloader.workers import WorkerMessage
 
+# Pasos internos de yt-dlp que no le dicen nada al usuario.
+INTERNAL_POSTPROCESSOR_NAMES = frozenset({"MoveFiles"})
 BYTES_PER_UNIT = 1024
 BYTE_UNITS = ("B", "KiB", "MiB", "GiB", "TiB")
 
@@ -27,14 +31,18 @@ class JobPresenter:
         """Escribe en output, normalmente la salida estándar."""
         self._output = output
 
-    def present(self, message: WorkerMessage) -> None:
-        """Escribe la línea del job event, si tiene algo que mostrar."""
-        description = _describe(message.job_event)
+    def present(self, message: WorkerMessage, job: Job | None) -> None:
+        """Escribe la línea del job event, si tiene algo que mostrar.
+
+        job es el job tal como quedó tras el job event; None si el job event
+        solo informa del avance.
+        """
+        description = _describe(message.job_event, job)
         if description is not None:
             print(f"Job {message.job_id}: {description}", file=self._output, flush=True)
 
 
-def _describe(job_event: JobEvent) -> str | None:
+def _describe(job_event: JobEvent, job: Job | None) -> str | None:
     """Texto del job event; None si no se muestra."""
     if isinstance(job_event, DownloadProgressed | PostprocessingProgressed):
         return _describe_progress_event(job_event)
@@ -42,7 +50,7 @@ def _describe(job_event: JobEvent) -> str | None:
         case JobStarted():
             return "started"
         case SingleMediaFound(title=title):
-            return f"found {title!r}"
+            return _describe_found_media(title, job)
         case FormatSelected(selected_format_id=selected_format_id):
             return f"format {selected_format_id}"
         case JobCompleted(output_path=output_path):
@@ -51,6 +59,13 @@ def _describe(job_event: JobEvent) -> str | None:
             return f"failed ({failure_reason.value}): {failure_message}"
         case JobCancelled():
             return "cancelled"
+
+
+def _describe_found_media(title: str, job: Job | None) -> str:
+    """Contenido encontrado; si ya tenía una descarga, el job quedó omitido."""
+    if job is not None and job.status is JobStatus.SKIPPED:
+        return f"found {title!r}, skipped: already downloaded or in the queue"
+    return f"found {title!r}"
 
 
 def _describe_completion(output_path: str | None) -> str:
@@ -63,10 +78,13 @@ def _describe_completion(output_path: str | None) -> str:
 def _describe_progress_event(
     job_event: DownloadProgressed | PostprocessingProgressed,
 ) -> str | None:
-    """Del postprocesado solo se muestra el inicio de cada postprocessor."""
+    """Del postprocesado solo se muestra el inicio de los que entiende el usuario."""
     if isinstance(job_event, DownloadProgressed):
         return _describe_progress(job_event)
-    if job_event.postprocessing_stage is not PostprocessingStage.STARTED:
+    if (
+        job_event.postprocessing_stage is not PostprocessingStage.STARTED
+        or job_event.postprocessor_name in INTERNAL_POSTPROCESSOR_NAMES
+    ):
         return None
     return f"running {job_event.postprocessor_name}"
 

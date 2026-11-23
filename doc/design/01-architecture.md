@@ -81,6 +81,8 @@ queued-media-downloader/               Proyecto (nombre de la distribución)
     │   ├── process_worker_pool.py
     │   ├── thread_worker_pool.py      Para el prototipo
     │   ├── worker_loop.py
+    │   ├── process_queue_receiver.py  Hilo que recibe las colas de salida de un worker
+    │   ├── worker_logging.py          Registros de los workers hacia el proceso principal
     │   ├── worker_instructions.py     RunJob, CancelJob, ShutDown
     │   ├── worker_message.py          WorkerMessage: job event con su job y su worker
     │   ├── process_tree_terminator.py         Contrato interno del componente (ADR-0013)
@@ -124,6 +126,7 @@ queued-media-downloader/               Proyecto (nombre de la distribución)
         ├── run_command.py
         ├── diagnose_command.py
         ├── exit_code.py
+        ├── log_file.py                Log de run en state/logs/; la consola queda para la presentación
         └── job_presenter.py
 ```
 

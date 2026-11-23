@@ -36,13 +36,19 @@ class JobEventApplier:
         """Usa job_store para leer y guardar los jobs."""
         self._job_store = job_store
 
-    def apply(self, message: WorkerMessage) -> None:
-        """Aplica el job event del mensaje, si cambia algo del job."""
+    def apply(self, message: WorkerMessage) -> Job | None:
+        """Aplica el job event del mensaje, si cambia algo del job.
+
+        Returns:
+            El job tal como quedó guardado; None si el job event solo informa
+            del avance y no cambia el job.
+        """
         job_event = message.job_event
         if not isinstance(job_event, PERSISTENT_JOB_EVENT_TYPES):
-            return
-        job = self._job_store.get(message.job_id)
-        self._job_store.update(self._job_after(job, job_event))
+            return None
+        updated_job = self._job_after(self._job_store.get(message.job_id), job_event)
+        self._job_store.update(updated_job)
+        return updated_job
 
     def _job_after(self, job: Job, job_event: PersistentJobEvent) -> Job:
         """Devuelve el job tal como queda tras job_event."""

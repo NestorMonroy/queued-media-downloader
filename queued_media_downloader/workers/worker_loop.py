@@ -3,7 +3,7 @@
 import functools
 import logging
 from collections.abc import Callable
-from typing import Protocol
+from typing import Any, Protocol
 
 from queued_media_downloader.jobs import (
     FailureReason,
@@ -19,6 +19,7 @@ from queued_media_downloader.workers.worker_instructions import (
     RunJob,
     WorkerInstruction,
 )
+from queued_media_downloader.workers.worker_logging import configure_worker_logging
 from queued_media_downloader.workers.worker_message import WorkerMessage
 
 logger = logging.getLogger(__name__)
@@ -71,11 +72,14 @@ def worker_loop(
     media_source_factory: Callable[[], MediaSource],
     instruction_queue: InstructionQueue,
     message_queue: MessageQueue,
+    log_queue: Any,
 ) -> None:
     """Ejecuta los jobs que llegan por instruction_queue hasta recibir ShutDown.
 
-    La MediaSource se crea una sola vez, ya dentro del proceso del worker.
+    La MediaSource se crea una sola vez, ya dentro del proceso del worker. Los
+    registros de logging del worker viajan por log_queue al proceso principal.
     """
+    configure_worker_logging(log_queue)
     media_source = media_source_factory()
     message_sender = WorkerMessageSender(worker_id, message_queue)
     while isinstance(instruction := instruction_queue.get(), RunJob):

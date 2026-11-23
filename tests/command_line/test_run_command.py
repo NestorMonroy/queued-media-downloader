@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable
 from pathlib import Path
 
@@ -139,3 +140,41 @@ def test_same_media_with_and_without_audio_only_gives_two_files(
     ]
     assert stream_types(downloads / "sample [sample].mp4") == ["audio", "video"]
     assert stream_types(downloads / "sample [sample].m4a") == ["audio"]
+
+
+def test_failed_job_shows_its_error_once_and_in_full_in_the_log(
+    local_media_server: str,
+    state_directory: Path,
+    capfd: pytest.CaptureFixture[str],
+) -> None:
+    main(["enqueue", f"{local_media_server}/missing.mp4"])
+
+    main(["run"])
+
+    console = capfd.readouterr()
+    log_file = state_directory / "logs" / "queued-media-downloader.log"
+    assert console.err == ""
+    assert console.out.count("HTTP Error 404") == 1
+    assert f"See the log for details: {log_file}" in console.out
+    assert "HTTP Error 404" in log_file.read_text(encoding="utf-8")
+
+
+def test_internal_steps_are_hidden_and_logging_is_released(
+    local_media_server: str,
+    state_directory: Path,
+    capfd: pytest.CaptureFixture[str],
+) -> None:
+    main(["enqueue", f"{local_media_server}/sample.mp4"])
+
+    main(["run"])
+
+    console = capfd.readouterr()
+    assert "MoveFiles" not in console.out
+    assert "[download] Download completed" not in console.out
+    assert console.err == ""
+    log_file = state_directory / "logs" / "queued-media-downloader.log"
+    assert "[download] Download completed" in log_file.read_text(encoding="utf-8")
+    assert str(log_file) not in {
+        getattr(handler, "baseFilename", None)
+        for handler in logging.getLogger().handlers
+    }

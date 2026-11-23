@@ -10,16 +10,21 @@ import multiprocessing
 import queue
 from collections.abc import Callable
 from dataclasses import dataclass
+from logging import LogRecord
 from multiprocessing.context import SpawnProcess
 from multiprocessing.queues import Queue
 
 from queued_media_downloader.jobs import FailureReason, Job, JobFailed, JobId
 from queued_media_downloader.media_extraction import MediaSource
+from queued_media_downloader.workers.process_queue_receiver import (
+    ProcessQueueReceiver,
+)
 from queued_media_downloader.workers.worker_instructions import (
     RunJob,
     ShutDown,
     WorkerInstruction,
 )
+from queued_media_downloader.workers.worker_logging import forward_log_record
 from queued_media_downloader.workers.worker_loop import worker_loop
 from queued_media_downloader.workers.worker_message import (
     POOL_SEQUENCE_NUMBER,
@@ -39,14 +44,22 @@ class WorkerHandle:
     worker_id: int
     process: SpawnProcess
     instruction_queue: "Queue[WorkerInstruction]"
+    message_receiver: ProcessQueueReceiver
+    log_record_receiver: ProcessQueueReceiver
     assigned_job_id: JobId | None = None
+
+    def stop_receivers(self) -> None:
+        """Recoge lo que el worker dejó en sus colas y deja de recibir."""
+        self.message_receiver.stop()
+        self.log_record_receiver.stop()
 
 
 class ProcessWorkerPool:
     """Ejecuta cada job en uno de worker_count procesos.
 
-    Cada worker tiene su cola de instrucciones; todos comparten la cola de
-    mensajes hacia el proceso principal (diseño, Parte 2, §3.1).
+    Cada worker tiene sus propias colas de instrucciones, mensajes y registros
+    de logging (diseño, Parte 2, §3.1). Un hilo por cola pasa los mensajes a una
+    cola de este proceso y los registros al logging de este proceso.
     """
 
     def __init__(
@@ -61,7 +74,7 @@ class ProcessWorkerPool:
         """
         self._context = multiprocessing.get_context("spawn")
         self._media_source_factory = media_source_factory
-        self._message_queue: Queue[WorkerMessage] = self._context.Queue()
+        self._received_messages: queue.Queue[WorkerMessage] = queue.Queue()
         self._worker_ids = itertools.count(1)
         self._workers = [self._start_worker() for _ in range(worker_count)]
 
@@ -79,11 +92,7 @@ class ProcessWorkerPool:
     def collect_events(self, timeout_seconds: float) -> list[WorkerMessage]:
         """Devuelve los mensajes recibidos y los de los workers caídos."""
         messages = self._receive_messages(timeout_seconds)
-        for message in messages:
-            if message.ends_the_job_run:
-                self._release_worker(message.worker_id)
-        # Se comprueba después de vaciar la cola: un worker que terminó su job y
-        # luego salió ya está libre y no cuenta como caído.
+        self._release_finished_workers(messages)
         messages.extend(self._replace_crashed_workers())
         return messages
 
@@ -102,47 +111,75 @@ class ProcessWorkerPool:
                 logger.warning("Worker %s did not stop; killing it", worker.worker_id)
                 worker.process.kill()
                 worker.process.join()
+            # Tras la salida del worker: así llegan sus últimos registros.
+            worker.stop_receivers()
         self._workers = []
 
     def _start_worker(self) -> WorkerHandle:
-        """Arranca un proceso worker con su cola de instrucciones."""
+        """Arranca un proceso worker con sus colas y los hilos que las reciben."""
         worker_id = next(self._worker_ids)
+        worker_name = f"worker-{worker_id}"
         instruction_queue: Queue[WorkerInstruction] = self._context.Queue()
+        message_queue: Queue[WorkerMessage] = self._context.Queue()
+        log_queue: Queue[LogRecord] = self._context.Queue()
         process = self._context.Process(
             target=worker_loop,
             args=(
                 worker_id,
                 self._media_source_factory,
                 instruction_queue,
-                self._message_queue,
+                message_queue,
+                log_queue,
             ),
-            name=f"worker-{worker_id}",
+            name=worker_name,
             daemon=True,
         )
         process.start()
-        return WorkerHandle(worker_id, process, instruction_queue)
+        return WorkerHandle(
+            worker_id,
+            process,
+            instruction_queue,
+            message_receiver=ProcessQueueReceiver(
+                message_queue,
+                self._received_messages.put,
+                f"{worker_name}-message-receiver",
+            ),
+            log_record_receiver=ProcessQueueReceiver(
+                log_queue, forward_log_record, f"{worker_name}-log-receiver"
+            ),
+        )
 
     def _receive_messages(self, timeout_seconds: float) -> list[WorkerMessage]:
         """Espera el primer mensaje hasta timeout_seconds y toma los ya llegados."""
         try:
-            messages = [self._message_queue.get(timeout=timeout_seconds)]
+            messages = [self._received_messages.get(timeout=timeout_seconds)]
         except queue.Empty:
             return []
+        return messages + self._take_received_messages()
+
+    def _take_received_messages(self) -> list[WorkerMessage]:
+        """Mensajes ya recibidos, sin esperar."""
+        messages: list[WorkerMessage] = []
         while True:
             try:
-                messages.append(self._message_queue.get_nowait())
+                messages.append(self._received_messages.get_nowait())
             except queue.Empty:
                 return messages
 
-    def _release_worker(self, worker_id: int) -> None:
-        """Marca libre al worker que terminó su job."""
+    def _release_finished_workers(self, messages: list[WorkerMessage]) -> None:
+        """Marca libres a los workers que terminaron su job."""
+        finished_worker_ids = {m.worker_id for m in messages if m.ends_the_job_run}
         for worker in self._workers:
-            if worker.worker_id == worker_id:
+            if worker.worker_id in finished_worker_ids:
                 worker.assigned_job_id = None
 
     def _replace_crashed_workers(self) -> list[WorkerMessage]:
-        """Sustituye los workers muertos y falla el job que tenían asignado."""
-        crash_messages: list[WorkerMessage] = []
+        """Sustituye los workers muertos y falla el job que tenían asignado.
+
+        Antes de decidir, recoge lo que el worker llegó a enviar: si terminó su
+        job y luego salió, ya está libre y no cuenta como caído.
+        """
+        late_messages: list[WorkerMessage] = []
         for index, worker in enumerate(self._workers):
             if worker.process.is_alive():
                 continue
@@ -151,10 +188,14 @@ class ProcessWorkerPool:
                 worker.worker_id,
                 worker.process.exitcode,
             )
+            worker.stop_receivers()
+            received = self._take_received_messages()
+            self._release_finished_workers(received)
+            late_messages.extend(received)
             if worker.assigned_job_id is not None:
-                crash_messages.append(_crash_message(worker, worker.assigned_job_id))
+                late_messages.append(_crash_message(worker, worker.assigned_job_id))
             self._workers[index] = self._start_worker()
-        return crash_messages
+        return late_messages
 
 
 def _crash_message(worker: WorkerHandle, job_id: JobId) -> WorkerMessage:

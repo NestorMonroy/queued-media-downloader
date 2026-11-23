@@ -1,4 +1,5 @@
 import functools
+import logging
 import multiprocessing
 import time
 from collections.abc import Callable, Iterator, Mapping
@@ -199,3 +200,20 @@ def test_shut_down_stops_every_worker_process() -> None:
     pool.shut_down()
 
     assert multiprocessing.active_children() == []
+
+
+def test_log_records_of_a_worker_reach_the_logging_of_the_main_process(
+    start_pool: Callable[[int, Mapping[ScriptKey, ScriptedBehavior]], WorkerPool],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.INFO, logger="tests.doubles.fake_media_source")
+    pool = start_pool(1, {("download", "https://a"): [COMPLETED]})
+
+    pool.submit(stored_job(1, "https://a", kind=JobKind.DOWNLOAD))
+    collect_until_final(pool, {JobId(1)})
+
+    expected_message = "Performing download https://a"
+    deadline = time.monotonic() + COLLECT_TIMEOUT_SECONDS
+    while expected_message not in caplog.messages and time.monotonic() < deadline:
+        time.sleep(0.05)
+    assert expected_message in caplog.messages

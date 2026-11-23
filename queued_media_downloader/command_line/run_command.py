@@ -13,6 +13,7 @@ from queued_media_downloader.command_line.composition_root import (
 )
 from queued_media_downloader.command_line.exit_code import ExitCode
 from queued_media_downloader.command_line.job_presenter import JobPresenter
+from queued_media_downloader.command_line.log_file import logging_to_file
 from queued_media_downloader.configuration import SettingsError
 from queued_media_downloader.ffmpeg_discovery import (
     FfmpegInstallation,
@@ -56,6 +57,7 @@ def run_run_command(arguments: argparse.Namespace) -> int:
         return ExitCode.USAGE_ERROR
     print(_describe_ffmpeg(ffmpeg_installation))
     with (
+        logging_to_file(settings.state_directory) as log_path,
         open_job_store(settings.state_directory) as job_store,
         open_worker_pool(settings, ffmpeg_installation.ffmpeg_location) as worker_pool,
     ):
@@ -67,6 +69,7 @@ def run_run_command(arguments: argparse.Namespace) -> int:
         return ExitCode.SUCCESS
     noun = "job" if run_result.failed_job_count == 1 else "jobs"
     print(f"All jobs finished; {run_result.failed_job_count} {noun} failed")
+    print(f"See the log for details: {log_path}")
     return ExitCode.JOBS_FAILED
 
 

@@ -446,7 +446,7 @@ Así, `cancel` y `retry` funcionan mientras `run` se ejecuta en otra terminal, s
 
 ### 3.1 Colas
 
-Cada worker tiene dos colas propias de entrada y comparte una de salida:
+Todas las colas son de cada worker, también las de salida:
 
 ```text
                  ┌──────────── instruction_queue (por worker) ────────┐
@@ -454,8 +454,12 @@ Proceso      ───►│ RunJob(job) · ShutDown                            
 principal        ├──────────── cancellation_queue (por worker) ───────┤
              ───►│ CancelJob(job_id)                                  │───► hilo de cancelación
                  └────────────────────────────────────────────────────┘
-             ◄─── job_event_queue (compartida): WorkerMessage(worker_id, job_id, sequence_number, job_event)
+             ◄─── job_event_queue (por worker): WorkerMessage(worker_id, job_id, sequence_number, job_event)
+             ◄─── log_queue (por worker): registros de logging
 ```
+
+- **Colas de salida por worker (T20):** el bloqueo de escritura de una cola de `multiprocessing` se comparte entre los procesos que escriben en ella. Un worker que muere mientras escribe (caída o terminación forzada, UC-05) dejaría bloqueados a los demás. En el proceso principal, un hilo por cola pasa los mensajes a una cola interna que lee `collect_events`, y los registros al `logging` del proceso. Esos hilos nunca escriben en las colas: detenerlos no se bloquea aunque el worker muriera a mitad de una escritura.
+- **Un solo escritor del log:** los workers arrancados con *spawn* no heredan la configuración de `logging`. Envían sus registros por `log_queue`, y `run` los escribe en `state/logs/queued-media-downloader.log` (con rotación: 5 MiB y tres archivos anteriores). La consola queda para la presentación.
 
 - **`cancellation_queue` separada:** el hilo principal del worker está ocupado en yt-dlp y no puede leer; el hilo de cancelación sí.
 - **`sequence_number`** cuenta los mensajes de cada worker, para detectar en los logs mensajes perdidos o desordenados.

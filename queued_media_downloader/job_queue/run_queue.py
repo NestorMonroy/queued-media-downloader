@@ -5,17 +5,19 @@ from dataclasses import dataclass
 
 from queued_media_downloader.job_queue.job_event_applier import JobEventApplier
 from queued_media_downloader.job_storage import JobStore
-from queued_media_downloader.jobs import JobFailed
+from queued_media_downloader.jobs import Job, JobFailed
 from queued_media_downloader.workers import WorkerMessage, WorkerPool
 
 # Espera máxima por los mensajes de los workers en cada vuelta del bucle; acota
 # cuánto tarda en enviarse un job nuevo cuando se libera un worker.
 COLLECT_TIMEOUT_SECONDS = 0.5
 
-Present = Callable[[WorkerMessage], None]
+# Recibe cada mensaje y el job tal como quedó (None si el mensaje solo informa
+# del avance), para que la presentación sepa, por ejemplo, si quedó SKIPPED.
+Present = Callable[[WorkerMessage, Job | None], None]
 
 
-def present_nothing(message: WorkerMessage) -> None:
+def present_nothing(message: WorkerMessage, job: Job | None) -> None:
     """Presentación por defecto: no muestra nada."""
 
 
@@ -57,8 +59,8 @@ class RunQueue:
             if running_job_count == 0:
                 return RunQueueResult(failed_job_count=failed_job_count)
             for message in self._worker_pool.collect_events(COLLECT_TIMEOUT_SECONDS):
-                self._job_event_applier.apply(message)
-                self._present(message)
+                updated_job = self._job_event_applier.apply(message)
+                self._present(message, updated_job)
                 running_job_count -= message.ends_the_job_run
                 failed_job_count += isinstance(message.job_event, JobFailed)
 

@@ -8,7 +8,7 @@ Exposición = probabilidad × impacto (1 bajo, 2 medio, 3 alto). Las iteraciones
 
 | ID | Riesgo | Prob. | Impacto | Exposición | Mitigación | Iteración | Estado |
 |---|---|---|---|---|---|---|---|
-| R-01 | El pool de procesos con *spawn* no funciona como se diseñó (arranque, colas, reciclado, guard de `__main__`) | 2 | 3 | **6** | Pruebas con `get_context("spawn")` en cualquier sistema; ejecución real en Windows | E1 | Abierto |
+| R-01 | El pool de procesos con *spawn* no funciona como se diseñó (arranque, colas, reciclado, guard de `__main__`) | 2 | 3 | **6** | Pruebas con `get_context("spawn")` en cualquier sistema; colas de salida por worker, para que un worker caído no bloquee a los demás (T20); ejecución real en Windows | E1 | Abierto |
 | R-02 | ffmpeg o deno consumen más memoria de la aceptable en un equipo modesto | 2 | 3 | **6** | Medir RSS máxima en Windows; fijar SUP-P04 | E1 | Abierto |
 | R-03 | Los binarios de ffmpeg incluidos no arrancan o no se resuelven bien desde `vendor/` (DLL, rutas) | 2 | 3 | **6** | Prueba `windows` de arranque; verificación de ADR-0006 | E1 | Abierto |
 | R-04 | El Job Object no termina todo el árbol de procesos y quedan ffmpeg o deno huérfanos | 2 | 3 | **6** | `WindowsProcessTreeTerminator` mínimo con prueba `windows` sobre hijos y nietos | E2 | Abierto |

@@ -144,7 +144,11 @@ def test_every_worker_message_is_presented() -> None:
     job_store.create(Job.new_expansion(URL, DOWNLOAD_OPTIONS))
     worker_pool = ScriptedWorkerPool(1, single_media_script(URL, "a"))
 
-    RunQueue(job_store, worker_pool, present=presented.append).execute()
+    RunQueue(
+        job_store,
+        worker_pool,
+        present=lambda message, _job: presented.append(message),
+    ).execute()
 
     presented_events = [message.job_event for message in presented]
     assert presented_events.count(JobStarted()) == 2
@@ -171,3 +175,25 @@ def test_same_media_is_downloaded_once_as_video_and_once_as_audio() -> None:
     assert {job.status for job in job_store.all_jobs()} == {JobStatus.COMPLETED}
     downloads = [j for j in worker_pool.submitted_jobs if j.kind is JobKind.DOWNLOAD]
     assert [job.download_options.audio_only for job in downloads] == [False, True]
+
+
+def test_presentation_receives_the_job_as_the_event_left_it() -> None:
+    presented: list[tuple[JobEvent, Job | None]] = []
+    job_store = InMemoryJobStore()
+    job_store.create(Job.new_expansion(URL, DOWNLOAD_OPTIONS))
+    job_store.create(Job.new_expansion(URL, DOWNLOAD_OPTIONS))
+    worker_pool = ScriptedWorkerPool(1, single_media_script(URL, "a"))
+
+    RunQueue(
+        job_store,
+        worker_pool,
+        present=lambda message, job: presented.append((message.job_event, job)),
+    ).execute()
+
+    found_statuses = [
+        job.status
+        for job_event, job in presented
+        if isinstance(job_event, SingleMediaFound) and job is not None
+    ]
+    assert found_statuses == [JobStatus.PENDING, JobStatus.SKIPPED]
+    assert all(job is None for job_event, job in presented if job_event == PROGRESS)

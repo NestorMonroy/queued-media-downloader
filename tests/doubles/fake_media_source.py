@@ -1,5 +1,6 @@
 """MediaSource que publica una secuencia de job events predefinida."""
 
+import logging
 import os
 from collections.abc import Mapping, Sequence
 from enum import Enum
@@ -22,6 +23,8 @@ CRASH = ScriptedFailure.CRASH
 RAISE = ScriptedFailure.RAISE
 
 ScriptedBehavior = Sequence[JobEvent] | ScriptedFailure
+
+logger = logging.getLogger(__name__)
 ScriptKey = tuple[Literal["expand", "download"], str]
 
 
@@ -46,6 +49,7 @@ class FakeMediaSource:
 
     def _perform(self, script_key: ScriptKey, publish: Publish) -> None:
         """Publica los job events del guion, o se cae o lanza si así se indica."""
+        logger.info("Performing %s %s", *script_key)
         behavior = self._script.get(script_key, ())
         if behavior is ScriptedFailure.CRASH:
             os._exit(3)

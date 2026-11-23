@@ -1,18 +1,24 @@
 import io
+from dataclasses import replace
+from pathlib import Path
 
 import pytest
 
 from queued_media_downloader.command_line.job_presenter import JobPresenter
 from queued_media_downloader.jobs import (
+    DownloadOptions,
     DownloadProgressed,
     FailureReason,
     FormatSelected,
+    Job,
     JobCancelled,
     JobCompleted,
     JobEvent,
     JobFailed,
     JobId,
+    JobKind,
     JobStarted,
+    JobStatus,
     MediaKey,
     PostprocessingProgressed,
     PostprocessingStage,
@@ -21,13 +27,14 @@ from queued_media_downloader.jobs import (
 from queued_media_downloader.workers import WorkerMessage
 
 
-def presented_line(job_event: JobEvent) -> str:
+def presented_line(job_event: JobEvent, job: Job | None = None) -> str:
     """Texto que el presentador escribe para job_event del job 7."""
     output = io.StringIO()
     JobPresenter(output).present(
         WorkerMessage(
             worker_id=1, job_id=JobId(7), sequence_number=1, job_event=job_event
-        )
+        ),
+        job,
     )
     return output.getvalue()
 
@@ -100,3 +107,36 @@ def test_only_the_start_of_a_postprocessor_is_presented(
     )
 
     assert presented_line(job_event) == ""
+
+
+def test_internal_yt_dlp_steps_are_not_presented() -> None:
+    job_event = PostprocessingProgressed(
+        postprocessor_name="MoveFiles",
+        postprocessing_stage=PostprocessingStage.STARTED,
+    )
+
+    assert presented_line(job_event) == ""
+
+
+def test_media_found_by_a_job_that_was_skipped_says_so() -> None:
+    media_key = MediaKey(extractor_key="Youtube", media_id="a")
+    skipped_job = replace(
+        Job.new_expansion(
+            "https://media.example/a",
+            DownloadOptions(
+                format_selector="b",
+                download_directory=Path("downloads"),
+                output_template="%(id)s.%(ext)s",
+                audio_only=False,
+            ),
+        ),
+        job_id=JobId(7),
+        kind=JobKind.DOWNLOAD,
+        status=JobStatus.SKIPPED,
+        media_key=media_key,
+    )
+    job_event = SingleMediaFound(media_key=media_key, title="A title")
+
+    assert presented_line(job_event, skipped_job) == (
+        "Job 7: found 'A title', skipped: already downloaded or in the queue\n"
+    )
