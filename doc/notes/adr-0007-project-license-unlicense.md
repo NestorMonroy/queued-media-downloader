@@ -2,6 +2,7 @@
 
 - **Estado:** Aceptada
 - **Fecha:** 2026-11-22
+- **Nota:** la distribución del material de `doc/reference/` se confirma en [ADR-0025](adr-0025-reference-material-distribution.md).
 
 ## Contexto
 

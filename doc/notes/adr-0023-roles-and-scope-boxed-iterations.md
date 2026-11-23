@@ -2,6 +2,7 @@
 
 - **Estado:** Aceptada
 - **Fecha:** 2026-11-23
+- **Nota:** la consecuencia sobre el cuello de botella se corrige en [ADR-0024](adr-0024-verification-by-tdd-and-review-focus.md); la tarea T05 se elimina en [ADR-0025](adr-0025-reference-material-distribution.md).
 - **Ajusta:** el tamaño de una tarea definido en [ADR-0022](adr-0022-hybrid-approach-and-task-decomposition.md)
 
 ## Contexto

@@ -19,4 +19,4 @@ Exposición = probabilidad × impacto (1 bajo, 2 medio, 3 alto). Las iteraciones
 | R-09 | Una versión futura de ffmpeg supera 100 MiB en un archivo (`avcodec` mide hoy 89,7 MiB) | 1 | 1 | 1 | Git LFS; comprobar en cada actualización | Construcción | Abierto |
 | R-10 | El antivirus bloquea archivos `.part` o rutas largas superan 260 caracteres | 2 | 2 | 4 | `file_access_retries`, `trim_file_name`, reglas con `PureWindowsPath`; verificación manual en Windows | E2 | Abierto |
 | R-11 | Los errores específicos de Windows se detectan tarde (las pruebas `windows` solo se ejecutan al cerrar la iteración) | 2 | 2 | 4 | Adaptadores de Windows mínimos; iteraciones cortas | Continuo | Abierto |
-| R-12 | Incumplimiento de licencias: LGPL de ffmpeg o material de `doc/reference/` sin licencia identificada | 1 | 2 | 2 | `LICENSE.txt` y `SOURCE.md` en `vendor/`; confirmar la licencia de las guías | E1 | Abierto |
+| R-12 | Incumplimiento de la LGPL de ffmpeg (el material de `doc/reference/` quedó resuelto en [ADR-0025](../notes/adr-0025-reference-material-distribution.md)) | 1 | 2 | 2 | `LICENSE.txt` y `SOURCE.md` en `vendor/ffmpeg/` | E1 | Abierto |

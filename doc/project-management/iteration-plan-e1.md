@@ -29,7 +29,7 @@ Fuera de E1: cancelación (UC-05), recuperación y reanudación (UC-06), playlis
 | R-01 Pool de procesos con *spawn* | Pruebas del pool con `get_context("spawn")` + descarga real en Windows |
 | R-02 Consumo de memoria | Medición de RSS máxima en Windows durante una descarga con unión por ffmpeg |
 | R-03 Binarios de ffmpeg incluidos | Prueba `windows` de arranque de `ffmpeg.exe` y `ffprobe.exe` desde `vendor/` |
-| R-12 Licencias | `LICENSE.txt` y `SOURCE.md` en `vendor/ffmpeg/`; licencia de `doc/reference/` confirmada |
+| R-12 Licencias (LGPL de ffmpeg) | `LICENSE.txt` y `SOURCE.md` en `vendor/ffmpeg/` |
 
 ## 4. Trabajo
 
@@ -44,9 +44,9 @@ Fase           Elaboración
       └─ Tarea Un cambio en un componente con TDD: prueba primero, un PR revisable de una sentada
 ```
 
-Cada slice termina en algo que se ejecuta. Cada tarea termina cuando pasa la prueba indicada y cumple la [definición de terminado](../process/development-case.md#definición-de-terminado-por-cambio). El avance se mide en tareas terminadas sobre 19.
+Cada slice termina en algo que se ejecuta. Cada tarea termina cuando pasa la prueba indicada y cumple la [definición de terminado](../process/development-case.md#definición-de-terminado-por-cambio). El avance se mide en tareas terminadas sobre 18 (T05 se eliminó: [ADR-0025](../notes/adr-0025-reference-material-distribution.md)).
 
-Roles ([caso de desarrollo, §5](../process/development-case.md#roles)): **Responsable** del proyecto, **Agente** de implementación y **Evaluador** en Windows. Toda tarea del Agente termina con un *pull request* que el Responsable revisa e integra.
+Roles ([caso de desarrollo, §5](../process/development-case.md#roles)): **Responsable** del proyecto, **Agente** de implementación y **Evaluador** en Windows. Toda tarea del Agente termina con un *pull request*: las pruebas y las herramientas verifican el código, y el Responsable revisa que las pruebas expresen el criterio de terminado antes de integrar ([ADR-0024](../notes/adr-0024-verification-by-tdd-and-review-focus.md)).
 
 ### 4.2 Slice 0: entorno
 
@@ -56,7 +56,6 @@ Roles ([caso de desarrollo, §5](../process/development-case.md#roles)): **Respo
 | T02 | `pyproject.toml` (`uv_build` con `module-root = ""`, `yt-dlp[default,deno]==2026.10.26`, `[tool.uv] environments`, grupo `dev`, Ruff, mypy estricto, marcadores de pytest), `uv.lock` y esqueleto de componentes con su `__init__.py` | Agente | Las cinco comprobaciones locales pasan con el proyecto vacío | T01 |
 | T03 | Contratos de import-linter (`layers`, un `protected` por componente, `forbidden` para `yt_dlp`) | Agente | `lint-imports` pasa; un import prohibido de prueba lo rompe | T02 |
 | T04 | Build de ffmpeg ([ADR-0018](../notes/adr-0018-ffmpeg-build-selection.md)) con `LICENSE.txt` y `SOURCE.md` (URL con fecha, SHA-256, enlace al código fuente) | Agente | El SHA-256 coincide; la prueba `windows` de arranque está escrita | T01 |
-| T05 | Confirmar la licencia de `doc/reference/` (R-12) | Responsable | Licencia registrada en `LICENSE`, o material retirado | — |
 
 ### 4.3 Slice A: encolar (UC-02)
 
@@ -103,7 +102,7 @@ Roles ([caso de desarrollo, §5](../process/development-case.md#roles)): **Respo
 T01 → T02 → T06 → T07 → T14 → T15 → T17 → T19
 ```
 
-T03, T04, T05, T08, T10 a T13 y T16 pueden avanzar en paralelo con el camino crítico. A partir de T15 ya hay una descarga real de extremo a extremo: si el pool con *spawn* (R-01) falla, se descubre a mitad de la iteración, no al final.
+T03, T04, T08, T10 a T13 y T16 pueden avanzar en paralelo con el camino crítico. A partir de T15 ya hay una descarga real de extremo a extremo: si el pool con *spawn* (R-01) falla, se descubre a mitad de la iteración, no al final.
 
 ---
 

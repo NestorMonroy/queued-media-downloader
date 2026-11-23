@@ -127,7 +127,8 @@ Correspondencia con los roles de RUP: el Responsable del proyecto cubre jefe de 
 
 ### Duración: iteraciones delimitadas por alcance
 
-- **Una iteración se cierra cuando cumple sus criterios de evaluación,** no al agotar un plazo. La velocidad del Agente de implementación no es una medida útil para planificar; los cuellos de botella son la revisión de los *pull requests* y la evaluación en Windows.
+- **Una iteración se cierra cuando cumple sus criterios de evaluación,** no al agotar un plazo. La velocidad del Agente de implementación no es una medida útil para planificar; las esperas posibles están en las decisiones del Responsable del proyecto y en la evaluación en Windows.
 - **El avance se mide en tareas terminadas** sobre el total de la iteración, no en días.
 - **Tamaño de una tarea:** un *pull request* que el Responsable del proyecto pueda revisar de una sentada; normalmente un cambio en un solo componente con sus pruebas.
+- **Qué revisa el Responsable:** que las pruebas expresen el criterio de terminado y el escenario del caso de uso, y que se respeten el vocabulario y los ADR. La corrección del código la verifican las pruebas y las herramientas ([ADR-0024](../notes/adr-0024-verification-by-tdd-and-review-focus.md)).
 - Si una iteración crece más de lo previsto, se divide moviendo slices a la siguiente iteración; no se alarga indefinidamente.

@@ -2,6 +2,7 @@
 
 - **Estado:** Aceptada
 - **Fecha:** 2026-11-23
+- **Nota:** el plan de E1 tiene 18 tareas tras eliminar T05 ([ADR-0025](adr-0025-reference-material-distribution.md)).
 - **Nota:** el tamaño de una tarea ("menos de un día") y la duración de las iteraciones se redefinen en [ADR-0023](adr-0023-roles-and-scope-boxed-iterations.md).
 
 ## Contexto

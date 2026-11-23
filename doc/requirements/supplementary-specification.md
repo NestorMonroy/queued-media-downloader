@@ -68,4 +68,4 @@ Requisitos que no pertenecen a un caso de uso concreto, organizados según FURPS
 |---|---|---|
 | SUP-L01 | Código del proyecto bajo The Unlicense | [ADR-0007](../notes/adr-0007-project-license-unlicense.md) |
 | SUP-L02 | `vendor/ffmpeg/` incluye el texto de la LGPL y la referencia al código fuente de la build exacta | [ADR-0018](../notes/adr-0018-ffmpeg-build-selection.md) |
-| SUP-L03 | Todo material de terceros incluido en el repositorio tiene su licencia identificada (pendiente: guías de `doc/reference/`) | [ADR-0007](../notes/adr-0007-project-license-unlicense.md) |
+| SUP-L03 | Todo material incluido en el repositorio tiene su distribución confirmada (cumplido para `doc/reference/`) | [ADR-0007](../notes/adr-0007-project-license-unlicense.md), [ADR-0025](../notes/adr-0025-reference-material-distribution.md) |

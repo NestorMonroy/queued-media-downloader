@@ -10,7 +10,7 @@ Cada decisión se registra en un archivo con: contexto, opciones consideradas, d
 | [0004](adr-0004-windows-x64-target-platform.md) | Plataforma objetivo: Windows x64 | Aceptada |
 | [0005](adr-0005-vendored-ffmpeg-lgpl-shared.md) | ffmpeg incluido en el repositorio (LGPL compartida) | Aceptada (build concreta en 0018) |
 | [0006](adr-0006-ffmpeg-resolution-and-verification.md) | Resolución y verificación de ffmpeg | Aceptada (término actualizado por 0014) |
-| [0007](adr-0007-project-license-unlicense.md) | Licencia del proyecto: The Unlicense | Aceptada |
+| [0007](adr-0007-project-license-unlicense.md) | Licencia del proyecto: The Unlicense | Aceptada (material de referencia en 0025) |
 | [0008](adr-0008-process-based-worker-pool.md) | Pool fijo de workers en procesos | Aceptada (a validar en el prototipo; completada por 0013) |
 | [0009](adr-0009-playlist-expansion-into-jobs.md) | Expansión de playlists en trabajos individuales | Aceptada (ajustada por 0012) |
 | [0010](adr-0010-sqlite-persistent-queue.md) | Cola persistente en SQLite | Aceptada (términos actualizados por 0014) |
@@ -26,7 +26,9 @@ Cada decisión se registra en un archivo con: contexto, opciones consideradas, d
 | [0020](adr-0020-repository-branching-and-lfs.md) | Repositorio en GitHub, ramas *trunk-based* y Git LFS | Aceptada |
 | [0021](adr-0021-tdd-and-windows-validation-without-ci.md) | TDD y validación en Windows sin integración continua | Aceptada |
 | [0022](adr-0022-hybrid-approach-and-task-decomposition.md) | Enfoque híbrido (predictivo y ágil) y descomposición en slices | Aceptada (tamaño de tarea ajustado por 0023) |
-| [0023](adr-0023-roles-and-scope-boxed-iterations.md) | Roles e iteraciones delimitadas por alcance | Aceptada |
+| [0023](adr-0023-roles-and-scope-boxed-iterations.md) | Roles e iteraciones delimitadas por alcance | Aceptada (corregida por 0024 y 0025) |
+| [0024](adr-0024-verification-by-tdd-and-review-focus.md) | Verificación por TDD y revisión centrada en las pruebas | Aceptada |
+| [0025](adr-0025-reference-material-distribution.md) | Distribución del material de referencia | Aceptada |
 
 ## Convenciones de este registro
 
