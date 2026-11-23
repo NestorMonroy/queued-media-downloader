@@ -34,3 +34,11 @@ Medición de `ffmpeg-n9.0-latest-win64-lgpl-shared-9.0.zip` (BtbN, descargada el
 - El repositorio crece unos 151 MiB por cada versión de ffmpeg incluida (almacenados en Git LFS, [ADR-0020](adr-0020-repository-branching-and-lfs.md)).
 - `avcodec-63.dll` queda a 10 MiB del límite por archivo; una versión futura podría superarlo. Git LFS lo evita, pero hay que comprobarlo en cada actualización.
 - Pendiente de verificar al incluir la build: la política de conservación de builds con fecha de BtbN (en sus forks, la última build de cada mes se conserva dos años).
+
+## Seguimiento (T04, 2026-11-23)
+
+- **Build incluida:** `n9.0.2-39-g7adfbe40dc-win64-lgpl-shared`, de la release `autobuild-2026-10-31-12-59` (la última de octubre de 2026). Su origen y su SHA-256 están en `vendor/ffmpeg/n9.0.2-39-g7adfbe40dc-win64-lgpl-shared/SOURCE.md`.
+- **Tamaño real:** `bin/` sin `ffplay.exe` ocupa 148,4 MiB; `avcodec-63.dll`, 87,6 MiB.
+- **Conservación verificada:** BtbN conserva dos años la última build de cada mes y las 14 últimas builds diarias.
+- **El repositorio de BtbN se movió** a la organización FFmpeg-Builds; GitHub redirige las URL antiguas.
+- **Git LFS solo para `bin/`:** `.gitattributes` se limita a `vendor/ffmpeg/*/bin/**`, para que `LICENSE.txt` y `SOURCE.md` se lean también en un clon sin Git LFS.
