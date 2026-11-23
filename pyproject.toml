@@ -86,6 +86,8 @@ markers = [
 
 [tool.importlinter]
 root_package = "queued_media_downloader"
+# Necesario para el contrato sobre yt_dlp, que es un paquete externo.
+include_external_packages = true
 
 # Sin ciclos: cada componente solo depende de componentes de niveles inferiores;
 # los de un mismo nivel ("|") no se importan entre sí (diseño, Parte 1, §3).
@@ -100,3 +102,73 @@ layers = [
     "media_extraction | job_storage | ffmpeg_discovery",
     "jobs | configuration",
 ]
+
+# API pública: fuera de un componente solo se importa su __init__.py. Un contrato
+# por componente; uno compartido autorizaría a cada paquete a usar el interior
+# de los demás (ADR-0017). Cuando exista command_line.composition_root (T15), se
+# añade a allowed_importers: import-linter no admite módulos que aún no existen.
+
+[[tool.importlinter.contracts]]
+name = "jobs is only used through its public API"
+type = "protected"
+protected_modules = ["queued_media_downloader.jobs.*"]
+allowed_importers = ["queued_media_downloader.jobs"]
+
+[[tool.importlinter.contracts]]
+name = "job_queue is only used through its public API"
+type = "protected"
+protected_modules = ["queued_media_downloader.job_queue.*"]
+allowed_importers = ["queued_media_downloader.job_queue"]
+
+[[tool.importlinter.contracts]]
+name = "job_storage is only used through its public API"
+type = "protected"
+protected_modules = ["queued_media_downloader.job_storage.*"]
+allowed_importers = ["queued_media_downloader.job_storage"]
+
+[[tool.importlinter.contracts]]
+name = "workers is only used through its public API"
+type = "protected"
+protected_modules = ["queued_media_downloader.workers.*"]
+allowed_importers = ["queued_media_downloader.workers"]
+
+[[tool.importlinter.contracts]]
+name = "media_extraction is only used through its public API"
+type = "protected"
+protected_modules = ["queued_media_downloader.media_extraction.*"]
+allowed_importers = ["queued_media_downloader.media_extraction"]
+
+[[tool.importlinter.contracts]]
+name = "ffmpeg_discovery is only used through its public API"
+type = "protected"
+protected_modules = ["queued_media_downloader.ffmpeg_discovery.*"]
+allowed_importers = ["queued_media_downloader.ffmpeg_discovery"]
+
+[[tool.importlinter.contracts]]
+name = "diagnostics is only used through its public API"
+type = "protected"
+protected_modules = ["queued_media_downloader.diagnostics.*"]
+allowed_importers = ["queued_media_downloader.diagnostics"]
+
+[[tool.importlinter.contracts]]
+name = "configuration is only used through its public API"
+type = "protected"
+protected_modules = ["queued_media_downloader.configuration.*"]
+allowed_importers = ["queued_media_downloader.configuration"]
+
+[[tool.importlinter.contracts]]
+name = "command_line is only used through its public API"
+type = "protected"
+protected_modules = ["queued_media_downloader.command_line.*"]
+allowed_importers = ["queued_media_downloader.command_line"]
+
+# yt_dlp solo dentro de media_extraction (ADR-0017). El patrón autoriza a todo
+# el componente: que media_source.py no lo importe se revisa en código.
+[[tool.importlinter.contracts]]
+name = "Only media_extraction imports yt_dlp"
+type = "forbidden"
+source_modules = ["queued_media_downloader"]
+forbidden_modules = ["yt_dlp"]
+ignore_imports = ["queued_media_downloader.media_extraction.** -> yt_dlp"]
+# Hasta que exista media_extraction, la excepción no coincide con ningún import.
+unmatched_ignore_imports_alerting = "none"

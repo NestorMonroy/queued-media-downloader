@@ -54,7 +54,7 @@ Roles ([caso de desarrollo, §5](../process/development-case.md#roles)): **Respo
 |---|---|---|---|---|
 | T01 | Repositorio en GitHub y Git LFS para `vendor/ffmpeg/` | Responsable | `git lfs track` muestra solo `vendor/ffmpeg/**` | — |
 | T02 | `pyproject.toml` (`uv_build` con `module-root = ""`, `yt-dlp[default,deno]==2026.10.26`, `[tool.uv] environments`, grupo `dev`, Ruff, mypy estricto, marcadores de pytest), `uv.lock` y esqueleto de componentes con su `__init__.py` | Agente | Las cinco comprobaciones locales pasan con el proyecto vacío | T01 |
-| T03 | Contratos de import-linter (`layers`, un `protected` por componente, `forbidden` para `yt_dlp`) | Agente | `lint-imports` pasa; un import prohibido de prueba lo rompe | T02 |
+| T03 | Contratos de import-linter: un `protected` por componente y `forbidden` para `yt_dlp` (el contrato `layers` se adelantó a T02, porque `lint-imports` no se ejecuta sin contratos) | Agente | `lint-imports` pasa; un import prohibido de prueba lo rompe | T02 |
 | T04 | Build de ffmpeg ([ADR-0018](../notes/adr-0018-ffmpeg-build-selection.md)) con `LICENSE.txt` y `SOURCE.md` (URL con fecha, SHA-256, enlace al código fuente) | Agente | El SHA-256 coincide; la prueba `windows` de arranque está escrita | T01 |
 
 ### 4.3 Slice A: encolar (UC-02)
@@ -75,7 +75,7 @@ Roles ([caso de desarrollo, §5](../process/development-case.md#roles)): **Respo
 | T12 | `media_extraction/`: `download`, `SelectedFormatRecorder`, `FinalPathRecorder`, `progress_event_translator` y `failure_classifier` | Agente | Pruebas de contrato con las excepciones reales de yt-dlp; descarga contra el servidor local | T11 |
 | T13 | `workers/`: contrato `WorkerPool`, `ProcessWorkerPool` y `worker_loop` (`RunJob`, `ShutDown`; sin cancelación ni reciclado) | Agente | Pruebas con `get_context("spawn")` y `FakeMediaSource` | T10, T11 |
 | T14 | `job_queue/`: `RunQueue` (sin job requests) y `JobEventApplier` | Agente | Pruebas con `ScriptedWorkerPool` e `InMemoryJobStore` | T07, T13 |
-| T15 | Comando `run`, `composition_root` y presentación del progreso | Agente | `enqueue` + `run` descargan un archivo del servidor local y el job queda `COMPLETED` | T09, T12, T14 |
+| T15 | Comando `run`, `composition_root` (y su autorización en los contratos `protected`, que no admiten módulos inexistentes) y presentación del progreso | Agente | `enqueue` + `run` descargan un archivo del servidor local y el job queda `COMPLETED` | T09, T12, T14 |
 
 ### 4.5 Slice C: descargar uniendo con ffmpeg (UC-03 completo)
 
