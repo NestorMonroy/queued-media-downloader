@@ -90,6 +90,8 @@ queued-media-downloader/               Proyecto (nombre de la distribución)
     │   ├── __init__.py                API pública: MediaSource (no importa yt_dlp)
     │   ├── media_source.py            Contrato
     │   ├── media_source_settings.py   Configuración común a los jobs de un worker
+    │   ├── javascript_runtime.py      Deno que usa yt-dlp (valor público, sin yt_dlp)
+    │   ├── yt_dlp_javascript_runtime.py  Pregunta a yt-dlp qué deno usará
     │   ├── yt_dlp_media_source.py
     │   ├── yt_dlp_parameters.py
     │   ├── output_template_builder.py
@@ -105,8 +107,8 @@ queued-media-downloader/               Proyecto (nombre de la distribución)
     │   └── checksum_cache.py          SHA-256 recalculado solo si cambian tamaño o fecha
     │
     ├── diagnostics/
-    │   ├── __init__.py                API pública: DiagnoseEnvironment
-    │   └── diagnose_environment.py
+    │   ├── __init__.py                API pública: DiagnoseEnvironment, EnvironmentCheck, CheckOutcome
+    │   └── diagnose_environment.py    Una comprobación por componente; solo FAILED da código 2
     │
     ├── configuration/
     │   ├── __init__.py                API pública: Settings, load_settings
@@ -120,6 +122,7 @@ queued-media-downloader/               Proyecto (nombre de la distribución)
         ├── command_settings.py        Configuración de un comando (opciones, entorno y config.toml)
         ├── enqueue_command.py
         ├── run_command.py
+        ├── diagnose_command.py
         ├── exit_code.py
         └── job_presenter.py
 ```

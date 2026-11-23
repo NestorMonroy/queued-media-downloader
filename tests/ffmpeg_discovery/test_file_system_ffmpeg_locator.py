@@ -276,10 +276,14 @@ def test_unreadable_cache_is_rebuilt(tmp_path: Path) -> None:
 
 
 @pytest.mark.skipif(os.name == "nt", reason="the fake program is a POSIX script")
-def test_read_program_version_returns_the_first_line(tmp_path: Path) -> None:
+def test_read_program_version_returns_the_first_line_without_copyright(
+    tmp_path: Path,
+) -> None:
     program = tmp_path / "fake-ffmpeg"
     program.write_text(
-        f"#!{sys.executable}\nprint('ffmpeg version 9.0')\nprint('built with gcc')\n",
+        f"#!{sys.executable}\n"
+        "print('ffmpeg version 9.0 Copyright (c) 2000-2026 the FFmpeg developers')\n"
+        "print('built with gcc')\n",
         encoding="utf-8",
     )
     program.chmod(0o755)

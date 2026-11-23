@@ -32,7 +32,7 @@ FindOnPath = Callable[[str], str | None]
 
 
 def read_program_version(program_path: Path) -> str:
-    """Primera línea de `program -version`.
+    """Primera línea de `program -version`, sin el copyright que la sigue.
 
     Raises:
         OSError: Si el programa no arranca, no termina a tiempo o falla.
@@ -51,7 +51,9 @@ def read_program_version(program_path: Path) -> str:
     if completed_process.returncode != 0:
         message = f"{program_path} ended with exit code {completed_process.returncode}"
         raise OSError(message)
-    return completed_process.stdout.partition("\n")[0].strip()
+    first_line = completed_process.stdout.partition("\n")[0]
+    version, _, _ = first_line.partition(" Copyright")
+    return version.strip()
 
 
 class FileSystemFfmpegLocator:

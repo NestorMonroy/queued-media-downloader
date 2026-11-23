@@ -10,6 +10,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from queued_media_downloader.configuration import Settings, project_root
+from queued_media_downloader.diagnostics import DiagnoseEnvironment
 from queued_media_downloader.ffmpeg_discovery import FfmpegLocator
 from queued_media_downloader.ffmpeg_discovery.file_system_ffmpeg_locator import (
     VENDORED_BUILD_NAME,
@@ -19,6 +20,9 @@ from queued_media_downloader.job_storage import JobStore
 from queued_media_downloader.job_storage.sqlite_connection import open_database
 from queued_media_downloader.job_storage.sqlite_job_store import SqliteJobStore
 from queued_media_downloader.media_extraction import MediaSourceSettings
+from queued_media_downloader.media_extraction.yt_dlp_javascript_runtime import (
+    find_deno,
+)
 from queued_media_downloader.media_extraction.yt_dlp_media_source import (
     YtDlpMediaSource,
 )
@@ -78,3 +82,25 @@ def open_worker_pool(
         yield worker_pool
     finally:
         worker_pool.shut_down()
+
+
+def create_diagnose_environment(settings: Settings) -> DiagnoseEnvironment:
+    """Diagnóstico con el ffmpeg, el deno y la base de datos que usará run."""
+    return DiagnoseEnvironment(
+        ffmpeg_locator=create_ffmpeg_locator(settings),
+        find_javascript_runtime=find_deno,
+        open_database=functools.partial(
+            read_database_schema_version, settings.state_directory
+        ),
+    )
+
+
+def read_database_schema_version(state_directory: Path) -> int:
+    """Abre la base de datos, la migra si hace falta y devuelve su versión."""
+    state_directory.mkdir(parents=True, exist_ok=True)
+    connection = open_database(state_directory / DATABASE_FILE_NAME)
+    try:
+        schema_version: int = connection.execute("PRAGMA user_version").fetchone()[0]
+    finally:
+        connection.close()
+    return schema_version

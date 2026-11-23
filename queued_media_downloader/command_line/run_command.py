@@ -73,6 +73,4 @@ def run_run_command(arguments: argparse.Namespace) -> int:
 def _describe_ffmpeg(ffmpeg_installation: FfmpegInstallation) -> str:
     """Qué ffmpeg se usa y su versión, para saber con qué se une cada archivo."""
     description = FFMPEG_SOURCE_DESCRIPTIONS[ffmpeg_installation.source]
-    # La primera línea de -version sigue con el copyright, que aquí sobra.
-    version, _, _ = ffmpeg_installation.ffmpeg_version.partition(" Copyright")
-    return f"{description}: {version}"
+    return f"{description}: {ffmpeg_installation.ffmpeg_version}"
