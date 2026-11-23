@@ -7,4 +7,5 @@ class ExitCode(IntEnum):
     """Código con el que termina el proceso de la línea de comandos."""
 
     SUCCESS = 0
+    JOBS_FAILED = 1
     USAGE_ERROR = 2

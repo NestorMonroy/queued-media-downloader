@@ -6,6 +6,7 @@ from importlib.metadata import version
 
 from queued_media_downloader.command_line.enqueue_command import add_enqueue_command
 from queued_media_downloader.command_line.exit_code import ExitCode
+from queued_media_downloader.command_line.run_command import add_run_command
 
 DISTRIBUTION_NAME = "queued-media-downloader"
 
@@ -21,6 +22,7 @@ def build_command_parser() -> argparse.ArgumentParser:
     command_parser.set_defaults(program_name=DISTRIBUTION_NAME)
     commands = command_parser.add_subparsers(metavar="COMMAND", required=True)
     add_enqueue_command(commands)
+    add_run_command(commands)
     return command_parser
 
 

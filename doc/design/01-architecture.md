@@ -115,7 +115,11 @@ queued-media-downloader/               Proyecto (nombre de la distribución)
     └── command_line/                  El programa (como fftools/ en FFmpeg)
         ├── __init__.py                API pública: main
         ├── composition_root.py        Ensambla las implementaciones para la línea de comandos
-        ├── command_parser.py
+        ├── command_parser.py          Opciones globales y registro de los comandos
+        ├── command_settings.py        Configuración de un comando (opciones, entorno y config.toml)
+        ├── enqueue_command.py
+        ├── run_command.py
+        ├── exit_code.py
         └── job_presenter.py
 ```
 

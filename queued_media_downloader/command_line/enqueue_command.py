@@ -1,20 +1,16 @@
 """Comando enqueue: une la configuración con el caso de uso EnqueueMedia."""
 
 import argparse
-import os
 import sys
 
+from queued_media_downloader.command_line.command_settings import (
+    load_command_settings,
+)
 from queued_media_downloader.command_line.composition_root import open_job_store
 from queued_media_downloader.command_line.exit_code import ExitCode
-from queued_media_downloader.configuration import (
-    SettingsError,
-    load_settings,
-    project_root,
-)
+from queued_media_downloader.configuration import SettingsError
 from queued_media_downloader.job_queue import EnqueueMedia, InvalidUrlError
 from queued_media_downloader.jobs import DownloadOptions
-
-CONFIG_FILE_NAME = "config.toml"
 
 
 def add_enqueue_command(
@@ -37,13 +33,11 @@ def run_enqueue_command(arguments: argparse.Namespace) -> int:
         configuración no es válido, sin encolar ninguna.
     """
     try:
-        settings = load_settings(
+        settings = load_command_settings(
             {
                 "default_format_selector": arguments.format_selector,
                 "download_directory": arguments.download_directory,
-            },
-            os.environ,
-            project_root() / CONFIG_FILE_NAME,
+            }
         )
         download_options = DownloadOptions(
             format_selector=settings.default_format_selector,
