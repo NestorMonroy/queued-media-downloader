@@ -1,0 +1,62 @@
+# UC-03: Descargar un contenido
+
+- **Actor principal:** User
+- **Actor secundario:** Media site
+- **Significativo para la arquitectura:** sí (recorre todos los componentes)
+- **Decisiones relacionadas:** [ADR-0008](../../notes/adr-0008-process-based-worker-pool.md), [ADR-0010](../../notes/adr-0010-sqlite-persistent-queue.md), [ADR-0013](../../notes/adr-0013-process-tree-terminator-abstraction.md)
+- **Diseño:** [Parte 2, §1.2 y §1.3](../../design/02-flows-persistence-and-operations.md#13-descarga)
+
+## Breve descripción
+
+El User ejecuta la cola. El sistema toma un job pendiente, descubre que la URL es un solo contenido, lo descarga en un worker, une audio y video con ffmpeg si hace falta y registra el resultado.
+
+## Precondiciones
+
+- UC-01 completado (ffmpeg verificado).
+- Hay al menos un job `PENDING` (UC-02).
+
+## Flujo básico
+
+1. El User ejecuta `uv run queued-media-downloader run`.
+2. El sistema recupera los jobs interrumpidos (UC-06) y verifica ffmpeg con el estado guardado.
+3. El sistema arranca el pool con `worker_count` workers.
+4. El sistema toma un job `EXPANSION` pendiente y lo envía a un worker libre; el job pasa a `RUNNING`.
+5. El worker extrae la URL con el Media site y descubre que es un solo contenido; publica `SingleMediaFound`. El job pasa a `DOWNLOAD` y vuelve a `PENDING`.
+6. El sistema vuelve a enviar el job a un worker; pasa a `RUNNING`.
+7. El worker construye los parámetros de yt-dlp y la plantilla de salida, y empieza la descarga.
+8. Antes de descargar, el worker publica `FormatSelected`; el sistema guarda `selected_format_id`.
+9. Durante la descarga, el worker publica `DownloadProgressed` como máximo cada `progress_interval_seconds`; el sistema muestra el progreso en inglés.
+10. Si el formato requiere unir audio y video, ffmpeg los une; el worker publica `PostprocessingProgressed`.
+11. El worker publica `JobCompleted` con la ruta final; el job pasa a `COMPLETED`.
+12. Cuando no quedan jobs pendientes, el sistema detiene el pool y termina con código `0`.
+
+## Flujos alternativos
+
+- **A1. Contenido duplicado** (paso 5): ya existe un job `DOWNLOAD` activo con la misma media key. El job queda `SKIPPED` y no se descarga.
+- **A2. Fallo de red, contenido no disponible, restricción geográfica o URL no soportada** (pasos 5 a 10): el worker clasifica el error y publica `JobFailed` con su failure reason. El job pasa a `FAILED`; el resto de la cola continúa. Al terminar, el código de salida es `1`.
+- **A3. Extractor desactualizado** (paso 5 o 7): igual que A2, con `EXTRACTOR_OUTDATED`; el mensaje indica que probablemente haga falta actualizar la versión fijada de yt-dlp.
+- **A4. El worker muere sin publicar un evento final** (pasos 5 a 11): el pool lo detecta, publica `JobFailed(WORKER_CRASHED)` y arranca otro worker.
+- **A5. `--keep-waiting`** (paso 12): el sistema no termina; espera jobs nuevos.
+- **A6. Reciclado** (paso 11): el worker alcanzó `max_jobs_per_worker`; termina limpiamente y el pool arranca un reemplazo.
+
+## Postcondiciones
+
+- **Éxito:** archivo final en `download_directory`; job `COMPLETED` con `output_path` y `selected_format_id`.
+- **Fallo:** job `FAILED` con failure reason y mensaje; los archivos parciales quedan para reanudar (UC-06).
+
+## Requisitos especiales
+
+- Ningún proceso de ffmpeg o deno sigue vivo al terminar `run`.
+- Solo el proceso de `run` cambia el estado de los jobs; los workers solo publican job events.
+- El progreso no se escribe en la base de datos.
+
+## Escenarios de prueba
+
+| Escenario | Dónde se prueba |
+|---|---|
+| Flujo completo con `ScriptedWorkerPool` (eventos predefinidos) | Cualquier sistema |
+| Duplicado (A1) y clasificación de fallos (A2, A3) | Cualquier sistema |
+| Pool real con contexto `spawn`, worker caído (A4) y reciclado (A6) | Cualquier sistema |
+| Descarga de extremo a extremo contra un servidor HTTP local, con unión por ffmpeg | Cualquier sistema (ffmpeg del sistema) y **Windows** (ffmpeg incluido) |
+| Memoria máxima del proceso principal, del worker y de ffmpeg | **Windows**, al cerrar la iteración |
+| Descarga real de un video de YouTube (con deno) | **Windows**, manual |
