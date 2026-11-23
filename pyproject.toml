@@ -72,6 +72,12 @@ python_version = "3.11"
 strict = true
 files = ["queued_media_downloader", "tests"]
 
+# yt-dlp no publica anotaciones de tipos (ni py.typed ni stubs): sus objetos se
+# tratan como Any y el contrato se cubre con pruebas (ADR-0002).
+[[tool.mypy.overrides]]
+module = ["yt_dlp", "yt_dlp.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = [

@@ -88,6 +88,7 @@ queued-media-downloader/               Proyecto (nombre de la distribución)
     ├── media_extraction/              Cómo se expande y se descarga
     │   ├── __init__.py                API pública: MediaSource (no importa yt_dlp)
     │   ├── media_source.py            Contrato
+    │   ├── media_source_settings.py   Configuración común a los jobs de un worker
     │   ├── yt_dlp_media_source.py
     │   ├── yt_dlp_parameters.py
     │   ├── output_template_builder.py

@@ -1,1 +1,15 @@
-"""Cómo se expande y se descarga un contenido con yt-dlp."""
+"""Cómo se expande y se descarga un contenido con yt-dlp.
+
+La API pública no importa yt_dlp; la implementación con yt-dlp la crea
+command_line.composition_root.
+"""
+
+from queued_media_downloader.media_extraction.media_source import (
+    MediaSource,
+    Publish,
+)
+from queued_media_downloader.media_extraction.media_source_settings import (
+    MediaSourceSettings,
+)
+
+__all__ = ["MediaSource", "MediaSourceSettings", "Publish"]
