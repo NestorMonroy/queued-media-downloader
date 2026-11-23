@@ -11,7 +11,9 @@ state/
 # Configuración local del usuario
 config.toml
 
-# Herramientas de pruebas
+# Cachés de herramientas de desarrollo
 .pytest_cache/
+.ruff_cache/
+.mypy_cache/
 .coverage
 htmlcov/

@@ -1,0 +1,102 @@
+[project]
+name = "queued-media-downloader"
+version = "0.1.0"
+description = "Media downloader with a persistent queue, built on the yt-dlp library"
+readme = "README.md"
+license = "Unlicense"
+requires-python = ">=3.11"
+dependencies = [
+    "yt-dlp[default,deno]==2026.10.26",
+]
+
+[project.scripts]
+queued-media-downloader = "queued_media_downloader.__main__:main"
+
+[dependency-groups]
+dev = [
+    "import-linter>=2.17",
+    "mypy>=1.18",
+    "pytest>=8.4",
+    "ruff>=0.14",
+]
+
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"
+
+# El paquete está en la raíz del proyecto, sin src/ (ADR-0016).
+[tool.uv.build-backend]
+module-root = ""
+
+# Plataforma soportada (ADR-0004) y plataforma del Agente de implementación.
+[tool.uv]
+environments = [
+    "sys_platform == 'win32' and platform_machine == 'AMD64'",
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+# Ruff también formatea Markdown; la documentación y los binarios no son código.
+extend-exclude = ["doc", "vendor"]
+
+[tool.ruff.lint]
+select = [
+    "ARG",  # argumentos sin usar
+    "B",    # errores probables
+    "C90",  # complejidad ciclomática
+    "D",    # docstrings
+    "E",    # estilo (pycodestyle)
+    "F",    # errores (pyflakes)
+    "I",    # orden de imports
+    "N",    # nombres (pep8-naming)
+    "RUF",  # reglas propias de Ruff
+    "SIM",  # simplificaciones
+    "UP",   # sintaxis moderna de Python
+    "W",    # avisos de estilo
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.mccabe]
+max-complexity = 8
+
+[tool.ruff.lint.per-file-ignores]
+# Las pruebas se nombran por su comportamiento; no necesitan docstrings.
+"tests/**" = ["D"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["queued_media_downloader", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+    "--import-mode=importlib",
+    "--strict-markers",
+    "-m", "not windows and not network",
+]
+markers = [
+    "windows: requires a real Windows environment (ADR-0021)",
+    "network: requires internet access",
+]
+
+[tool.importlinter]
+root_package = "queued_media_downloader"
+
+# Sin ciclos: cada componente solo depende de componentes de niveles inferiores;
+# los de un mismo nivel ("|") no se importan entre sí (diseño, Parte 1, §3).
+[[tool.importlinter.contracts]]
+name = "Components only depend on lower components"
+type = "layers"
+containers = ["queued_media_downloader"]
+layers = [
+    "command_line",
+    "job_queue | diagnostics",
+    "workers",
+    "media_extraction | job_storage | ffmpeg_discovery",
+    "jobs | configuration",
+]
