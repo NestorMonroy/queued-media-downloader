@@ -53,3 +53,42 @@ class Job:
         """
         ensure_transition_allowed(self.status, target_status)
         return replace(self, status=target_status)
+
+    def start(self) -> Self:
+        """El job se envía a un worker."""
+        return self.transition_to(JobStatus.RUNNING)
+
+    def found_single_media(self, media_key: MediaKey, title: str) -> Self:
+        """La expansión encontró un solo contenido: vuelve a la cola como descarga."""
+        return self._as_download(media_key, title).transition_to(JobStatus.PENDING)
+
+    def skip_as_duplicate(self, media_key: MediaKey, title: str) -> Self:
+        """La expansión encontró un contenido que ya tiene descarga (UC-03 A1)."""
+        return self._as_download(media_key, title).transition_to(JobStatus.SKIPPED)
+
+    def record_selected_format(self, selected_format_id: str) -> Self:
+        """Guarda el formato elegido para reutilizarlo al reanudar (ADR-0010)."""
+        return replace(self, selected_format_id=selected_format_id)
+
+    def complete(self, output_path: str | None) -> Self:
+        """El job terminó bien; output_path es None si no produjo un archivo."""
+        return replace(self.transition_to(JobStatus.COMPLETED), output_path=output_path)
+
+    def fail(self, failure_reason: FailureReason, failure_message: str) -> Self:
+        """El job falló por failure_reason."""
+        return replace(
+            self.transition_to(JobStatus.FAILED),
+            failure_reason=failure_reason,
+            failure_message=failure_message,
+        )
+
+    def confirm_cancellation(self) -> Self:
+        """El worker confirmó la cancelación pedida."""
+        return self.transition_to(JobStatus.CANCELLED)
+
+    def _as_download(self, media_key: MediaKey, title: str) -> Self:
+        """Copia de una expansión convertida en la descarga de media_key."""
+        if self.kind is not JobKind.EXPANSION:
+            message = f"Only an EXPANSION job finds its media, not {self.kind.value}"
+            raise ValueError(message)
+        return replace(self, kind=JobKind.DOWNLOAD, media_key=media_key, title=title)

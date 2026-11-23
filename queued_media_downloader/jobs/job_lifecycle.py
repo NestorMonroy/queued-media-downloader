@@ -11,6 +11,8 @@ ALLOWED_TRANSITIONS: frozenset[tuple[JobStatus, JobStatus]] = frozenset(
         (JobStatus.RUNNING, JobStatus.CANCELLATION_REQUESTED),
         # Recuperación al arrancar y URL que resulta ser un solo contenido.
         (JobStatus.RUNNING, JobStatus.PENDING),
+        # La URL resulta ser un contenido que ya tiene una descarga (UC-03 A1).
+        (JobStatus.RUNNING, JobStatus.SKIPPED),
         (JobStatus.CANCELLATION_REQUESTED, JobStatus.CANCELLED),
         # El job terminó antes de ver la petición de cancelación.
         (JobStatus.CANCELLATION_REQUESTED, JobStatus.COMPLETED),

@@ -4,5 +4,6 @@ from queued_media_downloader.job_queue.enqueue_media import (
     EnqueueMedia,
     InvalidUrlError,
 )
+from queued_media_downloader.job_queue.run_queue import RunQueue, RunQueueResult
 
-__all__ = ["EnqueueMedia", "InvalidUrlError"]
+__all__ = ["EnqueueMedia", "InvalidUrlError", "RunQueue", "RunQueueResult"]

@@ -8,7 +8,7 @@ from queued_media_downloader.jobs.job_lifecycle import (
     is_transition_allowed,
 )
 
-# Las diez transiciones del diagrama de estados (diseño, Parte 1, §6).
+# Las once transiciones del diagrama de estados (diseño, Parte 1, §6).
 EXPECTED_ALLOWED_TRANSITIONS = {
     (JobStatus.PENDING, JobStatus.RUNNING),
     (JobStatus.PENDING, JobStatus.CANCELLED),
@@ -16,6 +16,7 @@ EXPECTED_ALLOWED_TRANSITIONS = {
     (JobStatus.RUNNING, JobStatus.FAILED),
     (JobStatus.RUNNING, JobStatus.CANCELLATION_REQUESTED),
     (JobStatus.RUNNING, JobStatus.PENDING),
+    (JobStatus.RUNNING, JobStatus.SKIPPED),
     (JobStatus.CANCELLATION_REQUESTED, JobStatus.CANCELLED),
     (JobStatus.CANCELLATION_REQUESTED, JobStatus.COMPLETED),
     (JobStatus.FAILED, JobStatus.PENDING),

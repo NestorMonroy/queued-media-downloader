@@ -403,8 +403,8 @@ Los workers publican job events; `job_event_applier` los aplica a los jobs. Son 
 
 | Job event | Lo publica | Efecto |
 |---|---|---|
-| `JobStarted` | Ambos tipos | `PENDING` → `RUNNING` |
-| `SingleMediaFound(media_key, title)` | Expansión | La URL era un solo contenido: `kind` pasa a `DOWNLOAD` y vuelve a `PENDING` |
+| `JobStarted` | Ambos tipos | Ninguno sobre el estado: el job pasa a `RUNNING` al enviarse, para que la siguiente consulta de pendientes no lo vuelva a tomar; se reenvía a la presentación |
+| `SingleMediaFound(media_key, title)` | Expansión | La URL era un solo contenido: `kind` pasa a `DOWNLOAD` y vuelve a `PENDING`; si ya hay una descarga activa de ese contenido, queda `SKIPPED` (UC-03 A1) |
 | `PlaylistEntriesFound(playlist_entries)` | Expansión | Crea jobs hijos por lotes; los duplicados quedan `SKIPPED` |
 | `FormatSelected(selected_format_id)` | Descarga | Guarda el formato antes de que empiece la descarga |
 | `DownloadProgressed(downloaded_bytes, total_bytes, bytes_per_second, eta_seconds)` | Descarga | No se persiste; se reenvía a la presentación |
@@ -450,6 +450,7 @@ stateDiagram-v2
     RUNNING --> CANCELLATION_REQUESTED : cancel
     RUNNING --> PENDING : recovered at startup
     RUNNING --> PENDING : SingleMediaFound
+    RUNNING --> SKIPPED : SingleMediaFound of a duplicate
 
     CANCELLATION_REQUESTED --> CANCELLED : JobCancelled or worker terminated
     CANCELLATION_REQUESTED --> COMPLETED : finished first
