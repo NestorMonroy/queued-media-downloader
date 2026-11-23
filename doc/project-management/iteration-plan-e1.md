@@ -1,0 +1,123 @@
+# Plan de iteración E1: esqueleto ejecutable
+
+- **Fase RUP:** Elaboración
+- **Iteración:** E1 de 3
+- **Inicio:** al crear el repositorio (T01)
+- **Duración:** delimitada por alcance: la iteración se cierra cuando T19 confirma los criterios de la sección 5 ([caso de desarrollo, §5](../process/development-case.md#5-roles-y-duración-de-las-iteraciones))
+- **Estado:** planificada (enfoque híbrido, [ADR-0022](../notes/adr-0022-hybrid-approach-and-task-decomposition.md))
+
+---
+
+## 1. Objetivo
+
+Demostrar la arquitectura de extremo a extremo con el escenario más simple: **instalar, encolar y descargar un solo video en Windows**, recorriendo todos los componentes con implementaciones reales (pool de procesos, SQLite, yt-dlp y ffmpeg incluido).
+
+## 2. Alcance
+
+| Caso de uso | Escenarios incluidos | Escenarios excluidos |
+|---|---|---|
+| [UC-01](../requirements/use-cases/uc-01-install-and-verify-environment.md) | Flujo básico; A1 (puntero de Git LFS); A6 (configuración no válida) | A4 (`PATH`), A5 (hash contra `SOURCE.md`) |
+| [UC-02](../requirements/use-cases/uc-02-enqueue-media.md) | Flujo básico; A1 (URL no válida) | A3 (bloqueo de la base de datos) |
+| [UC-03](../requirements/use-cases/uc-03-download-single-media.md) | Flujo básico (incluida la unión con ffmpeg); A2 (fallo clasificado) | A1, A3 a A6 (pasan a E2) |
+
+Fuera de E1: cancelación (UC-05), recuperación y reanudación (UC-06), playlists (UC-04) y los comandos `retry`, `list`, `show` y `purge`.
+
+## 3. Riesgos que neutraliza
+
+| Riesgo | Cómo se comprueba en E1 |
+|---|---|
+| R-01 Pool de procesos con *spawn* | Pruebas del pool con `get_context("spawn")` + descarga real en Windows |
+| R-02 Consumo de memoria | Medición de RSS máxima en Windows durante una descarga con unión por ffmpeg |
+| R-03 Binarios de ffmpeg incluidos | Prueba `windows` de arranque de `ffmpeg.exe` y `ffprobe.exe` desde `vendor/` |
+| R-12 Licencias | `LICENSE.txt` y `SOURCE.md` en `vendor/ffmpeg/`; licencia de `doc/reference/` confirmada |
+
+## 4. Trabajo
+
+### 4.1 Cómo se descompone
+
+La iteración se descompone en cuatro niveles ([caso de desarrollo, §4](../process/development-case.md#4-descomposición-del-trabajo)):
+
+```text
+Fase           Elaboración
+└─ Iteración   E1: esqueleto ejecutable (elegida por riesgo: R-01, R-02, R-03, R-12)
+   └─ Slice    Incremento ejecutable de extremo a extremo (un escenario de caso de uso)
+      └─ Tarea Un cambio en un componente con TDD: prueba primero, un PR revisable de una sentada
+```
+
+Cada slice termina en algo que se ejecuta. Cada tarea termina cuando pasa la prueba indicada y cumple la [definición de terminado](../process/development-case.md#definición-de-terminado-por-cambio). El avance se mide en tareas terminadas sobre 19.
+
+Roles ([caso de desarrollo, §5](../process/development-case.md#roles)): **Responsable** del proyecto, **Agente** de implementación y **Evaluador** en Windows. Toda tarea del Agente termina con un *pull request* que el Responsable revisa e integra.
+
+### 4.2 Slice 0: entorno
+
+| ID | Tarea | Rol | Terminada cuando | Depende de |
+|---|---|---|---|---|
+| T01 | Repositorio en GitHub y Git LFS para `vendor/ffmpeg/` | Responsable | `git lfs track` muestra solo `vendor/ffmpeg/**` | — |
+| T02 | `pyproject.toml` (`uv_build` con `module-root = ""`, `yt-dlp[default,deno]==2026.10.26`, `[tool.uv] environments`, grupo `dev`, Ruff, mypy estricto, marcadores de pytest), `uv.lock` y esqueleto de componentes con su `__init__.py` | Agente | Las cinco comprobaciones locales pasan con el proyecto vacío | T01 |
+| T03 | Contratos de import-linter (`layers`, un `protected` por componente, `forbidden` para `yt_dlp`) | Agente | `lint-imports` pasa; un import prohibido de prueba lo rompe | T02 |
+| T04 | Build de ffmpeg ([ADR-0018](../notes/adr-0018-ffmpeg-build-selection.md)) con `LICENSE.txt` y `SOURCE.md` (URL con fecha, SHA-256, enlace al código fuente) | Agente | El SHA-256 coincide; la prueba `windows` de arranque está escrita | T01 |
+| T05 | Confirmar la licencia de `doc/reference/` (R-12) | Responsable | Licencia registrada en `LICENSE`, o material retirado | — |
+
+### 4.3 Slice A: encolar (UC-02)
+
+| ID | Tarea | Rol | Terminada cuando | Depende de |
+|---|---|---|---|---|
+| T06 | `jobs/`: `Job`, `JobKind`, `JobStatus`, `MediaKey`, `DownloadOptions`, `FailureReason` y `job_lifecycle` | Agente | Prueba de la tabla completa de transiciones, permitidas y rechazadas | T02 |
+| T07 | `job_storage/`: contratos, `SqliteJobStore`, migración `0001_create_jobs.sql` y PRAGMAs | Agente | Pruebas de integración sobre SQLite real, incluido el índice de duplicados | T06 |
+| T08 | `configuration/`: `Settings` y carga con su orden de prioridad | Agente | Pruebas de prioridad entre argumentos, entorno, `config.toml` y valores por defecto | T02 |
+| T09 | `job_queue/enqueue_media.py` y comando `enqueue` | Agente | `enqueue URL` crea un job `EXPANSION` `PENDING`; una URL no válida no crea ninguno | T07, T08 |
+
+### 4.4 Slice B: descargar sin unir (UC-03, servidor HTTP local)
+
+| ID | Tarea | Rol | Terminada cuando | Depende de |
+|---|---|---|---|---|
+| T10 | `jobs/job_events.py` (los job events de UC-03) | Agente | Prueba de serialización entre procesos | T06 |
+| T11 | `media_extraction/`: contrato `MediaSource`, `expand` para contenido único y `yt_dlp_parameters` | Agente | Prueba contra el servidor HTTP local: publica `SingleMediaFound` | T10 |
+| T12 | `media_extraction/`: `download`, `SelectedFormatRecorder`, `FinalPathRecorder`, `progress_event_translator` y `failure_classifier` | Agente | Pruebas de contrato con las excepciones reales de yt-dlp; descarga contra el servidor local | T11 |
+| T13 | `workers/`: contrato `WorkerPool`, `ProcessWorkerPool` y `worker_loop` (`RunJob`, `ShutDown`; sin cancelación ni reciclado) | Agente | Pruebas con `get_context("spawn")` y `FakeMediaSource` | T10, T11 |
+| T14 | `job_queue/`: `RunQueue` (sin job requests) y `JobEventApplier` | Agente | Pruebas con `ScriptedWorkerPool` e `InMemoryJobStore` | T07, T13 |
+| T15 | Comando `run`, `composition_root` y presentación del progreso | Agente | `enqueue` + `run` descargan un archivo del servidor local y el job queda `COMPLETED` | T09, T12, T14 |
+
+### 4.5 Slice C: descargar uniendo con ffmpeg (UC-03 completo)
+
+| ID | Tarea | Rol | Terminada cuando | Depende de |
+|---|---|---|---|---|
+| T16 | `ffmpeg_discovery/`: localización (configurada y `vendor/`), verificación con `-version`, punteros de Git LFS y caché del hash | Agente | Pruebas con archivos ficticios | T04 |
+| T17 | Descarga de extremo a extremo con unión de audio y video | Agente | Un video y un audio generados con ffmpeg se descargan del servidor local y se unen en un solo archivo | T15, T16 |
+
+### 4.6 Slice D: diagnosticar (UC-01)
+
+| ID | Tarea | Rol | Terminada cuando | Depende de |
+|---|---|---|---|---|
+| T18 | `diagnostics/` y comando `diagnose` | Agente | Informa de ffmpeg, ffprobe, deno y la base de datos; códigos de salida `0` y `2` correctos | T07, T16 |
+
+### 4.7 Cierre
+
+| ID | Tarea | Rol | Terminada cuando | Depende de |
+|---|---|---|---|---|
+| T19 | Evaluación en Windows: `pytest -m windows`, flujo desde un clon nuevo, descarga real de YouTube, comprobación de procesos y medición de memoria | Evaluador | Los criterios de la sección 5 cumplidos; SUP-P04 fijado; lista de riesgos actualizada | Todas |
+
+### 4.8 Camino crítico
+
+```text
+T01 → T02 → T06 → T07 → T14 → T15 → T17 → T19
+```
+
+T03, T04, T05, T08, T10 a T13 y T16 pueden avanzar en paralelo con el camino crítico. A partir de T15 ya hay una descarga real de extremo a extremo: si el pool con *spawn* (R-01) falla, se descubre a mitad de la iteración, no al final.
+
+---
+
+## 5. Criterios de evaluación
+
+La iteración se considera cumplida si:
+
+1. Las cinco comprobaciones locales pasan ([caso de desarrollo, §3](../process/development-case.md#comprobaciones-locales-antes-de-integrar-en-main)).
+2. `uv run pytest -m windows` pasa en el entorno Windows.
+3. En Windows, desde un clon nuevo: `uv sync`, `diagnose`, `enqueue` y `run` descargan un video que requiere unir audio y video, y termina con código `0`.
+4. Descarga real manual de un video de YouTube en Windows (con deno).
+5. Al terminar `run` no queda ningún proceso de ffmpeg ni deno.
+6. La memoria máxima (RSS) del proceso principal, del worker y de ffmpeg está medida, y SUP-P04 queda fijado.
+
+## 6. Evaluación
+
+*Se completa al cerrar la iteración.*
