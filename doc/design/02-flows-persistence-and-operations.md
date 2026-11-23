@@ -186,7 +186,7 @@ sequenceDiagram
 
 - **Dos postprocessors de registro:** `SelectedFormatRecorder` (`when='before_dl'`) y `FinalPathRecorder` (`when='after_move'`). La ruta final puede diferir de la plantilla tras unir o convertir.
 - **Progreso limitado en el worker:** como máximo un `DownloadProgressed` cada `progress_interval_seconds` por job; el último (`finished`) siempre se publica. yt-dlp llama al hook en cada bloque recibido.
-- **Parámetros fijos en cada `YoutubeDL`:** `ffmpeg_location`, `js_runtimes`, `cachedir`, `paths`, `outtmpl`, `trim_file_name`, `continuedl=True`, `noprogress=True`, `logger` propio, `file_access_retries`.
+- **Parámetros fijos en cada `YoutubeDL`:** `ffmpeg_location`, `js_runtimes`, `cachedir`, `paths`, `outtmpl`, `trim_file_name`, `continuedl=True`, `noprogress=True`, `color="never"`, `logger` propio, `file_access_retries`.
 
 ### 1.4 Cancelación
 

@@ -1,12 +1,17 @@
 import logging
+import sys
 from dataclasses import replace
 from pathlib import Path
 
 import pytest
 from yt_dlp import YoutubeDL
+from yt_dlp.utils import DownloadError
 
 from queued_media_downloader.jobs import DownloadOptions
 from queued_media_downloader.media_extraction import MediaSourceSettings
+from queued_media_downloader.media_extraction.failure_classifier import (
+    classify_failure,
+)
 from queued_media_downloader.media_extraction.yt_dlp_parameters import (
     YtDlpLogger,
     build_yt_dlp_parameters,
@@ -95,3 +100,25 @@ def test_media_with_video_has_no_postprocessors() -> None:
     parameters = build_yt_dlp_parameters(DOWNLOAD_OPTIONS, MEDIA_SOURCE_SETTINGS)
 
     assert "postprocessors" not in parameters
+
+
+def test_yt_dlp_errors_reach_the_job_without_terminal_colors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # En Windows, run escribe en una terminal con color: yt-dlp coloreaba
+    # "ERROR:" y el prefijo ya no se podía quitar del mensaje (T19).
+    # El paquete exporta la clase YoutubeDL con el mismo nombre que su módulo.
+    youtube_dl_module = sys.modules["yt_dlp.YoutubeDL"]
+    monkeypatch.setattr(
+        youtube_dl_module, "supports_terminal_sequences", lambda _stream: True
+    )
+    monkeypatch.setenv("TERM", "xterm-256color")
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    parameters = build_yt_dlp_parameters(DOWNLOAD_OPTIONS, MEDIA_SOURCE_SETTINGS)
+
+    with YoutubeDL(parameters) as youtube_dl, pytest.raises(DownloadError) as raised:
+        youtube_dl.report_error("[youtube] abc: This video is unavailable")
+
+    assert classify_failure(raised.value).failure_message == (
+        "[youtube] abc: This video is unavailable"
+    )

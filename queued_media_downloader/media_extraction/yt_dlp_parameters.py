@@ -69,6 +69,10 @@ def build_yt_dlp_parameters(
         "js_runtimes": {"deno": {}},
         "continuedl": True,
         "noprogress": True,
+        # Sin secuencias de terminal: los mensajes de yt-dlp van al log y a los
+        # job events, nunca a una consola. Con color, "ERROR:" llegaba envuelto
+        # en códigos ANSI y el prefijo no se podía quitar (T19, en Windows).
+        "color": "never",
         "file_access_retries": FILE_ACCESS_RETRIES,
         "logger": YtDlpLogger(),
     }
