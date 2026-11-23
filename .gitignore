@@ -1,0 +1,17 @@
+# Entorno virtual de uv
+.venv/
+
+# Bytecode de Python
+__pycache__/
+*.py[cod]
+
+# Estado de la aplicación: base de datos, caché de yt-dlp, verificación de ffmpeg
+state/
+
+# Configuración local del usuario
+config.toml
+
+# Herramientas de pruebas
+.pytest_cache/
+.coverage
+htmlcov/
