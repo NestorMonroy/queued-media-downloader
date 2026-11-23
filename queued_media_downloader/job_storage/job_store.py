@@ -1,5 +1,6 @@
 """Contrato de persistencia de los jobs."""
 
+from collections.abc import Sequence
 from typing import Protocol
 
 from queued_media_downloader.jobs import Job, JobId, MediaKey
@@ -31,6 +32,15 @@ class JobStore(Protocol):
 
     def create(self, job: Job) -> JobId:
         """Guarda un job nuevo y devuelve el identificador que se le asignó."""
+        ...
+
+    def create_many(self, jobs: Sequence[Job]) -> list[JobId]:
+        """Guarda los jobs en una sola transacción, en orden.
+
+        Raises:
+            DuplicateActiveDownloadError: Si alguno es una segunda descarga
+                activa del mismo contenido; no se guarda ninguno del lote.
+        """
         ...
 
     def get(self, job_id: JobId) -> Job:

@@ -2,6 +2,7 @@
 
 import json
 import sqlite3
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -86,6 +87,17 @@ class SqliteJobStore:
         with self._connection:
             cursor = self._execute_write(INSERT_JOB, job)
         return JobId(cursor.lastrowid or 0)
+
+    def create_many(self, jobs: Sequence[Job]) -> list[JobId]:
+        """Guarda los jobs en una sola transacción, en orden.
+
+        Si uno falla, la transacción se deshace y no queda ninguno del lote.
+        """
+        with self._connection:
+            return [
+                JobId(self._execute_write(INSERT_JOB, job).lastrowid or 0)
+                for job in jobs
+            ]
 
     def get(self, job_id: JobId) -> Job:
         """Devuelve el job guardado; JobNotFoundError si no existe."""

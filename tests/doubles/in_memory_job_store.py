@@ -1,5 +1,6 @@
 """JobStore en memoria con las mismas reglas que SqliteJobStore."""
 
+from collections.abc import Sequence
 from dataclasses import replace
 
 from queued_media_downloader.job_storage import (
@@ -22,6 +23,15 @@ class InMemoryJobStore:
         self._ensure_no_duplicate(job, job_id)
         self._jobs[job_id] = replace(job, job_id=job_id)
         return job_id
+
+    def create_many(self, jobs: Sequence[Job]) -> list[JobId]:
+        """Guarda los jobs en orden; si uno falla, no queda ninguno del lote."""
+        jobs_before = dict(self._jobs)
+        try:
+            return [self.create(job) for job in jobs]
+        except DuplicateActiveDownloadError:
+            self._jobs = jobs_before
+            raise
 
     def get(self, job_id: JobId) -> Job:
         """Devuelve el job guardado; JobNotFoundError si no existe."""

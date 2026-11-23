@@ -12,6 +12,7 @@ from queued_media_downloader.jobs import (
     JobFailed,
     JobStarted,
     JobStatus,
+    PlaylistEntriesFound,
     PostprocessingProgressed,
     PostprocessingStage,
     SingleMediaFound,
@@ -49,8 +50,8 @@ def _describe(job_event: JobEvent, job: Job | None) -> str | None:
     match job_event:
         case JobStarted():
             return "started"
-        case SingleMediaFound(title=title):
-            return _describe_found_media(title, job)
+        case SingleMediaFound() | PlaylistEntriesFound():
+            return _describe_discovery(job_event, job)
         case FormatSelected(selected_format_id=selected_format_id):
             return f"format {selected_format_id}"
         case JobCompleted(output_path=output_path):
@@ -61,11 +62,22 @@ def _describe(job_event: JobEvent, job: Job | None) -> str | None:
             return "cancelled"
 
 
-def _describe_found_media(title: str, job: Job | None) -> str:
-    """Contenido encontrado; si ya tenía una descarga, el job quedó omitido."""
+def _describe_discovery(
+    job_event: SingleMediaFound | PlaylistEntriesFound, job: Job | None
+) -> str:
+    """Lo que encontró una expansión: un contenido o un lote de una playlist."""
+    if isinstance(job_event, PlaylistEntriesFound):
+        entry_count = len(job_event.playlist_entries)
+        noun = "entry" if entry_count == 1 else "entries"
+        playlist = (
+            repr(job_event.playlist_title)
+            if job_event.playlist_title
+            else job_event.playlist_id
+        )
+        return f"found {entry_count} {noun} in playlist {playlist}"
     if job is not None and job.status is JobStatus.SKIPPED:
-        return f"found {title!r}, skipped: already downloaded or in the queue"
-    return f"found {title!r}"
+        return f"found {job_event.title!r}, skipped: already downloaded or in the queue"
+    return f"found {job_event.title!r}"
 
 
 def _describe_completion(output_path: str | None) -> str:

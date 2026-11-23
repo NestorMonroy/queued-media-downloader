@@ -106,6 +106,31 @@ def test_job_without_playlist_has_no_parent_nor_context(
     assert job.playlist_context is None
 
 
+def test_batch_is_created_in_order_in_one_transaction(
+    job_store: SqliteJobStore,
+) -> None:
+    urls = [f"https://media.example/watch?v={index}" for index in range(3)]
+
+    job_ids = job_store.create_many([make_job(url) for url in urls])
+
+    assert [job_store.get(job_id).url for job_id in job_ids] == urls
+    assert job_ids == sorted(job_ids)
+
+
+def test_batch_with_a_duplicate_download_stores_none_of_its_jobs(
+    job_store: SqliteJobStore,
+) -> None:
+    job_store.update(make_download(job_store, JobStatus.PENDING))
+    jobs_before = len(job_store.get_next_pending(limit=100))
+    new_job = make_job("https://media.example/watch?v=new")
+    duplicate = replace(make_job(), kind=JobKind.DOWNLOAD, media_key=MEDIA_KEY)
+
+    with pytest.raises(DuplicateActiveDownloadError):
+        job_store.create_many([new_job, duplicate])
+
+    assert len(job_store.get_next_pending(limit=100)) == jobs_before
+
+
 def test_created_jobs_receive_increasing_ids(job_store: SqliteJobStore) -> None:
     first_id = job_store.create(make_job())
     second_id = job_store.create(make_job())

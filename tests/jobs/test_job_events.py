@@ -14,8 +14,11 @@ from queued_media_downloader.jobs import (
     JobCompleted,
     JobEvent,
     JobFailed,
+    JobKind,
     JobStarted,
     MediaKey,
+    PlaylistEntriesFound,
+    PlaylistEntry,
     PostprocessingProgressed,
     PostprocessingStage,
     SingleMediaFound,
@@ -48,6 +51,36 @@ SAMPLE_JOB_EVENTS: list[JobEvent] = [
     JobCompleted(output_path=None),
     JobFailed(failure_reason=FailureReason.NETWORK, failure_message="Timed out"),
     JobCancelled(),
+    PlaylistEntriesFound(
+        playlist_id="PL123",
+        playlist_title="Favoritos con acentos",
+        playlist_entries=(
+            PlaylistEntry(
+                url="https://media.example/watch?v=a",
+                playlist_index=1,
+                kind=JobKind.DOWNLOAD,
+                title="Entrada a",
+                media_key=MediaKey(extractor_key="Youtube", media_id="a"),
+                is_available=True,
+            ),
+            PlaylistEntry(
+                url="https://media.example/playlist?list=nested",
+                playlist_index=2,
+                kind=JobKind.EXPANSION,
+                title=None,
+                media_key=None,
+                is_available=True,
+            ),
+            PlaylistEntry(
+                url="https://media.example/watch?v=private",
+                playlist_index=3,
+                kind=JobKind.DOWNLOAD,
+                title="[Private video]",
+                media_key=MediaKey(extractor_key="Youtube", media_id="private"),
+                is_available=False,
+            ),
+        ),
+    ),
 ]
 
 # Reconstruye los job events en un intérprete nuevo, como hace un worker

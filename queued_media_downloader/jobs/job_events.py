@@ -11,6 +11,7 @@ from enum import StrEnum
 
 from queued_media_downloader.jobs.failure_reason import FailureReason
 from queued_media_downloader.jobs.media_key import MediaKey
+from queued_media_downloader.jobs.playlist_entry import PlaylistEntry
 
 
 class PostprocessingStage(StrEnum):
@@ -32,6 +33,19 @@ class SingleMediaFound:
 
     media_key: MediaKey
     title: str
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class PlaylistEntriesFound:
+    """Un lote de entradas de la playlist de una expansión (UC-04, paso 3).
+
+    La expansión publica las entradas por lotes, sin cargar la playlist entera
+    en memoria. El job sigue RUNNING hasta JobCompleted.
+    """
+
+    playlist_id: str
+    playlist_title: str | None
+    playlist_entries: tuple[PlaylistEntry, ...]
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -89,6 +103,7 @@ class JobCancelled:
 JobEvent = (
     JobStarted
     | SingleMediaFound
+    | PlaylistEntriesFound
     | FormatSelected
     | DownloadProgressed
     | PostprocessingProgressed

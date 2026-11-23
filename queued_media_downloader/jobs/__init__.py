@@ -11,6 +11,7 @@ from queued_media_downloader.jobs.job_events import (
     JobEvent,
     JobFailed,
     JobStarted,
+    PlaylistEntriesFound,
     PostprocessingProgressed,
     PostprocessingStage,
     SingleMediaFound,
@@ -20,6 +21,7 @@ from queued_media_downloader.jobs.job_lifecycle import InvalidJobTransitionError
 from queued_media_downloader.jobs.job_status import JobStatus
 from queued_media_downloader.jobs.media_key import MediaKey
 from queued_media_downloader.jobs.playlist_context import PlaylistContext
+from queued_media_downloader.jobs.playlist_entry import PlaylistEntry
 
 __all__ = [
     "DownloadOptions",
@@ -38,6 +40,8 @@ __all__ = [
     "JobStatus",
     "MediaKey",
     "PlaylistContext",
+    "PlaylistEntriesFound",
+    "PlaylistEntry",
     "PostprocessingProgressed",
     "PostprocessingStage",
     "SingleMediaFound",

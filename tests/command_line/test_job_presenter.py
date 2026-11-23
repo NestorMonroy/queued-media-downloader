@@ -20,6 +20,8 @@ from queued_media_downloader.jobs import (
     JobStarted,
     JobStatus,
     MediaKey,
+    PlaylistEntriesFound,
+    PlaylistEntry,
     PostprocessingProgressed,
     PostprocessingStage,
     SingleMediaFound,
@@ -86,6 +88,29 @@ def presented_line(job_event: JobEvent, job: Job | None = None) -> str:
             "Job 7: failed (NETWORK): Reset\n",
         ),
         (JobCancelled(), "Job 7: cancelled\n"),
+        (
+            PlaylistEntriesFound(
+                playlist_id="PL1",
+                playlist_title="Favorites",
+                playlist_entries=(
+                    PlaylistEntry(
+                        url="https://media.example/a",
+                        playlist_index=1,
+                        kind=JobKind.DOWNLOAD,
+                        title=None,
+                        media_key=None,
+                        is_available=True,
+                    ),
+                ),
+            ),
+            "Job 7: found 1 entry in playlist 'Favorites'\n",
+        ),
+        (
+            PlaylistEntriesFound(
+                playlist_id="PL1", playlist_title=None, playlist_entries=()
+            ),
+            "Job 7: found 0 entries in playlist PL1\n",
+        ),
     ],
     ids=lambda value: type(value).__name__ if not isinstance(value, str) else "",
 )

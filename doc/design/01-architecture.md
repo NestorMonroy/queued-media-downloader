@@ -417,7 +417,7 @@ Los workers publican job events; `job_event_applier` los aplica a los jobs. Son 
 |---|---|---|
 | `JobStarted` | Ambos tipos | Ninguno sobre el estado: el job pasa a `RUNNING` al enviarse, para que la siguiente consulta de pendientes no lo vuelva a tomar; se reenvía a la presentación |
 | `SingleMediaFound(media_key, title)` | Expansión | La URL era un solo contenido: `kind` pasa a `DOWNLOAD` y vuelve a `PENDING`; si ya hay una descarga activa de ese contenido, queda `SKIPPED` (UC-03 A1) |
-| `PlaylistEntriesFound(playlist_entries)` | Expansión | Crea jobs hijos por lotes; los duplicados quedan `SKIPPED` |
+| `PlaylistEntriesFound(playlist_id, playlist_title, playlist_entries)` | Expansión | Crea jobs hijos por lotes en una sola transacción (`create_many`); los duplicados y las entradas no disponibles quedan `SKIPPED`, las anidadas como `EXPANSION` |
 | `FormatSelected(selected_format_id)` | Descarga | Guarda el formato antes de que empiece la descarga |
 | `DownloadProgressed(downloaded_bytes, total_bytes, bytes_per_second, eta_seconds)` | Descarga | No se persiste; se reenvía a la presentación |
 | `PostprocessingProgressed(postprocessor_name, postprocessing_stage)` | Descarga | No se persiste; se reenvía a la presentación |
