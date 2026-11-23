@@ -40,12 +40,14 @@ class PlaylistEntriesFound:
     """Un lote de entradas de la playlist de una expansión (UC-04, paso 3).
 
     La expansión publica las entradas por lotes, sin cargar la playlist entera
-    en memoria. El job sigue RUNNING hasta JobCompleted.
+    en memoria. El job sigue RUNNING hasta JobCompleted. playlist_entry_count
+    es el número de entradas que declara el sitio, si lo declara.
     """
 
     playlist_id: str
     playlist_title: str | None
     playlist_entries: tuple[PlaylistEntry, ...]
+    playlist_entry_count: int | None = None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

@@ -5,6 +5,7 @@ from typing import NewType, Self
 
 from queued_media_downloader.jobs.download_options import DownloadOptions
 from queued_media_downloader.jobs.failure_reason import FailureReason
+from queued_media_downloader.jobs.job_events import PlaylistEntriesFound
 from queued_media_downloader.jobs.job_kind import JobKind
 from queued_media_downloader.jobs.job_lifecycle import ensure_transition_allowed
 from queued_media_downloader.jobs.job_status import JobStatus
@@ -54,13 +55,12 @@ class Job:
     def new_playlist_child(
         cls,
         parent: "Job",
+        playlist_batch: PlaylistEntriesFound,
         playlist_entry: PlaylistEntry,
-        playlist_id: str,
-        playlist_title: str | None,
         *,
         is_duplicate: bool,
     ) -> Self:
-        """Crea, aún sin guardar, el job hijo de una entrada de playlist (UC-04).
+        """Crea, aún sin guardar, el job hijo de una entrada del lote (UC-04).
 
         Nace SKIPPED si la entrada no está disponible (A3) o si su contenido ya
         tiene una descarga (A2); si no, PENDING. Hereda las opciones de la
@@ -83,12 +83,7 @@ class Job:
             url=playlist_entry.url,
             download_options=replace(parent.download_options, whole_playlist=False),
             parent_id=parent.job_id,
-            playlist_context=PlaylistContext(
-                playlist_id=playlist_id,
-                playlist_title=playlist_title,
-                playlist_index=playlist_entry.playlist_index,
-                playlist_entry_count=None,
-            ),
+            playlist_context=_playlist_context_of(playlist_batch, playlist_entry),
             media_key=playlist_entry.media_key,
             title=playlist_entry.title,
         )
@@ -140,3 +135,25 @@ class Job:
             message = f"Only an EXPANSION job finds its media, not {self.kind.value}"
             raise ValueError(message)
         return replace(self, kind=JobKind.DOWNLOAD, media_key=media_key, title=title)
+
+
+def _playlist_context_of(
+    playlist_batch: PlaylistEntriesFound, playlist_entry: PlaylistEntry
+) -> PlaylistContext:
+    """Posición de la entrada en su playlist.
+
+    El número de entradas que declara el sitio puede estar desactualizado; si
+    la entrada queda fuera de él, se trata como desconocido.
+    """
+    playlist_entry_count = playlist_batch.playlist_entry_count
+    if (
+        playlist_entry_count is not None
+        and playlist_entry.playlist_index > playlist_entry_count
+    ):
+        playlist_entry_count = None
+    return PlaylistContext(
+        playlist_id=playlist_batch.playlist_id,
+        playlist_title=playlist_batch.playlist_title,
+        playlist_index=playlist_entry.playlist_index,
+        playlist_entry_count=playlist_entry_count,
+    )

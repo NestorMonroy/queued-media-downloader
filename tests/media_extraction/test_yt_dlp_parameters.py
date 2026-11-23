@@ -7,7 +7,7 @@ import pytest
 from yt_dlp import YoutubeDL
 from yt_dlp.utils import DownloadError
 
-from queued_media_downloader.jobs import DownloadOptions
+from queued_media_downloader.jobs import DownloadOptions, PlaylistContext
 from queued_media_downloader.media_extraction import MediaSourceSettings
 from queued_media_downloader.media_extraction.failure_classifier import (
     classify_failure,
@@ -132,3 +132,19 @@ def test_playlist_option_downloads_the_whole_list_of_a_video_link() -> None:
     parameters = build_yt_dlp_parameters(whole_playlist_options, MEDIA_SOURCE_SETTINGS)
 
     assert parameters["noplaylist"] is False
+
+
+def test_playlist_child_is_saved_in_its_playlist_folder() -> None:
+    playlist_context = PlaylistContext(
+        playlist_id="PL1",
+        playlist_title="Mix",
+        playlist_index=3,
+        playlist_entry_count=12,
+    )
+
+    parameters = build_yt_dlp_parameters(
+        DOWNLOAD_OPTIONS, MEDIA_SOURCE_SETTINGS, playlist_context
+    )
+
+    assert parameters["outtmpl"] == {"default": "Mix/03 - %(title)s [%(id)s].%(ext)s"}
+    assert parameters["paths"] == {"home": "downloads"}

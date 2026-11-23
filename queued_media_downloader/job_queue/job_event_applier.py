@@ -74,9 +74,8 @@ class JobEventApplier:
         for playlist_entry in playlist_batch.playlist_entries:
             child = Job.new_playlist_child(
                 expansion,
+                playlist_batch,
                 playlist_entry,
-                playlist_batch.playlist_id,
-                playlist_batch.playlist_title,
                 is_duplicate=self._is_duplicate(
                     playlist_entry, claimed_media_keys, expansion
                 ),

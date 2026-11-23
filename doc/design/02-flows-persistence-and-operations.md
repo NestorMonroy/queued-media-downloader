@@ -519,12 +519,11 @@ Los comandos usan los mismos verbos que los casos de uso, para que haya una sola
 | `progress_interval_seconds` | `0.5` | Frecuencia máxima de `DownloadProgressed` |
 | `default_format_selector` | `bv*+ba/b` | Format selector por defecto |
 | `single_media_output_template` | `%(title)s [%(id)s].%(ext)s` | Plantilla para contenidos sueltos |
-| `playlist_output_template` | `{playlist_title}/{playlist_index:03d} - %(title)s [%(id)s].%(ext)s` | Plantilla para hijos de playlist; `{...}` lo rellena el proyecto ([ADR-0009](../notes/adr-0009-playlist-expansion-into-jobs.md)) |
 | `max_filename_length` | `150` | `trim_file_name`, por el límite de rutas de Windows |
 | `ffmpeg_path` | *(vacío)* | Ruta propia de ffmpeg (primer paso de [ADR-0006](../notes/adr-0006-ffmpeg-resolution-and-verification.md)) |
 
 - **`state/` dentro del proyecto** y en `.gitignore`. Se llama *state* y no *data*: contiene el estado de la aplicación, y *data* es una palabra de ruido.
-- **`playlist_output_template` usa dos sintaxis a propósito:** `{...}` lo sustituye `OutputTemplateBuilder` con los datos guardados en SQLite (escapando `%` y saneando), y `%(...)s` lo resuelve yt-dlp.
+- **Los hijos de una playlist no tienen un ajuste propio:** su plantilla es `<playlist>/<playlist_index> - ` seguida de `single_media_output_template`, construida con el contexto guardado en SQLite (saneando y escapando `%`) ([ADR-0028](../notes/adr-0028-playlist-child-output-template.md)).
 - `configuration/settings_loader.py` valida la configuración al arrancar y falla con un mensaje claro si algún valor no es válido.
 
 ---

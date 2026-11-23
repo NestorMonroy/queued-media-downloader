@@ -13,6 +13,7 @@ from queued_media_downloader.jobs import (
     JobStatus,
     MediaKey,
     PlaylistContext,
+    PlaylistEntriesFound,
     PlaylistEntry,
 )
 
@@ -150,12 +151,28 @@ def make_entry(
     )
 
 
-def test_playlist_child_is_a_pending_job_linked_to_its_playlist() -> None:
-    parent = make_running_expansion()
-
-    child = Job.new_playlist_child(
-        parent, make_entry(), "PL1", "Mix", is_duplicate=False
+def child_of(
+    parent: Job,
+    playlist_entry: PlaylistEntry,
+    *,
+    is_duplicate: bool = False,
+    playlist_title: str | None = "Mix",
+    playlist_entry_count: int | None = None,
+) -> Job:
+    """Hijo de playlist_entry en un lote de la playlist PL1."""
+    playlist_batch = PlaylistEntriesFound(
+        playlist_id="PL1",
+        playlist_title=playlist_title,
+        playlist_entries=(playlist_entry,),
+        playlist_entry_count=playlist_entry_count,
     )
+    return Job.new_playlist_child(
+        parent, playlist_batch, playlist_entry, is_duplicate=is_duplicate
+    )
+
+
+def test_playlist_child_is_a_pending_job_linked_to_its_playlist() -> None:
+    child = child_of(make_running_expansion(), make_entry(), playlist_entry_count=12)
 
     assert child.job_id is None
     assert child.status is JobStatus.PENDING
@@ -168,18 +185,24 @@ def test_playlist_child_is_a_pending_job_linked_to_its_playlist() -> None:
         playlist_id="PL1",
         playlist_title="Mix",
         playlist_index=3,
-        playlist_entry_count=None,
+        playlist_entry_count=12,
     )
     assert child.download_options.format_selector == "bv*+ba/b"
 
 
+def test_entry_count_lower_than_the_index_is_treated_as_unknown() -> None:
+    # El número de entradas que da el sitio puede estar desactualizado.
+    child = child_of(make_running_expansion(), make_entry(), playlist_entry_count=2)
+
+    assert child.playlist_context is not None
+    assert child.playlist_context.playlist_entry_count is None
+
+
 def test_nested_playlist_entry_becomes_a_pending_expansion() -> None:
-    child = Job.new_playlist_child(
+    child = child_of(
         make_running_expansion(),
         make_entry(kind=JobKind.EXPANSION),
-        "PL1",
-        None,
-        is_duplicate=False,
+        playlist_title=None,
     )
 
     assert child.kind is JobKind.EXPANSION
@@ -189,31 +212,19 @@ def test_nested_playlist_entry_becomes_a_pending_expansion() -> None:
 
 def test_child_does_not_inherit_the_whole_playlist_option() -> None:
     # --playlist decide sobre la URL encolada (ADR-0027), no sobre sus entradas.
-    parent = make_running_expansion(whole_playlist=True)
-
-    child = Job.new_playlist_child(
-        parent, make_entry(), "PL1", None, is_duplicate=False
-    )
+    child = child_of(make_running_expansion(whole_playlist=True), make_entry())
 
     assert child.download_options.whole_playlist is False
 
 
 def test_unavailable_entry_becomes_a_skipped_child() -> None:
-    child = Job.new_playlist_child(
-        make_running_expansion(),
-        make_entry(is_available=False),
-        "PL1",
-        None,
-        is_duplicate=False,
-    )
+    child = child_of(make_running_expansion(), make_entry(is_available=False))
 
     assert child.status is JobStatus.SKIPPED
 
 
 def test_duplicate_entry_becomes_a_skipped_child() -> None:
-    child = Job.new_playlist_child(
-        make_running_expansion(), make_entry(), "PL1", None, is_duplicate=True
-    )
+    child = child_of(make_running_expansion(), make_entry(), is_duplicate=True)
 
     assert child.status is JobStatus.SKIPPED
     assert child.media_key == MediaKey(extractor_key="Example", media_id="c")
@@ -224,6 +235,6 @@ def test_only_a_stored_expansion_has_playlist_children() -> None:
     download = replace(make_running_expansion(), kind=JobKind.DOWNLOAD)
 
     with pytest.raises(ValueError, match="stored"):
-        Job.new_playlist_child(unstored, make_entry(), "PL1", None, is_duplicate=False)
+        child_of(unstored, make_entry())
     with pytest.raises(ValueError, match="EXPANSION"):
-        Job.new_playlist_child(download, make_entry(), "PL1", None, is_duplicate=False)
+        child_of(download, make_entry())

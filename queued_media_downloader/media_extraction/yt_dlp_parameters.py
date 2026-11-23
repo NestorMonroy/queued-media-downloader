@@ -4,9 +4,12 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from queued_media_downloader.jobs import DownloadOptions
+from queued_media_downloader.jobs import DownloadOptions, PlaylistContext
 from queued_media_downloader.media_extraction.media_source_settings import (
     MediaSourceSettings,
+)
+from queued_media_downloader.media_extraction.playlist_output_template import (
+    build_playlist_output_template,
 )
 
 YT_DLP_LOGGER_NAME = "queued_media_downloader.yt_dlp"
@@ -54,16 +57,24 @@ class YtDlpLogger:
 
 
 def build_yt_dlp_parameters(
-    download_options: DownloadOptions, media_source_settings: MediaSourceSettings
+    download_options: DownloadOptions,
+    media_source_settings: MediaSourceSettings,
+    playlist_context: PlaylistContext | None = None,
 ) -> dict[str, Any]:
     """Construye los parámetros de un YoutubeDL nuevo para un job.
 
     Cada job usa su propio YoutubeDL, así que nada se arrastra de un job a otro.
+    Un hijo de playlist (con playlist_context) se guarda en la carpeta de su
+    playlist (ADR-0028).
     """
     parameters: dict[str, Any] = {
         "format": download_options.format_selector,
         "paths": {"home": str(_download_directory_of(download_options))},
-        "outtmpl": {"default": download_options.output_template},
+        "outtmpl": {
+            "default": _output_template_of(
+                download_options, media_source_settings, playlist_context
+            )
+        },
         "cachedir": str(media_source_settings.cache_directory),
         "trim_file_name": media_source_settings.max_filename_length,
         "js_runtimes": {"deno": {}},
@@ -92,3 +103,18 @@ def _download_directory_of(download_options: DownloadOptions) -> Path:
     if download_options.audio_only:
         return download_options.download_directory / AUDIO_ONLY_SUBDIRECTORY_NAME
     return download_options.download_directory
+
+
+def _output_template_of(
+    download_options: DownloadOptions,
+    media_source_settings: MediaSourceSettings,
+    playlist_context: PlaylistContext | None,
+) -> str:
+    """Plantilla del job: la de un contenido o la de un hijo de playlist."""
+    if playlist_context is None:
+        return download_options.output_template
+    return build_playlist_output_template(
+        download_options.output_template,
+        playlist_context,
+        media_source_settings.max_filename_length,
+    )

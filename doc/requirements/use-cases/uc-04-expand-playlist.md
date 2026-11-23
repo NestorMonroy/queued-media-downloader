@@ -22,7 +22,7 @@ Durante la ejecución de la cola, un job de expansión resulta ser una playlist 
 4. El sistema crea un job hijo `DOWNLOAD` `PENDING` por entrada, con su `PlaylistContext` (id, título, índice y número de entradas de la playlist).
 5. Se repiten los pasos 3 y 4 hasta agotar las entradas.
 6. El worker publica `JobCompleted`; la expansión pasa a `COMPLETED`.
-7. Los jobs hijos se descargan como en UC-03 (pasos 6 a 11), con `playlist_output_template`.
+7. Los jobs hijos se descargan como en UC-03 (pasos 6 a 11), en la carpeta de su playlist ([ADR-0028](../../notes/adr-0028-playlist-child-output-template.md)).
 
 ## Flujos alternativos
 

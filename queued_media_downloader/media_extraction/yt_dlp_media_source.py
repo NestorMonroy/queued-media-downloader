@@ -42,7 +42,7 @@ class YtDlpMediaSource:
     def expand(self, job: Job, publish: Publish) -> None:
         """Extrae la URL sin procesarla ni descargarla y publica qué encontró.
 
-        En E1 solo se admite un contenido único; las playlists llegan con UC-04.
+        Publica un contenido único o las entradas de la playlist por lotes.
         """
         parameters = build_yt_dlp_parameters(
             job.download_options, self._media_source_settings
@@ -63,7 +63,7 @@ class YtDlpMediaSource:
     def download(self, job: Job, publish: Publish) -> None:
         """Descarga el contenido y publica el formato, el avance y el resultado."""
         parameters = build_yt_dlp_parameters(
-            job.download_options, self._media_source_settings
+            job.download_options, self._media_source_settings, job.playlist_context
         )
         if job.selected_format_id is not None:
             # Al reanudar se pide el mismo formato que en el primer intento,

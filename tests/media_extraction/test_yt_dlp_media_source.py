@@ -14,11 +14,15 @@ from queued_media_downloader.jobs import (
     JobFailed,
     JobKind,
     MediaKey,
+    PlaylistContext,
     PlaylistEntriesFound,
     PlaylistEntry,
     SingleMediaFound,
 )
 from queued_media_downloader.media_extraction import MediaSourceSettings
+from queued_media_downloader.media_extraction.yt_dlp_expansion import (
+    playlist_entry_count_of,
+)
 from queued_media_downloader.media_extraction.yt_dlp_media_source import (
     YtDlpMediaSource,
 )
@@ -189,6 +193,28 @@ def test_download_writes_the_file_and_publishes_its_final_path(
     assert published_events[-1] == JobCompleted(output_path=str(output_path))
 
 
+def test_playlist_child_is_downloaded_into_its_playlist_folder(
+    local_media_server: str, tmp_path: Path
+) -> None:
+    published_events: list[JobEvent] = []
+    download_directory = tmp_path / "downloads"
+    job = replace(
+        download_job(f"{local_media_server}/sample.mp4", download_directory),
+        playlist_context=PlaylistContext(
+            playlist_id="PL1",
+            playlist_title="Local feed",
+            playlist_index=2,
+            playlist_entry_count=3,
+        ),
+    )
+
+    media_source(tmp_path).download(job, published_events.append)
+
+    output_path = download_directory / "Local feed" / "2 - sample [sample].mp4"
+    assert output_path.is_file()
+    assert published_events[-1] == JobCompleted(output_path=str(output_path))
+
+
 def test_download_reuses_the_format_selected_in_the_first_attempt(
     local_media_server: str, tmp_path: Path
 ) -> None:
@@ -261,3 +287,12 @@ def test_video_link_inside_a_list_expands_the_whole_list_with_the_option(
 
     assert isinstance(published_events[0], PlaylistEntriesFound)
     assert isinstance(published_events[-1], JobCompleted)
+
+
+@pytest.mark.parametrize(
+    ("playlist_count", "expected"), [(12, 12), (None, None), ("12", None), (-1, None)]
+)
+def test_entry_count_is_taken_only_when_the_site_reports_it(
+    playlist_count: object, expected: int | None
+) -> None:
+    assert playlist_entry_count_of({"playlist_count": playlist_count}) == expected

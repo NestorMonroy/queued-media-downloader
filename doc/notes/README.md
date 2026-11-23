@@ -31,6 +31,7 @@ Cada decisión se registra en un archivo con: contexto, opciones consideradas, d
 | [0025](adr-0025-reference-material-distribution.md) | Distribución del material de referencia | Aceptada |
 | [0026](adr-0026-smart-app-control-precondition.md) | Smart App Control desactivado como precondición de E1 | Aceptada |
 | [0027](adr-0027-video-links-inside-lists.md) | Un enlace a un video dentro de una lista descarga solo el video | Aceptada |
+| [0028](adr-0028-playlist-child-output-template.md) | Plantilla de salida de los hijos de una playlist | Aceptada |
 
 ## Convenciones de este registro
 

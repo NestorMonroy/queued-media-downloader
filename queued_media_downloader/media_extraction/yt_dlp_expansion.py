@@ -90,6 +90,7 @@ def _publish_playlist(
     """Publica las entradas por lotes sin cargar la playlist entera en memoria."""
     playlist_id = str(playlist_result.get("id") or url)
     playlist_title = playlist_result.get("title")
+    playlist_entry_count = playlist_entry_count_of(playlist_result)
     batch: list[PlaylistEntry] = []
     entry_count = usable_entry_count = 0
 
@@ -99,6 +100,7 @@ def _publish_playlist(
                 playlist_id=playlist_id,
                 playlist_title=playlist_title,
                 playlist_entries=tuple(batch),
+                playlist_entry_count=playlist_entry_count,
             )
         )
         batch.clear()
@@ -126,3 +128,15 @@ def _publish_playlist(
         )
         return
     publish(JobCompleted(output_path=None))
+
+
+def playlist_entry_count_of(playlist_result: Mapping[str, Any]) -> int | None:
+    """Número de entradas que declara el sitio; None si no lo declara.
+
+    Con process=False no se recorren las entradas, así que solo se conoce si el
+    extractor lo trae (YouTube lo trae en sus playlists).
+    """
+    playlist_count = playlist_result.get("playlist_count")
+    if isinstance(playlist_count, int) and playlist_count >= 0:
+        return playlist_count
+    return None
