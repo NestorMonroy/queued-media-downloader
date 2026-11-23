@@ -18,10 +18,12 @@ from queued_media_downloader.jobs import (
     JobKind,
     JobStatus,
     MediaKey,
+    PlaylistContext,
 )
 
 SELECT_JOB_COLUMNS = """
-    SELECT id, kind, status, url, extractor_key, media_id, title,
+    SELECT id, kind, status, url, parent_id, playlist_id, playlist_title,
+           playlist_index, playlist_entry_count, extractor_key, media_id, title,
            selected_format_id, download_options, output_path, attempt_count,
            failure_reason, failure_message
     FROM jobs
@@ -29,11 +31,13 @@ SELECT_JOB_COLUMNS = """
 
 INSERT_JOB = """
     INSERT INTO jobs (
-        kind, status, url, extractor_key, media_id, title, selected_format_id,
-        download_options, output_path, attempt_count, failure_reason,
-        failure_message, created_at, updated_at
+        kind, status, url, parent_id, playlist_id, playlist_title,
+        playlist_index, playlist_entry_count, extractor_key, media_id, title,
+        selected_format_id, download_options, output_path, attempt_count,
+        failure_reason, failure_message, created_at, updated_at
     ) VALUES (
-        :kind, :status, :url, :extractor_key, :media_id, :title,
+        :kind, :status, :url, :parent_id, :playlist_id, :playlist_title,
+        :playlist_index, :playlist_entry_count, :extractor_key, :media_id, :title,
         :selected_format_id, :download_options, :output_path, :attempt_count,
         :failure_reason, :failure_message, :now, :now
     )
@@ -41,7 +45,10 @@ INSERT_JOB = """
 
 UPDATE_JOB = """
     UPDATE jobs SET
-        kind = :kind, status = :status, url = :url,
+        kind = :kind, status = :status, url = :url, parent_id = :parent_id,
+        playlist_id = :playlist_id, playlist_title = :playlist_title,
+        playlist_index = :playlist_index,
+        playlist_entry_count = :playlist_entry_count,
         extractor_key = :extractor_key, media_id = :media_id, title = :title,
         selected_format_id = :selected_format_id,
         download_options = :download_options, output_path = :output_path,
@@ -130,11 +137,19 @@ class SqliteJobStore:
 def _parameters_from(job: Job) -> dict[str, Any]:
     """Convierte un job en los parámetros con nombre de las sentencias SQL."""
     media_key = job.media_key
+    playlist_context = job.playlist_context
     return {
         "job_id": job.job_id,
         "kind": job.kind.value,
         "status": job.status.value,
         "url": job.url,
+        "parent_id": job.parent_id,
+        "playlist_id": playlist_context.playlist_id if playlist_context else None,
+        "playlist_title": playlist_context.playlist_title if playlist_context else None,
+        "playlist_index": playlist_context.playlist_index if playlist_context else None,
+        "playlist_entry_count": (
+            playlist_context.playlist_entry_count if playlist_context else None
+        ),
         "extractor_key": media_key.extractor_key if media_key else None,
         "media_id": media_key.media_id if media_key else None,
         "title": job.title,
@@ -155,6 +170,11 @@ def _job_from_row(row: tuple[Any, ...]) -> Job:
         kind,
         status,
         url,
+        parent_id,
+        playlist_id,
+        playlist_title,
+        playlist_index,
+        playlist_entry_count,
         extractor_key,
         media_id,
         title,
@@ -171,6 +191,17 @@ def _job_from_row(row: tuple[Any, ...]) -> Job:
         status=JobStatus(status),
         url=url,
         download_options=_deserialize_download_options(download_options),
+        parent_id=JobId(parent_id) if parent_id is not None else None,
+        playlist_context=(
+            PlaylistContext(
+                playlist_id=playlist_id,
+                playlist_title=playlist_title,
+                playlist_index=playlist_index,
+                playlist_entry_count=playlist_entry_count,
+            )
+            if playlist_id is not None
+            else None
+        ),
         media_key=MediaKey(extractor_key, media_id) if extractor_key else None,
         title=title,
         selected_format_id=selected_format_id,

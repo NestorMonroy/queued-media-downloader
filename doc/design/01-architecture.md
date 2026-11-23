@@ -404,6 +404,7 @@ classDiagram
 - **`FailureReason` es una clasificación de dominio,** no la excepción de yt-dlp. `failure_classifier.py` traduce.
 - **El estado de una playlist no se almacena:** se deriva de sus hijos.
 - **Los job events viven en `jobs/`, no en `workers/`.** Describen lo que le pasó a un job. En `workers/` crearían un ciclo: `media_extraction/` los publica y `workers/` depende del contrato de `media_extraction/`.
+- **`PlaylistContext` admite título y número de entradas desconocidos (`None`).** La expansión recorre las entradas de forma perezosa (UC-04, paso 2): al crear los primeros hijos aún no sabe cuántas hay. El índice sí se conoce siempre, porque se calcula al enumerar.
 - **`collect_events` devuelve `WorkerMessage`, no `JobEvent`.** El job event no lleva el identificador del job; el mensaje sí, junto con el worker y el número de secuencia, y `job_event_applier` lo necesita para saber a qué job aplicarlo.
 
 ---

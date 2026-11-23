@@ -19,6 +19,7 @@ from queued_media_downloader.jobs import (
     JobKind,
     JobStatus,
     MediaKey,
+    PlaylistContext,
 )
 
 MEDIA_KEY = MediaKey(extractor_key="Youtube", media_id="abc123")
@@ -73,6 +74,36 @@ def test_created_job_reads_back_equal_with_its_assigned_id(
     job_id = job_store.create(new_job)
 
     assert job_store.get(job_id) == replace(new_job, job_id=job_id)
+
+
+def test_playlist_child_reads_back_with_its_parent_and_context(
+    job_store: SqliteJobStore,
+) -> None:
+    parent_id = job_store.create(make_job())
+    child = replace(
+        make_job("https://media.example/watch?v=entry3"),
+        kind=JobKind.DOWNLOAD,
+        parent_id=parent_id,
+        playlist_context=PlaylistContext(
+            playlist_id="PL123",
+            playlist_title="Favorites",
+            playlist_index=3,
+            playlist_entry_count=None,
+        ),
+    )
+
+    child_id = job_store.create(child)
+
+    assert job_store.get(child_id) == replace(child, job_id=child_id)
+
+
+def test_job_without_playlist_has_no_parent_nor_context(
+    job_store: SqliteJobStore,
+) -> None:
+    job = job_store.get(job_store.create(make_job()))
+
+    assert job.parent_id is None
+    assert job.playlist_context is None
 
 
 def test_created_jobs_receive_increasing_ids(job_store: SqliteJobStore) -> None:

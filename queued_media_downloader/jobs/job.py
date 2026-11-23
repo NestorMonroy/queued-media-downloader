@@ -9,6 +9,7 @@ from queued_media_downloader.jobs.job_kind import JobKind
 from queued_media_downloader.jobs.job_lifecycle import ensure_transition_allowed
 from queued_media_downloader.jobs.job_status import JobStatus
 from queued_media_downloader.jobs.media_key import MediaKey
+from queued_media_downloader.jobs.playlist_context import PlaylistContext
 
 JobId = NewType("JobId", int)
 
@@ -18,7 +19,8 @@ class Job:
     """Unidad de trabajo de la cola: expandir una URL o descargar un contenido.
 
     Es inmutable: cada cambio devuelve una copia. Así puede viajar entre
-    procesos sin que dos copias se modifiquen por separado.
+    procesos sin que dos copias se modifiquen por separado. Un job hijo de una
+    playlist guarda el job que lo creó (parent_id) y su posición en ella.
     """
 
     job_id: JobId | None
@@ -26,6 +28,8 @@ class Job:
     status: JobStatus
     url: str
     download_options: DownloadOptions
+    parent_id: JobId | None = None
+    playlist_context: PlaylistContext | None = None
     media_key: MediaKey | None = None
     title: str | None = None
     selected_format_id: str | None = None
