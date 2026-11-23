@@ -24,6 +24,12 @@ def add_enqueue_command(
     enqueue_parser.add_argument("urls", nargs="+", metavar="URL")
     enqueue_parser.add_argument("--format", dest="format_selector", metavar="SELECTOR")
     enqueue_parser.add_argument("--audio-only", action="store_true")
+    enqueue_parser.add_argument(
+        "--playlist",
+        dest="whole_playlist",
+        action="store_true",
+        help="for a link to a video inside a list, download the whole list",
+    )
     enqueue_parser.add_argument("--download-directory", metavar="DIR")
     enqueue_parser.set_defaults(run_command=run_enqueue_command)
 
@@ -50,6 +56,7 @@ def run_enqueue_command(arguments: argparse.Namespace) -> int:
             download_directory=settings.download_directory,
             output_template=settings.single_media_output_template,
             audio_only=arguments.audio_only,
+            whole_playlist=arguments.whole_playlist,
         )
         with open_job_store(settings.state_directory) as job_store:
             job_ids = EnqueueMedia(job_store).execute(arguments.urls, download_options)

@@ -124,3 +124,11 @@ def test_yt_dlp_errors_reach_the_job_without_terminal_colors(
     assert classify_failure(raised.value).failure_message == (
         "[youtube] abc: This video is unavailable"
     )
+
+
+def test_playlist_option_downloads_the_whole_list_of_a_video_link() -> None:
+    whole_playlist_options = replace(DOWNLOAD_OPTIONS, whole_playlist=True)
+
+    parameters = build_yt_dlp_parameters(whole_playlist_options, MEDIA_SOURCE_SETTINGS)
+
+    assert parameters["noplaylist"] is False

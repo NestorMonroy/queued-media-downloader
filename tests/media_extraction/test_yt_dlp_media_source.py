@@ -241,3 +241,23 @@ def test_video_link_inside_a_youtube_list_expands_to_the_video_only(
     assert job_event.media_key == MediaKey(
         extractor_key="Youtube", media_id="jNQXAC9IVRw"
     )
+
+
+@pytest.mark.network
+def test_video_link_inside_a_list_expands_the_whole_list_with_the_option(
+    tmp_path: Path,
+) -> None:
+    published_events: list[JobEvent] = []
+    job = expansion_job(
+        "https://www.youtube.com/watch?v=jNQXAC9IVRw"
+        "&list=PLbpi6ZahtOH6Blw3RGYpWkSByi_T7Rygb",
+        tmp_path,
+    )
+    job = replace(
+        job, download_options=replace(job.download_options, whole_playlist=True)
+    )
+
+    media_source(tmp_path).expand(job, published_events.append)
+
+    assert isinstance(published_events[0], PlaylistEntriesFound)
+    assert isinstance(published_events[-1], JobCompleted)

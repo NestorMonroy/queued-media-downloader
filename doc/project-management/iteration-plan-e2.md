@@ -51,6 +51,7 @@ Igual que en E1 ([ADR-0022](../notes/adr-0022-hybrid-approach-and-task-decomposi
 | T27 | `YtDlpMediaSource.expand` recorre las entradas de forma perezosa por lotes; entradas que son playlists (A1) y no disponibles (A3) | Agente | Contra el servidor local, una playlist de N entradas publica sus lotes y `JobCompleted` | T26 |
 | T28 | `JobEventApplier` crea los hijos: duplicados (A2) y no disponibles (A3) como `SKIPPED`, anidadas como `EXPANSION` | Agente | Pruebas con `ScriptedWorkerPool` e `InMemoryJobStore` | T26 |
 | T29 | `output_template_builder` y `playlist_output_template`: escapado de `%`, saneado y longitud, con reglas de Windows | Agente | Pruebas con `PureWindowsPath` | T25 |
+| T43 | Opción `enqueue --playlist`: con un enlace a un video dentro de una lista, descarga la lista entera ([ADR-0027](../notes/adr-0027-video-links-inside-lists.md)) | Agente | La opción se guarda con el job y cambia `noplaylist`; prueba `network` con el enlace real | T27 |
 | T30 | `enqueue` + `run` de una playlist de extremo a extremo; prueba `network` de iteración perezosa (R-06) | Agente | Una playlist local se descarga entera en carpetas por playlist | T27, T28, T29 |
 
 ### 4.3 Slice B: recuperar y reanudar (UC-06)

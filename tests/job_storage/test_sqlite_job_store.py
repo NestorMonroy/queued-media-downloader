@@ -131,6 +131,35 @@ def test_batch_with_a_duplicate_download_stores_none_of_its_jobs(
     assert len(job_store.get_next_pending(limit=100)) == jobs_before
 
 
+def test_whole_playlist_option_is_stored_with_the_job(
+    job_store: SqliteJobStore,
+) -> None:
+    job = make_job()
+    job = replace(
+        job, download_options=replace(job.download_options, whole_playlist=True)
+    )
+
+    stored = job_store.get(job_store.create(job))
+
+    assert stored.download_options.whole_playlist is True
+
+
+def test_jobs_stored_before_the_playlist_option_read_it_as_false(
+    job_store: SqliteJobStore, database_path: Path
+) -> None:
+    job_id = job_store.create(make_job())
+    connection = sqlite3.connect(database_path)
+    connection.execute(
+        "UPDATE jobs SET download_options = json_remove(download_options, "
+        "'$.whole_playlist') WHERE id = ?",
+        (job_id,),
+    )
+    connection.commit()
+    connection.close()
+
+    assert job_store.get(job_id).download_options.whole_playlist is False
+
+
 def test_created_jobs_receive_increasing_ids(job_store: SqliteJobStore) -> None:
     first_id = job_store.create(make_job())
     second_id = job_store.create(make_job())

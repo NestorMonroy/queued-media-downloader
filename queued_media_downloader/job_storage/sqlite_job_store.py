@@ -232,6 +232,7 @@ def _serialize_download_options(download_options: DownloadOptions) -> str:
             "download_directory": str(download_options.download_directory),
             "output_template": download_options.output_template,
             "audio_only": download_options.audio_only,
+            "whole_playlist": download_options.whole_playlist,
         }
     )
 
@@ -244,4 +245,6 @@ def _deserialize_download_options(serialized: str) -> DownloadOptions:
         download_directory=Path(values["download_directory"]),
         output_template=values["output_template"],
         audio_only=values["audio_only"],
+        # Los jobs guardados antes de T43 no tienen la clave.
+        whole_playlist=values.get("whole_playlist", False),
     )

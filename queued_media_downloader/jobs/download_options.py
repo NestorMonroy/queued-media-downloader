@@ -12,3 +12,6 @@ class DownloadOptions:
     download_directory: Path
     output_template: str
     audio_only: bool
+    # Con un enlace a un video dentro de una lista, descargar la lista entera
+    # en lugar de solo el video (ADR-0027).
+    whole_playlist: bool = False

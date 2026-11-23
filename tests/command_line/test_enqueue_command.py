@@ -106,3 +106,16 @@ def test_audio_only_without_format_selects_the_best_audio(
     assert exit_code == 0
     assert job.download_options.audio_only is True
     assert job.download_options.format_selector == "ba/b"
+
+
+def test_playlist_option_asks_for_the_whole_list_of_a_video_link(
+    state_directory: Path,
+) -> None:
+    video_in_list = "https://www.youtube.com/watch?v=a&list=PL1"
+
+    main(["enqueue", video_in_list])
+    main(["enqueue", video_in_list, "--playlist"])
+
+    first, second = stored_jobs(state_directory)
+    assert first.download_options.whole_playlist is False
+    assert second.download_options.whole_playlist is True

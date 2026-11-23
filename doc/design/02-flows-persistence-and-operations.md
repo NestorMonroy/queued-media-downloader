@@ -496,6 +496,7 @@ Los comandos usan los mismos verbos que los casos de uso, para que haya una sola
 | `purge [--completed] [--cancelled]` | `purge_finished_jobs` |
 | `diagnose` | `diagnose_environment` |
 
+- **`--playlist`:** con un enlace a un video dentro de una lista (`watch?v=…&list=…`), descarga la lista entera; sin la opción, solo el video ([ADR-0027](../notes/adr-0027-video-links-inside-lists.md)). Las URL de lista pura se expanden enteras siempre.
 - **`--audio-only`:** descarga en la subcarpeta `audio` de la carpeta de descargas (T23). Sin `--format`, pide el mejor audio (`ba/b`) en lugar del selector por defecto. En la descarga, yt-dlp extrae el audio con `FFmpegExtractAudio` sin recodificarlo cuando el formato lo permite (`preferredcodec: best`); así también sirve con un formato que traiga video.
 - **`run` verifica ffmpeg antes de ejecutar ningún job** ([ADR-0006](../notes/adr-0006-ffmpeg-resolution-and-verification.md)). Si no hay uno utilizable, termina con código `2`; si lo hay, muestra cuál usa y su versión.
 

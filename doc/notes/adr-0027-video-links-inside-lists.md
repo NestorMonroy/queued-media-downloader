@@ -13,11 +13,15 @@ Con las playlists (UC-04), un enlace como `youtube.com/watch?v=XXXX&list=YYYY` a
 
 ## Decisión
 
-**Solo el video:** cada `YoutubeDL` recibe `noplaylist=True` (`media_extraction/yt_dlp_parameters.py`). Para descargar la lista entera, se encola su propia URL.
+**Solo el video por defecto, con una opción explícita para la lista entera**, como hace yt-dlp con `--no-playlist` y `--yes-playlist`:
+
+- `enqueue "watch?v=…&list=…"` descarga solo el video: cada `YoutubeDL` recibe `noplaylist=True` (`media_extraction/yt_dlp_parameters.py`).
+- `enqueue --playlist "watch?v=…&list=…"` descarga la lista entera. La opción se guarda en las download options (`whole_playlist`) y viaja con el job hasta la expansión (T43).
+- Una URL de lista pura (`playlist?list=…`) descarga la lista entera, con la opción o sin ella.
 
 ## Consecuencias
 
 - Pegar el enlace de un video nunca encola por sorpresa una lista de cientos de entradas, algo costoso en un equipo modesto.
 - Las URL de lista, de canal o de pestaña se expanden igual que antes.
-- Prueba con red (marcador `network`): el enlace de "Me at the zoo" dentro de una lista se expande a un solo contenido. Se ejecuta en la evaluación de E2.
-- Si más adelante hace falta descargar la lista desde un enlace de video, se añadirá una opción explícita de `enqueue` (Construcción).
+- Pruebas con red (marcador `network`): el enlace de "Me at the zoo" dentro de una lista se expande a un solo contenido y, con la opción, a la lista entera. Se ejecutan en la evaluación de E2.
+- Los jobs guardados antes de T43 no tienen `whole_playlist` en sus download options; al leerlos vale `False`.
