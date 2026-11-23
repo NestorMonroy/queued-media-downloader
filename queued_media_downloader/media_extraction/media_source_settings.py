@@ -15,3 +15,4 @@ class MediaSourceSettings:
     cache_directory: Path
     ffmpeg_location: Path | None
     max_filename_length: int
+    progress_interval_seconds: float

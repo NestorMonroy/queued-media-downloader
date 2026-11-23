@@ -7,13 +7,26 @@ from yt_dlp import YoutubeDL
 from queued_media_downloader.jobs import (
     FailureReason,
     Job,
+    JobCompleted,
     JobFailed,
     MediaKey,
     SingleMediaFound,
 )
+from queued_media_downloader.media_extraction.failure_classifier import (
+    classify_failure,
+)
 from queued_media_downloader.media_extraction.media_source import Publish
 from queued_media_downloader.media_extraction.media_source_settings import (
     MediaSourceSettings,
+)
+from queued_media_downloader.media_extraction.progress_event_translator import (
+    DownloadProgressTranslator,
+    PostprocessingProgressTranslator,
+)
+from queued_media_downloader.media_extraction.recording_postprocessors import (
+    RECORDING_POSTPROCESSOR_NAMES,
+    FinalPathRecorder,
+    SelectedFormatRecorder,
 )
 from queued_media_downloader.media_extraction.yt_dlp_parameters import (
     build_yt_dlp_parameters,
@@ -25,7 +38,11 @@ SINGLE_MEDIA_RESULT_TYPES = frozenset({"video", "multi_video"})
 
 
 class YtDlpMediaSource:
-    """Expande y descarga jobs con yt-dlp; un YoutubeDL nuevo por job."""
+    """Expande y descarga jobs con yt-dlp; un YoutubeDL nuevo por job.
+
+    Los fallos no se propagan: se publican como JobFailed, para que el worker
+    siga con el siguiente job.
+    """
 
     def __init__(self, media_source_settings: MediaSourceSettings) -> None:
         """Guarda la configuración común a todos los jobs."""
@@ -39,24 +56,60 @@ class YtDlpMediaSource:
         parameters = build_yt_dlp_parameters(
             job.download_options, self._media_source_settings
         )
-        with YoutubeDL(parameters) as youtube_dl:
-            # process=False no resuelve formatos ni recorre playlists: solo
-            # identifica qué hay detrás de la URL.
-            result = youtube_dl.extract_info(job.url, download=False, process=False)
-        result_type = result.get("_type", "video")
-        if result_type in SINGLE_MEDIA_RESULT_TYPES:
-            publish(_single_media_found_from(result))
-        else:
-            publish(
-                JobFailed(
-                    failure_reason=FailureReason.UNSUPPORTED_URL,
-                    failure_message=f"Results of type {result_type} are not supported",
+        try:
+            with YoutubeDL(parameters) as youtube_dl:
+                # process=False no resuelve formatos ni recorre playlists: solo
+                # identifica qué hay detrás de la URL.
+                result = youtube_dl.extract_info(job.url, download=False, process=False)
+        except Exception as extraction_error:
+            publish(classify_failure(extraction_error))
+            return
+        publish(_expansion_event_from(result))
+
+    def download(self, job: Job, publish: Publish) -> None:
+        """Descarga el contenido y publica el formato, el avance y el resultado."""
+        parameters = build_yt_dlp_parameters(
+            job.download_options, self._media_source_settings
+        )
+        if job.selected_format_id is not None:
+            # Al reanudar se pide el mismo formato que en el primer intento,
+            # para que el .part siga siendo válido (ADR-0010).
+            parameters["format"] = job.selected_format_id
+        parameters["progress_hooks"] = [self._download_progress(publish).translate]
+        parameters["postprocessor_hooks"] = [
+            PostprocessingProgressTranslator(
+                publish, ignored_postprocessor_names=RECORDING_POSTPROCESSOR_NAMES
+            ).translate
+        ]
+        final_path_recorder = FinalPathRecorder()
+        try:
+            with YoutubeDL(parameters) as youtube_dl:
+                youtube_dl.add_post_processor(
+                    SelectedFormatRecorder(publish), when="before_dl"
                 )
-            )
+                youtube_dl.add_post_processor(final_path_recorder, when="after_move")
+                youtube_dl.download([job.url])
+        except Exception as download_error:
+            publish(classify_failure(download_error))
+            return
+        publish(JobCompleted(output_path=final_path_recorder.final_path))
+
+    def _download_progress(self, publish: Publish) -> DownloadProgressTranslator:
+        """Traductor de progreso con el intervalo de la configuración."""
+        return DownloadProgressTranslator(
+            publish,
+            interval_seconds=self._media_source_settings.progress_interval_seconds,
+        )
 
 
-def _single_media_found_from(result: dict[str, Any]) -> SingleMediaFound:
-    """Toma del resultado de yt-dlp solo la identidad y el título del contenido."""
+def _expansion_event_from(result: dict[str, Any]) -> SingleMediaFound | JobFailed:
+    """Decide qué publicar según el tipo de resultado de la extracción."""
+    result_type = result.get("_type", "video")
+    if result_type not in SINGLE_MEDIA_RESULT_TYPES:
+        return JobFailed(
+            failure_reason=FailureReason.UNSUPPORTED_URL,
+            failure_message=f"Results of type {result_type} are not supported",
+        )
     media_id = str(result["id"])
     return SingleMediaFound(
         media_key=MediaKey(extractor_key=result["extractor_key"], media_id=media_id),
