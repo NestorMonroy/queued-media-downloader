@@ -98,6 +98,9 @@ def test_error_is_classified_with_or_without_download_error_wrapper(
         classify_failure(wrapped_in_download_error(error)).failure_reason
         is expected_reason
     )
+    # Un error informado mientras se atendía otro llega envuelto dos veces.
+    twice_wrapped = wrapped_in_download_error(wrapped_in_download_error(error))
+    assert classify_failure(twice_wrapped).failure_reason is expected_reason
 
 
 def test_message_drops_the_error_prefix_of_yt_dlp() -> None:

@@ -59,7 +59,7 @@ Igual que en E1 ([ADR-0022](../notes/adr-0022-hybrid-approach-and-task-decomposi
 | ID | Tarea | Rol | Terminada cuando | Depende de |
 |---|---|---|---|---|
 | T31 | `recover_interrupted_jobs` al arrancar `run`: `RUNNING` → `PENDING`, `CANCELLATION_REQUESTED` → `CANCELLED` | Agente | Pruebas con `InMemoryJobStore` | — |
-| T32 | Reanudación con el formato guardado; A1 (reintento con el selector original), A2 (sin formato) | Agente | Contra un servidor local lento, una descarga interrumpida continúa con una petición `Range` | T31 |
+| T32 | Reanudación con el formato guardado; A1 (reintento con el selector original), A2 (sin formato) | Agente | Contra un servidor local, una descarga con su `.part` continúa con una petición `Range`. **Hecha**; la recuperación tras una interrupción real queda en el criterio obligatorio de la [§5.1](#51-criterio-obligatorio-de-integración-entre-los-slices-b-y-c) ([seguimiento en ADR-0010](../notes/adr-0010-sqlite-persistent-queue.md#seguimiento-de-t32-reanudación-verificada-2026-11-25)) | T31 |
 
 ### 4.4 Slice C: terminar el árbol de procesos (ADR-0013)
 
@@ -67,7 +67,7 @@ Igual que en E1 ([ADR-0022](../notes/adr-0022-hybrid-approach-and-task-decomposi
 |---|---|---|---|---|
 | T33 | Análisis de la implementación para Windows del `ProcessTreeTerminator` y decisión del Responsable (D1) | Agente, Responsable | ADR con la decisión | — |
 | T34 | Contrato `ProcessTreeTerminator` con implementación POSIX (grupo de procesos) y Windows según D1 | Agente | Prueba sobre hijo y nieto en cualquier sistema y prueba `windows` | T33 |
-| T35 | El pool registra cada worker al arrancar y ofrece `terminate_worker_running(job_id)`, que termina su árbol y lo reemplaza | Agente | Prueba con un worker que lanza un subproceso | T34 |
+| T35 | El pool registra cada worker al arrancar y ofrece `terminate_worker_running(job_id)`, que termina su árbol y lo reemplaza | Agente | Prueba con un worker que lanza un subproceso, y el escenario de la [§5.1](#51-criterio-obligatorio-de-integración-entre-los-slices-b-y-c) automatizado | T34 |
 
 ### 4.5 Slice D: cancelar (UC-05)
 
@@ -122,6 +122,26 @@ La iteración se considera cumplida si:
 5. Cerrar `run` a la fuerza a mitad de una descarga y volver a ejecutarlo continúa desde lo descargado.
 6. La memoria máxima del proceso principal, del worker y de ffmpeg está medida, y SUP-P04 queda fijado (viene de E1).
 7. La memoria del worker no crece al expandir una playlist grande (R-06).
+8. La recuperación ante una interrupción real pasa el escenario de la §5.1, automatizado y en Windows.
+
+### 5.1 Criterio obligatorio de integración entre los slices B y C
+
+T32 demostró la reanudación con un `.part` creado por la prueba. Aprobar T32 no demuestra la recuperación ante una interrupción real: hace falta terminar el worker y sus descendientes, que es el slice C. Este escenario es obligatorio para cerrar E2; se automatiza en T35 y se ejecuta en Windows en T42.
+
+| Paso | Acción | Se verifica |
+|---|---|---|
+| 1 | Iniciar una descarga real contra un servidor de pruebas controlado, que sirve el contenido despacio | — |
+| 2 | Interrumpirla cuando el servidor haya enviado una cantidad conocida de bytes | El `.part` tiene al menos esos bytes |
+| 3 | Terminar el worker y sus procesos descendientes con el mecanismo de D1 | No queda ningún proceso del árbol |
+| 4 | — | El job sigue `RUNNING` con su `selected_format_id`; el `.part` existe |
+| 5 | Volver a ejecutar `run` | — |
+| 6 | Recuperar el job con `RecoverInterruptedJobs` | El job pasa a `PENDING` y se envía |
+| 7 | — | La única petición de descarga lleva `Range: bytes=<tamaño del .part>-` |
+| 8 | — | El archivo final es idéntico al servido |
+| 9 | — | El job queda `COMPLETED` con su `output_path` |
+| 10 | — | No queda ningún proceso huérfano ni archivo parcial del job |
+
+**Estado:** pendiente de ejecución.
 
 ## 6. Evaluación
 

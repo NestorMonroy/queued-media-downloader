@@ -36,23 +36,25 @@ TWO_VIDEOS_PAGE = (
 
 
 class QuietRequestHandler(SimpleHTTPRequestHandler):
-    """Sirve archivos, admite Range y anota las cabeceras Range que recibe.
+    """Sirve archivos, admite Range y anota cada petición con su cabecera Range.
 
     SimpleHTTPRequestHandler ignora Range; sin él, yt-dlp no podría continuar
     un .part (UC-06, paso 6).
     """
 
-    def __init__(self, *args: Any, range_requests: list[str], **kwargs: Any) -> None:
-        """Anota en range_requests cada cabecera Range recibida."""
-        self._range_requests = range_requests
+    def __init__(
+        self, *args: Any, media_requests: list[tuple[str, str | None]], **kwargs: Any
+    ) -> None:
+        """Anota en media_requests (ruta, cabecera Range) de cada petición."""
+        self._media_requests = media_requests
         super().__init__(*args, **kwargs)
 
     def send_head(self) -> Any:
         """Responde 206 con el resto del archivo si la petición lleva Range."""
         range_header = self.headers.get("Range")
+        self._media_requests.append((self.path, range_header))
         if range_header is None:
             return super().send_head()
-        self._range_requests.append(range_header)
         content = Path(self.translate_path(self.path)).read_bytes()
         first_byte = int(range_header.removeprefix("bytes=").split("-")[0])
         self.send_response(HTTPStatus.PARTIAL_CONTENT)
@@ -69,14 +71,16 @@ class QuietRequestHandler(SimpleHTTPRequestHandler):
 
 
 @pytest.fixture
-def range_requests() -> list[str]:
-    """Cabeceras Range que recibió el servidor local, en orden."""
+def media_requests() -> list[tuple[str, str | None]]:
+    """Peticiones que recibió el servidor local: (ruta, cabecera Range), en orden."""
     return []
 
 
 @pytest.fixture
 def local_media_server(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, range_requests: list[str]
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    media_requests: list[tuple[str, str | None]],
 ) -> Iterator[str]:
     """Servidor HTTP local con videos, playlists y redirecciones; devuelve su URL base.
 
@@ -96,7 +100,7 @@ def local_media_server(
     request_handler = functools.partial(
         QuietRequestHandler,
         directory=str(served_directory),
-        range_requests=range_requests,
+        media_requests=media_requests,
     )
     server = ThreadingHTTPServer(("127.0.0.1", 0), request_handler)
     server_thread = threading.Thread(target=server.serve_forever, daemon=True)

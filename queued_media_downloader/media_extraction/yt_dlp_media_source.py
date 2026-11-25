@@ -6,8 +6,10 @@ from pathlib import Path
 from yt_dlp import YoutubeDL
 
 from queued_media_downloader.jobs import (
+    FailureReason,
     Job,
     JobCompleted,
+    JobFailed,
 )
 from queued_media_downloader.media_extraction.failure_classifier import (
     classify_failure,
@@ -74,9 +76,13 @@ class YtDlpMediaSource:
 
         Al reanudar se pide el formato del primer intento, para que su .part
         siga siendo válido (ADR-0010). Si el sitio ya no lo ofrece, se reintenta
-        una vez con el format selector original y se borran los parciales del
-        formato anterior (UC-06, A1).
+        una sola vez con el format selector original y, si termina, se borran
+        los parciales del formato anterior (UC-06, A1). Solo se publica
+        JobCompleted si el archivo final existe y no está vacío.
         """
+        # Formato del primer intento que el sitio ya no ofrece; sus parciales
+        # sobran si el reintento termina.
+        stale_format_id: str | None = None
         try:
             final_path = self._download_with_format(
                 job, job.selected_format_id, publish
@@ -87,9 +93,13 @@ class YtDlpMediaSource:
             ):
                 publish(classify_failure(download_error))
                 return
+            stale_format_id = job.selected_format_id
+        if stale_format_id is not None:
+            # Fuera del except: yt-dlp tomaría el error del primer intento como
+            # causa del segundo (sys.exc_info) y la clasificación sería otra.
             logger.info(
                 "Format %s is no longer available; retrying with %s",
-                job.selected_format_id,
+                stale_format_id,
                 job.download_options.format_selector,
             )
             try:
@@ -97,8 +107,12 @@ class YtDlpMediaSource:
             except Exception as retry_error:
                 publish(classify_failure(retry_error))
                 return
-            if final_path is not None:
-                remove_partial_files_of(Path(final_path))
+        missing_output = _missing_output_failure(final_path)
+        if missing_output is not None:
+            publish(missing_output)
+            return
+        if stale_format_id is not None:
+            remove_partial_files_of(Path(str(final_path)), stale_format_id)
         publish(JobCompleted(output_path=final_path))
 
     def _download_with_format(
@@ -135,3 +149,19 @@ class YtDlpMediaSource:
             publish,
             interval_seconds=self._media_source_settings.progress_interval_seconds,
         )
+
+
+def _missing_output_failure(final_path: str | None) -> JobFailed | None:
+    """JobFailed si la descarga terminó sin un archivo final utilizable."""
+    if final_path is None:
+        return JobFailed(
+            failure_reason=FailureReason.FILESYSTEM,
+            failure_message="The download finished without an output file",
+        )
+    output_path = Path(final_path)
+    if not output_path.is_file() or output_path.stat().st_size == 0:
+        return JobFailed(
+            failure_reason=FailureReason.FILESYSTEM,
+            failure_message=f"The output file is missing or empty: {output_path}",
+        )
+    return None

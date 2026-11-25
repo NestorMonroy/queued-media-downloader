@@ -50,11 +50,16 @@ def is_format_unavailable(error: Exception) -> bool:
 
 
 def _original_error(error: Exception) -> Exception:
-    """Quita el envoltorio DownloadError, si lo hay."""
-    if isinstance(error, DownloadError) and isinstance(error.exc_info, tuple):
+    """Quita los envoltorios DownloadError, si los hay.
+
+    Un error que yt-dlp informa mientras se atiende otro guarda ese otro como
+    causa, así que puede haber un DownloadError dentro de otro.
+    """
+    while isinstance(error, DownloadError) and isinstance(error.exc_info, tuple):
         original = error.exc_info[1]
-        if isinstance(original, Exception):
-            return original
+        if not isinstance(original, Exception) or original is error:
+            break
+        error = original
     return error
 
 

@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -282,3 +283,40 @@ def test_run_without_interrupted_jobs_does_not_mention_recovery(
     main(["run"])
 
     assert "Recovered" not in capsys.readouterr().out
+
+
+def test_recovered_job_with_an_unavailable_format_finishes_with_a_new_one(
+    local_media_server: str,
+    state_directory: Path,
+    tmp_path: Path,
+    read_stored_job: Callable[[int], Job],
+) -> None:
+    # Un run se cerró a medias con el formato 999, que el sitio ya no ofrece.
+    main(["enqueue", f"{local_media_server}/sample.mp4"])
+    main(["run"])
+    downloads = tmp_path / "downloads"
+    (downloads / "sample [sample].mp4").unlink()
+    stale_partial_path = downloads / "sample [sample].webm.part"
+    stale_partial_path.write_bytes(b"stale")
+    connection = open_database(state_directory / "queue.sqlite3")
+    try:
+        job_store = SqliteJobStore(connection)
+        interrupted_job = replace(
+            job_store.get(JobId(1)),
+            status=JobStatus.RUNNING,
+            selected_format_id="999",
+            output_path=None,
+        )
+        job_store.update(interrupted_job)
+    finally:
+        connection.close()
+
+    exit_code = main(["run"])
+
+    stored_job = read_stored_job(1)
+    assert exit_code == 0
+    assert stored_job.status is JobStatus.COMPLETED
+    assert stored_job.selected_format_id == "mp4"
+    assert stored_job.output_path == str(downloads / "sample [sample].mp4")
+    assert (downloads / "sample [sample].mp4").stat().st_size > 0
+    assert not stale_partial_path.exists()

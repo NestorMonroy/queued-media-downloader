@@ -1,5 +1,6 @@
 from dataclasses import replace
 from pathlib import Path
+from typing import Any
 
 import pytest
 from yt_dlp import YoutubeDL
@@ -21,6 +22,12 @@ from queued_media_downloader.jobs import (
     SingleMediaFound,
 )
 from queued_media_downloader.media_extraction import MediaSourceSettings
+from queued_media_downloader.media_extraction import (
+    yt_dlp_media_source as yt_dlp_media_source_module,
+)
+from queued_media_downloader.media_extraction.recording_postprocessors import (
+    FinalPathRecorder,
+)
 from queued_media_downloader.media_extraction.yt_dlp_expansion import (
     playlist_entry_count_of,
 )
@@ -217,14 +224,31 @@ def test_playlist_child_is_downloaded_into_its_playlist_folder(
     assert published_events[-1] == JobCompleted(output_path=str(output_path))
 
 
+@pytest.fixture
+def requested_formats(monkeypatch: pytest.MonkeyPatch) -> list[str | None]:
+    """Formato que pide cada intento de descarga, en orden."""
+    formats: list[str | None] = []
+
+    class FormatRecordingYoutubeDL(YoutubeDL):  # type: ignore[misc]
+        def __init__(self, params: dict[str, Any]) -> None:
+            formats.append(params.get("format"))
+            super().__init__(params)
+
+    monkeypatch.setattr(
+        yt_dlp_media_source_module, "YoutubeDL", FormatRecordingYoutubeDL
+    )
+    return formats
+
+
 def test_interrupted_download_continues_from_its_partial_file(
-    local_media_server: str, tmp_path: Path, range_requests: list[str]
+    local_media_server: str,
+    tmp_path: Path,
+    media_requests: list[tuple[str, str | None]],
 ) -> None:
     # Lo que deja un run interrumpido: el .part con los primeros bytes.
     published_events: list[JobEvent] = []
-    served_content = SAMPLE_MEDIA_CONTENT
     partial_path = tmp_path / "sample [sample].mp4.part"
-    partial_path.write_bytes(served_content[:5000])
+    partial_path.write_bytes(SAMPLE_MEDIA_CONTENT[:5000])
     job = download_job(
         f"{local_media_server}/sample.mp4", tmp_path, selected_format_id="mp4"
     )
@@ -232,20 +256,49 @@ def test_interrupted_download_continues_from_its_partial_file(
     media_source(tmp_path).download(job, published_events.append)
 
     output_path = tmp_path / "sample [sample].mp4"
-    assert range_requests == ["bytes=5000-"]
-    assert output_path.read_bytes() == served_content
+    assert media_requests == [
+        # Extracción: yt-dlp vuelve a extraer la URL (UC-06, paso 6); con un
+        # enlace directo, el extractor genérico lee 512 bytes (generic.py:892).
+        ("/sample.mp4", None),
+        # Descarga: solo los bytes que faltan.
+        ("/sample.mp4", "bytes=5000-"),
+    ]
+    assert output_path.read_bytes() == SAMPLE_MEDIA_CONTENT
     assert not partial_path.exists()
     assert published_events[-1] == JobCompleted(output_path=str(output_path))
 
 
-def test_unavailable_saved_format_is_retried_with_the_original_selector(
-    local_media_server: str, tmp_path: Path
+def test_finished_download_run_again_completes_without_downloading(
+    local_media_server: str,
+    tmp_path: Path,
+    media_requests: list[tuple[str, str | None]],
 ) -> None:
-    # A1: el formato del primer intento ya no se ofrece; su .part sobra.
+    # Un cierre entre la descarga y JobCompleted deja el job RUNNING con el
+    # archivo ya terminado: la recuperación lo vuelve a enviar.
+    job = download_job(
+        f"{local_media_server}/sample.mp4", tmp_path, selected_format_id="mp4"
+    )
+    first_run_events: list[JobEvent] = []
+    media_source(tmp_path).download(job, first_run_events.append)
+    media_requests.clear()
     published_events: list[JobEvent] = []
-    stale_partial_path = tmp_path / "sample [sample].f999.mp4.part"
+
+    media_source(tmp_path).download(job, published_events.append)
+
+    output_path = tmp_path / "sample [sample].mp4"
+    assert media_requests == [("/sample.mp4", None)]
+    assert output_path.read_bytes() == SAMPLE_MEDIA_CONTENT
+    assert published_events[-1] == JobCompleted(output_path=str(output_path))
+
+
+def test_unavailable_saved_format_is_retried_once_with_the_original_selector(
+    local_media_server: str, tmp_path: Path, requested_formats: list[str | None]
+) -> None:
+    # A1: el formato del primer intento (999, un .webm) ya no se ofrece.
+    published_events: list[JobEvent] = []
+    stale_partial_path = tmp_path / "sample [sample].webm.part"
     stale_partial_path.write_bytes(b"stale")
-    unrelated_path = tmp_path / "other [other].f999.mp4.part"
+    unrelated_path = tmp_path / "other [other].webm.part"
     unrelated_path.write_bytes(b"other job")
     job = download_job(
         f"{local_media_server}/sample.mp4", tmp_path, selected_format_id="999"
@@ -254,6 +307,7 @@ def test_unavailable_saved_format_is_retried_with_the_original_selector(
     media_source(tmp_path).download(job, published_events.append)
 
     output_path = tmp_path / "sample [sample].mp4"
+    assert requested_formats == ["999", "bv*+ba/b"]
     assert FormatSelected(selected_format_id="mp4") in published_events
     assert published_events[-1] == JobCompleted(output_path=str(output_path))
     assert output_path.read_bytes() == SAMPLE_MEDIA_CONTENT
@@ -261,23 +315,93 @@ def test_unavailable_saved_format_is_retried_with_the_original_selector(
     assert unrelated_path.exists()
 
 
-def test_failed_retry_with_the_original_selector_publishes_its_failure(
-    local_media_server: str, tmp_path: Path
+def test_failed_retry_publishes_one_failure_and_is_not_retried_again(
+    local_media_server: str, tmp_path: Path, requested_formats: list[str | None]
 ) -> None:
     published_events: list[JobEvent] = []
+    stale_partial_path = tmp_path / "sample [sample].webm.part"
+    stale_partial_path.write_bytes(b"stale")
     job = download_job(
         f"{local_media_server}/sample.mp4", tmp_path, selected_format_id="999"
     )
     job = replace(
-        job,
-        download_options=replace(job.download_options, format_selector="777"),
+        job, download_options=replace(job.download_options, format_selector="777")
     )
 
     media_source(tmp_path).download(job, published_events.append)
 
+    assert requested_formats == ["999", "777"]
     [job_event] = published_events
     assert isinstance(job_event, JobFailed)
-    assert "format" in job_event.failure_message
+    assert job_event.failure_reason is FailureReason.UNAVAILABLE
+    # Sin una descarga terminada, nada se limpia: el .part puede servir aún.
+    assert stale_partial_path.exists()
+
+
+def test_other_failure_with_a_saved_format_is_not_retried(
+    local_media_server: str, tmp_path: Path, requested_formats: list[str | None]
+) -> None:
+    published_events: list[JobEvent] = []
+    job = download_job(
+        f"{local_media_server}/missing.mp4", tmp_path, selected_format_id="mp4"
+    )
+
+    media_source(tmp_path).download(job, published_events.append)
+
+    assert requested_formats == ["mp4"]
+    [job_event] = published_events
+    assert isinstance(job_event, JobFailed)
+    assert job_event.failure_reason is FailureReason.UNAVAILABLE
+
+
+def test_download_without_an_output_file_is_not_completed(
+    local_media_server: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    published_events: list[JobEvent] = []
+
+    def download_nothing(youtube_dl: YoutubeDL, urls: list[str]) -> int:  # noqa: ARG001
+        return 0
+
+    monkeypatch.setattr(YoutubeDL, "download", download_nothing)
+    job = download_job(f"{local_media_server}/sample.mp4", tmp_path)
+
+    media_source(tmp_path).download(job, published_events.append)
+
+    assert published_events == [
+        JobFailed(
+            failure_reason=FailureReason.FILESYSTEM,
+            failure_message="The download finished without an output file",
+        )
+    ]
+
+
+def test_download_whose_output_file_is_empty_is_not_completed(
+    local_media_server: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    published_events: list[JobEvent] = []
+    empty_path = tmp_path / "empty.mp4"
+    empty_path.touch()
+
+    def record_empty_file(
+        recorder: FinalPathRecorder, info: dict[str, Any]
+    ) -> tuple[list[str], dict[str, Any]]:
+        recorder.final_path = str(empty_path)
+        return [], info
+
+    monkeypatch.setattr(FinalPathRecorder, "run", record_empty_file)
+    job = download_job(f"{local_media_server}/sample.mp4", tmp_path)
+
+    media_source(tmp_path).download(job, published_events.append)
+
+    [job_event] = [
+        event
+        for event in published_events
+        if isinstance(event, (JobCompleted, JobFailed))
+    ]
+    assert job_event == JobFailed(
+        failure_reason=FailureReason.FILESYSTEM,
+        failure_message=f"The output file is missing or empty: {empty_path}",
+    )
 
 
 def test_download_of_a_missing_url_publishes_job_failed(
