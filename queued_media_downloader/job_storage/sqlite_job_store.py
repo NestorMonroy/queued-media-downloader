@@ -129,6 +129,13 @@ class SqliteJobStore:
         ).fetchall()
         return [_job_from_row(row) for row in rows]
 
+    def get_children(self, parent_id: JobId) -> list[Job]:
+        """Devuelve los hijos directos de una expansión, en orden de creación."""
+        rows = self._connection.execute(
+            f"{SELECT_JOB_COLUMNS} WHERE parent_id = ? ORDER BY id", (parent_id,)
+        ).fetchall()
+        return [_job_from_row(row) for row in rows]
+
     def get_with_status(self, statuses: Collection[JobStatus]) -> list[Job]:
         """Devuelve los jobs en alguno de esos estados, en orden de creación."""
         status_values = [status.value for status in statuses]

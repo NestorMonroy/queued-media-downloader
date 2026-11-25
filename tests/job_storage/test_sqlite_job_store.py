@@ -331,3 +331,20 @@ def test_second_job_claiming_the_same_output_file_is_rejected(
 
     assert rejected.value.output_path == "downloads/video.mp4"
     assert job_store.get(second.job_id).output_path is None  # type: ignore[arg-type]
+
+
+def test_children_of_an_expansion_come_in_creation_order(
+    job_store: SqliteJobStore,
+) -> None:
+    parent_id = job_store.create(make_job("https://media.example/list"))
+    first = job_store.create(
+        replace(make_job("https://media.example/a"), parent_id=parent_id)
+    )
+    job_store.create(make_job("https://media.example/unrelated"))
+    second = job_store.create(
+        replace(make_job("https://media.example/b"), parent_id=parent_id)
+    )
+
+    children = job_store.get_children(parent_id)
+
+    assert [child.job_id for child in children] == [first, second]

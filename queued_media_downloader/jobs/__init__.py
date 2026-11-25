@@ -18,6 +18,11 @@ from queued_media_downloader.jobs.job_events import (
 )
 from queued_media_downloader.jobs.job_kind import JobKind
 from queued_media_downloader.jobs.job_lifecycle import InvalidJobTransitionError
+from queued_media_downloader.jobs.job_request import (
+    JobRequest,
+    JobRequestId,
+    JobRequestType,
+)
 from queued_media_downloader.jobs.job_status import JobStatus
 from queued_media_downloader.jobs.media_key import MediaKey
 from queued_media_downloader.jobs.playlist_context import PlaylistContext
@@ -36,6 +41,9 @@ __all__ = [
     "JobFailed",
     "JobId",
     "JobKind",
+    "JobRequest",
+    "JobRequestId",
+    "JobRequestType",
     "JobStarted",
     "JobStatus",
     "MediaKey",

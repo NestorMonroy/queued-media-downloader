@@ -17,8 +17,11 @@ from queued_media_downloader.ffmpeg_discovery.file_system_ffmpeg_locator import 
     VENDORED_BUILD_NAME,
     FileSystemFfmpegLocator,
 )
-from queued_media_downloader.job_storage import JobStore
+from queued_media_downloader.job_storage import JobRequestInbox, JobStore
 from queued_media_downloader.job_storage.sqlite_connection import open_database
+from queued_media_downloader.job_storage.sqlite_job_request_inbox import (
+    SqliteJobRequestInbox,
+)
 from queued_media_downloader.job_storage.sqlite_job_store import SqliteJobStore
 from queued_media_downloader.media_extraction import MediaSourceSettings
 from queued_media_downloader.media_extraction.yt_dlp_javascript_runtime import (
@@ -66,6 +69,19 @@ def open_job_store(state_directory: Path) -> Iterator[JobStore]:
     connection = open_database(state_directory / DATABASE_FILE_NAME)
     try:
         yield SqliteJobStore(connection)
+    finally:
+        connection.close()
+
+
+@contextmanager
+def open_job_store_and_inbox(
+    state_directory: Path,
+) -> Iterator[tuple[JobStore, JobRequestInbox]]:
+    """Abre el job store y la bandeja de job requests sobre una sola conexión."""
+    state_directory.mkdir(parents=True, exist_ok=True)
+    connection = open_database(state_directory / DATABASE_FILE_NAME)
+    try:
+        yield SqliteJobStore(connection), SqliteJobRequestInbox(connection)
     finally:
         connection.close()
 

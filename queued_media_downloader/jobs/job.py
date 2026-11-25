@@ -16,6 +16,11 @@ from queued_media_downloader.jobs.playlist_entry import PlaylistEntry
 
 JobId = NewType("JobId", int)
 
+# Estados de los que un job no sale salvo con retry (UC-07).
+FINISHED_STATUSES = frozenset(
+    {JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED, JobStatus.SKIPPED}
+)
+
 # Carpeta, dentro de la de descargas, con una subcarpeta de parciales por job.
 PARTIAL_DIRECTORY_NAME = ".partial"
 
@@ -91,6 +96,10 @@ class Job:
             media_key=playlist_entry.media_key,
             title=playlist_entry.title,
         )
+
+    def is_finished(self) -> bool:
+        """Indica si el job ya terminó: no hay nada que cancelar (UC-05 A7)."""
+        return self.status in FINISHED_STATUSES
 
     def partial_directory(self) -> Path:
         """Carpeta propia de los archivos parciales del job (T44, riesgo R-14).

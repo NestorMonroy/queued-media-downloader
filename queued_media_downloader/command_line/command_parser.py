@@ -4,6 +4,7 @@ import argparse
 from collections.abc import Sequence
 from importlib.metadata import version
 
+from queued_media_downloader.command_line.cancel_command import add_cancel_command
 from queued_media_downloader.command_line.diagnose_command import add_diagnose_command
 from queued_media_downloader.command_line.enqueue_command import add_enqueue_command
 from queued_media_downloader.command_line.exit_code import ExitCode
@@ -24,6 +25,7 @@ def build_command_parser() -> argparse.ArgumentParser:
     commands = command_parser.add_subparsers(metavar="COMMAND", required=True)
     add_enqueue_command(commands)
     add_run_command(commands)
+    add_cancel_command(commands)
     add_diagnose_command(commands)
     return command_parser
 

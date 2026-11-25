@@ -81,7 +81,7 @@ Igual que en E1 ([ADR-0022](../notes/adr-0022-hybrid-approach-and-task-decomposi
 
 | ID | Tarea | Rol | Terminada cuando | Depende de |
 |---|---|---|---|---|
-| T36 | Comando `cancel` y `JobRequestInbox` sobre la tabla `job_requests`; A5 (sin `run` activo) y A7 (job terminado) | Agente | Pruebas del comando y de la bandeja | — |
+| T36 | Comando `cancel` y `JobRequestInbox` sobre la tabla `job_requests`; A5 (sin `run` activo) y A7 (job terminado) | Agente | Pruebas del comando y de la bandeja. **Hecha**: Linux ✔ | — |
 | T37 | `RunQueue` procesa las job requests en cada vuelta: A1 (`PENDING`), flujo básico (`RUNNING`) y A4 (playlist con sus hijos) | Agente | Pruebas con `ScriptedWorkerPool` | T36, T28 |
 | T38 | Hilo de cancelación en el worker y `DownloadCancelled` en el hook de progreso; A2 (terminación forzada tras `cancellation_grace_seconds`) y A3 (termina antes de verlo) | Agente | Cancelar contra el servidor local, también durante la unión, sin procesos huérfanos | T35, T37 |
 | T39 | `Ctrl+C` en `run` (A6): el primero cancela los jobs en curso, el segundo termina los workers | Agente | Prueba con una señal al proceso de `run` | T38, T31 |
@@ -273,10 +273,10 @@ La aceptación final de todos los escenarios queda **pendiente** de la campaña 
 | A1 `PENDING` | T37 | **Pendiente** | — | — |
 | A2 Terminación forzada | T34, T35, T38 | Terminador (T34) y `terminate_worker_running` (T35) hechos; falta el plazo de cancelación (T38) | Linux ✔ (terminador y pool) | Experimento de T33; `windows` de T34; pasos 6 y 7 |
 | A3 Termina antes de ver la bandera | T38 | **Pendiente** | — | — |
-| A4 Playlist con sus hijos | T37 | **Pendiente** | — | Paso 5 |
-| A5 Sin `run` activo | T36 | **Pendiente** | — | — |
+| A4 Playlist con sus hijos | T36, T37 | Registro de la expansión y de sus descendientes no terminados hecho (T36); procesamiento en `run`, T37 | Linux ✔ (registro) | Paso 5 |
+| A5 Sin `run` activo | T36, T37 | Registro hecho (T36); se procesa al arrancar `run` (T37) | Linux ✔ (la petición persiste) | — |
 | A6 `Ctrl+C` | T39 | **Pendiente** | — | Paso 7 |
-| A7 Job terminado | T36 | **Pendiente** | — | — |
+| A7 Job terminado | T36, T37 | Hecha en `cancel` (informa y no registra); en `run`, si terminó entre el registro y el procesamiento (T37) | Linux ✔ (`cancel`) | — |
 
 ### UC-06 Recuperar la cola y reanudar descargas
 

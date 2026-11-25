@@ -77,6 +77,10 @@ class JobStore(Protocol):
         """Devuelve hasta limit jobs pendientes, en orden de creación."""
         ...
 
+    def get_children(self, parent_id: JobId) -> list[Job]:
+        """Devuelve los hijos directos de una expansión, en orden de creación."""
+        ...
+
     def get_with_status(self, statuses: Collection[JobStatus]) -> list[Job]:
         """Devuelve los jobs en alguno de esos estados, en orden de creación."""
         ...
