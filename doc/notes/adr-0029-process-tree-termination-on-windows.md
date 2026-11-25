@@ -1,7 +1,16 @@
 # ADR-0029: Implementación de `ProcessTreeTerminator` (D1)
 
-- **Estado:** Propuesta; pendiente de la decisión D1 del Responsable
+- **Estado:** Aceptada (D1 aprobada por el Responsable el 2026-11-25)
 - **Fecha:** 2026-11-25
+
+| Aspecto | Estado |
+|---|---|
+| Decisión de arquitectura | **APROBADA**: Job Object por worker en Windows; grupos de procesos en POSIX |
+| Implementación en Windows | **Pendiente** (T34 y T35) |
+| Validación en ejecución sobre Windows | **PENDIENTE**: experimento de T33 y pruebas `windows`, en la campaña final ([plan de E2, §7](../project-management/iteration-plan-e2.md#7-campaña-final-de-validación-en-windows)) |
+| Aceptación final | **PENDIENTE**: depende de los resultados reales de la campaña final |
+
+Aprobar D1 autoriza la implementación. No es evidencia de que funcione en Windows: los resultados de Linux de este ADR describen Linux, no Windows.
 - **Tarea:** T33 del [plan de E2](../project-management/iteration-plan-e2.md#44-slice-c-terminar-el-árbol-de-procesos-adr-0013)
 - **Concreta:** [ADR-0013](adr-0013-process-tree-terminator-abstraction.md) (contrato) y [ADR-0008](adr-0008-process-based-worker-pool.md) (pool de procesos)
 - **Experimento:** [T33: terminar el árbol de procesos](experiments/t33-process-tree-termination.md)
@@ -113,7 +122,7 @@ El [experimento](experiments/t33-process-tree-termination.md) reproduce la jerar
 - `process_group` termina el árbol completo, también el de un worker ya caído. Conserva el parcial entero, no afecta a otro árbol y admite terminaciones repetidas.
 - Ninguna estrategia POSIX termina el árbol cuando el proceso principal muere.
 
-**Windows: pendiente de ejecución por el Evaluador.** El documento del experimento recoge el resultado esperado de cada estrategia y dónde guardar el resultado real. La recomendación de §8 queda condicionada a esa evidencia: si `job_object` no da *ninguno vivo* en los cinco escenarios, D1 se reabre.
+**Windows: pendiente.** Por decisión del Responsable, el experimento se ejecuta en la campaña final de validación, cuando estén implementados todos los casos de uso. El documento del experimento recoge el resultado esperado de cada estrategia y el procedimiento. Si en la campaña `job_object` no da *ninguno vivo* en los cinco escenarios, el defecto se corrige allí y D1 se revisa.
 
 ## 7. Riesgos
 
@@ -189,10 +198,10 @@ Las pruebas siguen los procesos por handle o `pidfd`, nunca por PID, y solo term
 - **Reanudación (T32):** terminar el árbol no borra ni trunca el `.part` (medido: parcial entero, sin bytes ajenos). El `.temp` de una unión interrumpida lo sobrescribe la siguiente unión. Las partes `.f<id>` ya terminadas se reutilizan.
 - **Worker caído:** el job sigue quedando `FAILED` (`WORKER_CRASHED`) y se reintenta con `retry`; lo nuevo es que sus descendientes se terminan antes de que el reintento escriba los mismos archivos.
 
-## Decisión requerida (D1)
+## Decisión (D1)
 
-Aprobar o rechazar:
+Aprobada por el Responsable el 2026-11-25:
 
-> **`WindowsProcessTreeTerminator` con un Job Object por worker (`ctypes`, `KILL_ON_JOB_CLOSE`, `TerminateJobObject`), sin dependencias nuevas, y `PosixProcessTreeTerminator` con grupos de procesos para las pruebas en cualquier sistema.** El contrato de ADR-0013 se amplía con `release()` y se sitúa en `workers/`. El pool termina el árbol al cancelar a la fuerza, al detectar un worker caído y en el apagado forzado. La aprobación queda condicionada a que el experimento en Windows confirme el criterio 1.
+> **`WindowsProcessTreeTerminator` con un Job Object por worker (`ctypes`, `KILL_ON_JOB_CLOSE`, `TerminateJobObject`), sin dependencias nuevas, y `PosixProcessTreeTerminator` con grupos de procesos para las pruebas en cualquier sistema.** El contrato de ADR-0013 se amplía con `release()` y se sitúa en `workers/`. El pool termina el árbol al cancelar a la fuerza, al detectar un worker caído y en el apagado forzado. La validación en Windows (criterio 1 y pruebas `windows`) se hace en la campaña final.
 
-Alternativas, si se rechaza: `psutil` (dependencia nueva; no cubre la muerte de `run`) o `taskkill /T` (sin dependencias; no cubre la muerte de `run` ni los workers caídos, y es sensible a la reutilización de PID).
+Alternativas descartadas: `psutil` (dependencia nueva; no cubre la muerte de `run`) o `taskkill /T` (sin dependencias; no cubre la muerte de `run` ni los workers caídos, y es sensible a la reutilización de PID).

@@ -44,6 +44,6 @@ Principios aplicados:
 
 ## Seguimiento de T33 (2026-11-25)
 
-[ADR-0029](adr-0029-process-tree-termination-on-windows.md) analiza la implementación contra el código real y propone dos ajustes a este ADR, pendientes de la decisión D1:
+[ADR-0029](adr-0029-process-tree-termination-on-windows.md) analiza la implementación contra el código real y, con D1 aprobada, ajusta este ADR en dos puntos:
 - El contrato vive en `workers/`, el componente real; `job_execution/` no existe.
 - El contrato necesita `release()` para liberar el mecanismo al sustituir o apagar un worker.

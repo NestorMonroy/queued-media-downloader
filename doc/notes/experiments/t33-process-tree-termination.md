@@ -59,7 +59,7 @@ Tras la ejecución no quedó ningún proceso del experimento.
 
 ## Resultados en Windows
 
-**Pendiente de ejecución por el Evaluador en Windows.** Pegar aquí la tabla que escribe el script y guardar el JSON junto a este documento. Lo que D1 necesita confirmar:
+**Pendiente: se ejecuta en la campaña final de validación en Windows** ([plan de E2, §7](../../project-management/iteration-plan-e2.md#7-campaña-final-de-validación-en-windows)). Los resultados de Linux no son evidencia para Windows. Pegar aquí la tabla que escribe el script y guardar el JSON junto a este documento. Lo que D1 necesita confirmar:
 
 | Escenario | `worker_kill_only` | `taskkill_tree` | `job_object` |
 |---|---|---|---|

@@ -32,7 +32,7 @@ Cada decisión se registra en un archivo con: contexto, opciones consideradas, d
 | [0026](adr-0026-smart-app-control-precondition.md) | Smart App Control desactivado como precondición de E1 | Aceptada |
 | [0027](adr-0027-video-links-inside-lists.md) | Un enlace a un video dentro de una lista descarga solo el video | Aceptada |
 | [0028](adr-0028-playlist-child-output-template.md) | Plantilla de salida de los hijos de una playlist | Aceptada |
-| [0029](adr-0029-process-tree-termination-on-windows.md) | Implementación de `ProcessTreeTerminator` (D1) | Propuesta |
+| [0029](adr-0029-process-tree-termination-on-windows.md) | Implementación de `ProcessTreeTerminator` (D1) | Aceptada; validación en Windows pendiente |
 
 ## Convenciones de este registro
 
