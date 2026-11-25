@@ -65,7 +65,7 @@ Igual que en E1 ([ADR-0022](../notes/adr-0022-hybrid-approach-and-task-decomposi
 
 | ID | Tarea | Rol | Terminada cuando | Depende de |
 |---|---|---|---|---|
-| T33 | Análisis de la implementación para Windows del `ProcessTreeTerminator` y decisión del Responsable (D1) | Agente, Responsable | ADR con la decisión | — |
+| T33 | Análisis de la implementación para Windows del `ProcessTreeTerminator` y decisión del Responsable (D1) | Agente, Responsable | ADR con la decisión. **Análisis hecho** ([ADR-0029](../notes/adr-0029-process-tree-termination-on-windows.md), propuesta); falta el experimento en Windows y la decisión | — |
 | T34 | Contrato `ProcessTreeTerminator` con implementación POSIX (grupo de procesos) y Windows según D1 | Agente | Prueba sobre hijo y nieto en cualquier sistema y prueba `windows` | T33 |
 | T35 | El pool registra cada worker al arrancar y ofrece `terminate_worker_running(job_id)`, que termina su árbol y lo reemplaza | Agente | Prueba con un worker que lanza un subproceso, y el escenario de la [§5.1](#51-criterio-obligatorio-de-integración-entre-los-slices-b-y-c) automatizado | T34 |
 
@@ -105,7 +105,7 @@ Los slices A, B y C pueden avanzar en paralelo. T33 es el primer punto de decisi
 
 | ID | Decisión | Cuándo |
 |---|---|---|
-| D1 | Implementación para Windows del `ProcessTreeTerminator` (ADR-0013 dejó el contrato, no la implementación) | T33 |
+| D1 | Implementación para Windows del `ProcessTreeTerminator` (ADR-0013 dejó el contrato, no la implementación) | T33, **propuesta lista**: Job Object por worker ([ADR-0029](../notes/adr-0029-process-tree-termination-on-windows.md)); pendiente del experimento en Windows y de la decisión |
 | D2 | Una URL de un video dentro de una lista (`watch?v=…&list=…`): descargar solo el video o la lista entera. Por defecto, yt-dlp descarga la lista | T27, **resuelta**: solo el video ([ADR-0027](../notes/adr-0027-video-links-inside-lists.md)) |
 | D3 | Plantilla por defecto de los hijos de una playlist (`playlist_output_template`): carpeta por playlist, índice y longitud | T29, **resuelta**: la del ejemplo de yt-dlp ([ADR-0028](../notes/adr-0028-playlist-child-output-template.md)) |
 

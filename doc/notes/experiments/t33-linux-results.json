@@ -1,0 +1,95 @@
+{
+  "platform": "Linux-6.18.44-fc-v880-x86_64-with-glibc2.39",
+  "python": "3.13.18",
+  "executable": "/tmp/queued-media-downloader/.venv/bin/python3",
+  "base_executable": "/usr/local/bin/python3.13",
+  "observations": [
+    {
+      "scenario": "terminate_tree",
+      "strategy": "worker_kill_only",
+      "alive_after": [
+        "child",
+        "grandchild"
+      ],
+      "details": {
+        "partial_bytes_kept": 417792,
+        "partial_bytes_before": 8192,
+        "partial_is_intact": true,
+        "repeated_terminate": "no error"
+      }
+    },
+    {
+      "scenario": "isolation_other_tree_alive",
+      "strategy": "worker_kill_only",
+      "alive_after": [
+        "worker",
+        "child",
+        "grandchild"
+      ],
+      "details": {
+        "target_alive_after": [
+          "child",
+          "grandchild"
+        ]
+      }
+    },
+    {
+      "scenario": "worker_crashed_then_terminate",
+      "strategy": "worker_kill_only",
+      "alive_after": [
+        "child",
+        "grandchild"
+      ],
+      "details": {}
+    },
+    {
+      "scenario": "main_process_killed",
+      "strategy": "worker_kill_only",
+      "alive_after": [
+        "worker",
+        "child",
+        "grandchild"
+      ],
+      "details": {}
+    },
+    {
+      "scenario": "terminate_tree",
+      "strategy": "process_group",
+      "alive_after": [],
+      "details": {
+        "partial_bytes_kept": 8192,
+        "partial_bytes_before": 8192,
+        "partial_is_intact": true,
+        "repeated_terminate": "no error"
+      }
+    },
+    {
+      "scenario": "isolation_other_tree_alive",
+      "strategy": "process_group",
+      "alive_after": [
+        "worker",
+        "child",
+        "grandchild"
+      ],
+      "details": {
+        "target_alive_after": []
+      }
+    },
+    {
+      "scenario": "worker_crashed_then_terminate",
+      "strategy": "process_group",
+      "alive_after": [],
+      "details": {}
+    },
+    {
+      "scenario": "main_process_killed",
+      "strategy": "process_group",
+      "alive_after": [
+        "worker",
+        "child",
+        "grandchild"
+      ],
+      "details": {}
+    }
+  ]
+}

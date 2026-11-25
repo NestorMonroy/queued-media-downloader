@@ -41,3 +41,9 @@ Principios aplicados:
 - La terminación forzada se prueba con `FakeProcessTreeTerminator`, sin procesos reales.
 - `WindowsProcessTreeTerminator` tiene sus propias pruebas de integración, marcadas como `windows`.
 - Si se soporta Linux o macOS, se añade una implementación (por ejemplo, con grupos de procesos POSIX o `psutil`) y se elige en `composition_root.py`.
+
+## Seguimiento de T33 (2026-11-25)
+
+[ADR-0029](adr-0029-process-tree-termination-on-windows.md) analiza la implementación contra el código real y propone dos ajustes a este ADR, pendientes de la decisión D1:
+- El contrato vive en `workers/`, el componente real; `job_execution/` no existe.
+- El contrato necesita `release()` para liberar el mecanismo al sustituir o apagar un worker.
