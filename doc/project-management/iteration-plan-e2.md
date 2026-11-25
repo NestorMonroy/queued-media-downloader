@@ -74,7 +74,7 @@ Igual que en E1 ([ADR-0022](../notes/adr-0022-hybrid-approach-and-task-decomposi
 | ID | Tarea | Rol | Terminada cuando | Depende de |
 |---|---|---|---|---|
 | T33 | Análisis de la implementación para Windows del `ProcessTreeTerminator` y decisión del Responsable (D1) | Agente, Responsable | ADR con la decisión. **Hecha**: D1 aprobada ([ADR-0029](../notes/adr-0029-process-tree-termination-on-windows.md)); el experimento en Windows pasa a la campaña final | — |
-| T34 | Contrato `ProcessTreeTerminator` con implementación POSIX (grupo de procesos) y Windows según D1 | Agente | Prueba sobre hijo y nieto en cualquier sistema y prueba `windows` | T33 |
+| T34 | Contrato `ProcessTreeTerminator` con implementación POSIX (grupo de procesos) y Windows según D1 | Agente | Prueba sobre hijo y nieto en cualquier sistema y prueba `windows`. **Hecha**: Linux ✔; 10 pruebas `windows` ⏳ ([seguimiento en ADR-0029](../notes/adr-0029-process-tree-termination-on-windows.md#seguimiento-de-t34-2026-11-25)) | T33 |
 | T35 | El pool registra cada worker al arrancar y ofrece `terminate_worker_running(job_id)`, que termina su árbol y lo reemplaza | Agente | Prueba con un worker que lanza un subproceso, y el escenario de la [§5.1](#51-criterio-obligatorio-de-integración-entre-los-slices-b-y-c) automatizado | T34 |
 
 ### 4.5 Slice D: cancelar (UC-05)
@@ -199,7 +199,7 @@ Se amplía con cada tarea. Cada uno se verifica en la campaña.
 
 | Requisito | Origen | Prueba prevista |
 |---|---|---|
-| Job Object por worker: sin huérfanos al terminar el árbol, al caer el worker y al morir `run` | ADR-0029 | Experimento de T33; pruebas `windows` de T34 y T35 |
+| Job Object por worker: sin huérfanos al terminar el árbol, al caer el worker y al morir `run`; sin escape por `CREATE_BREAKAWAY_FROM_JOB`; handle no heredable | ADR-0029, T34 | Experimento de T33; `pytest -m windows` (`tests/workers/test_process_tree_terminator.py`, 10 pruebas) y T35 |
 | `Ctrl+C` llega también a los workers y a ffmpeg (mismo grupo de consola) | ADR-0029, hallazgo 4 | T39 y paso 7 |
 | La carpeta de parciales de un job (`.partial\job-N`) se mueve al terminar sin copiar y se borra; rutas largas con la carpeta añadida | T44 | Pasos 9 y 11 |
 | Rutas largas y nombres de playlist con caracteres no válidos | R-10, ADR-0028 | Paso 5 (UC-04) |
@@ -269,7 +269,7 @@ La aceptación final de todos los escenarios queda **pendiente** de la campaña 
 |---|---|---|---|---|
 | Flujo básico (cooperativa) | T36–T38 | **Pendiente** | — | Pasos 5 y 6 |
 | A1 `PENDING` | T37 | **Pendiente** | — | — |
-| A2 Terminación forzada | T34, T35, T38 | **Pendiente** (D1 aprobada) | — | Experimento de T33; `windows` de T34 y T35; pasos 6 y 7 |
+| A2 Terminación forzada | T34, T35, T38 | Terminador hecho (T34); integración pendiente (T35, T38) | Linux ✔ (terminador POSIX) | Experimento de T33; `windows` de T34 y T35; pasos 6 y 7 |
 | A3 Termina antes de ver la bandera | T38 | **Pendiente** | — | — |
 | A4 Playlist con sus hijos | T37 | **Pendiente** | — | Paso 5 |
 | A5 Sin `run` activo | T36 | **Pendiente** | — | — |

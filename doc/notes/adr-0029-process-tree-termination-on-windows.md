@@ -6,7 +6,7 @@
 | Aspecto | Estado |
 |---|---|
 | Decisión de arquitectura | **APROBADA**: Job Object por worker en Windows; grupos de procesos en POSIX |
-| Implementación en Windows | **Pendiente** (T34 y T35) |
+| Implementación en Windows | **Hecha** la del terminador (T34: `WindowsProcessTreeTerminator`, `PosixProcessTreeTerminator`); la integración en el pool, en T35 |
 | Validación en ejecución sobre Windows | **PENDIENTE**: experimento de T33 y pruebas `windows`, en la campaña final ([plan de E2, §7](../project-management/iteration-plan-e2.md#7-campaña-final-de-validación-en-windows)) |
 | Aceptación final | **PENDIENTE**: depende de los resultados reales de la campaña final |
 
@@ -205,3 +205,18 @@ Aprobada por el Responsable el 2026-11-25:
 > **`WindowsProcessTreeTerminator` con un Job Object por worker (`ctypes`, `KILL_ON_JOB_CLOSE`, `TerminateJobObject`), sin dependencias nuevas, y `PosixProcessTreeTerminator` con grupos de procesos para las pruebas en cualquier sistema.** El contrato de ADR-0013 se amplía con `release()` y se sitúa en `workers/`. El pool termina el árbol al cancelar a la fuerza, al detectar un worker caído y en el apagado forzado. La validación en Windows (criterio 1 y pruebas `windows`) se hace en la campaña final.
 
 Alternativas descartadas: `psutil` (dependencia nueva; no cubre la muerte de `run`) o `taskkill /T` (sin dependencias; no cubre la muerte de `run` ni los workers caídos, y es sensible a la reutilización de PID).
+
+## Seguimiento de T34 (2026-11-25)
+
+- **Contrato** en `workers/process_tree_terminator.py`, con `release()` y `ProcessTreeTerminationError`, más `become_process_tree_root()`, que el worker llama al arrancar, antes de su primera instrucción.
+- **Windows** (`workers/windows_process_tree_terminator.py`): un Job Object por terminador con `KILL_ON_JOB_CLOSE`, sin `BREAKAWAY_OK`; handle no heredable; `terminate_tree` llama a `TerminateJobObject` y espera a que `ActiveProcesses` llegue a 0 (10 s como máximo); los errores de `CreateJobObjectW`, `OpenProcess` y `AssignProcessToJobObject` se convierten en `ProcessTreeTerminationError`.
+- **POSIX** (`workers/posix_process_tree_terminator.py`): `killpg` con `SIGKILL`. Si el worker aún no creó su grupo, termina solo al worker, a través de un `pidfd` cuando existe. Diferencias documentadas en el módulo: el árbol no muere con el proceso principal, y un descendiente podría salir del grupo con `setsid`.
+- **Asociación al crear el proceso:** `multiprocessing` no permite `CREATE_SUSPENDED` ni `PROC_THREAD_ATTRIBUTE_JOB_LIST`. La asignación ocurre justo después de crear el worker, sin carrera, porque el worker no lanza procesos hasta su primer job.
+
+| Prueba | Linux | Windows |
+|---|---|---|
+| Contrato: raíz, hijo y nieto terminados; parcial intacto; aislamiento entre árboles; descendientes de una raíz caída; terminar y liberar dos veces; raíz que aún no es raíz de su árbol | ✔ (6) | ⏳ las mismas 6, marcadas `windows` al ejecutarse en Windows |
+| El árbol muere con su proceso dueño (`KILL_ON_JOB_CLOSE`) | — (POSIX no lo garantiza) | ⏳ |
+| Un proceso registrado no puede salir con `CREATE_BREAKAWAY_FROM_JOB` | — | ⏳ |
+| El handle del Job Object no es heredable | — | ⏳ |
+| Registrar un proceso inexistente falla con `ProcessTreeTerminationError` | — | ⏳ |

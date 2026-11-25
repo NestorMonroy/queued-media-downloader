@@ -15,6 +15,9 @@ from queued_media_downloader.jobs import (
     JobStarted,
 )
 from queued_media_downloader.media_extraction import MediaSource, Publish
+from queued_media_downloader.workers.process_tree_terminator import (
+    become_process_tree_root,
+)
 from queued_media_downloader.workers.worker_instructions import (
     RunJob,
     WorkerInstruction,
@@ -79,6 +82,8 @@ def worker_loop(
     La MediaSource se crea una sola vez, ya dentro del proceso del worker. Los
     registros de logging del worker viajan por log_queue al proceso principal.
     """
+    # Antes de cualquier job: los procesos que lance yt-dlp quedan en su árbol.
+    become_process_tree_root()
     configure_worker_logging(log_queue)
     media_source = media_source_factory()
     message_sender = WorkerMessageSender(worker_id, message_queue)
