@@ -59,6 +59,10 @@ class InMemoryJobStore:
         """Todos los jobs guardados, en orden de creación (solo para pruebas)."""
         return list(self._jobs.values())
 
+    def get_all(self) -> list[Job]:
+        """Devuelve todos los jobs, en orden de creación."""
+        return list(self._jobs.values())
+
     def get_children(self, parent_id: JobId) -> list[Job]:
         """Devuelve los hijos directos de una expansión, en orden de creación."""
         return [job for job in self._jobs.values() if job.parent_id == parent_id]

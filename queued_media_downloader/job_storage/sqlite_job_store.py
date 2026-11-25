@@ -133,6 +133,11 @@ class SqliteJobStore:
         ).fetchall()
         return [_job_from_row(row) for row in rows]
 
+    def get_all(self) -> list[Job]:
+        """Devuelve todos los jobs, en orden de creación."""
+        rows = self._connection.execute(f"{SELECT_JOB_COLUMNS} ORDER BY id").fetchall()
+        return [_job_from_row(row) for row in rows]
+
     def get_children(self, parent_id: JobId) -> list[Job]:
         """Devuelve los hijos directos de una expansión, en orden de creación."""
         rows = self._connection.execute(
