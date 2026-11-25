@@ -20,7 +20,7 @@ from queued_media_downloader.media_extraction.media_source_settings import (
     MediaSourceSettings,
 )
 from queued_media_downloader.media_extraction.partial_files import (
-    remove_partial_files_of,
+    remove_partial_directory,
 )
 from queued_media_downloader.media_extraction.progress_event_translator import (
     DownloadProgressTranslator,
@@ -74,18 +74,19 @@ class YtDlpMediaSource:
     def download(self, job: Job, publish: Publish) -> None:
         """Descarga el contenido y publica el formato, el avance y el resultado.
 
-        Al reanudar se pide el formato del primer intento, para que su .part
-        siga siendo válido (ADR-0010). Si el sitio ya no lo ofrece, se reintenta
-        una sola vez con el format selector original y, si termina, se borran
-        los parciales del formato anterior (UC-06, A1). Solo se publica
-        JobCompleted si el archivo final existe y no está vacío.
+        Los parciales van a la carpeta propia del job (T44). Al reanudar se pide
+        el formato del primer intento, para que su .part siga siendo válido
+        (ADR-0010); si el sitio ya no lo ofrece, se reintenta una sola vez con el
+        format selector original (UC-06, A1). Solo se publica JobCompleted si la
+        descarga y el postprocesado terminaron (_unfinished_download_failure);
+        entonces se borra la carpeta de parciales, con lo que haya dejado
+        cualquier intento anterior.
         """
-        # Formato del primer intento que el sitio ya no ofrece; sus parciales
-        # sobran si el reintento termina.
-        stale_format_id: str | None = None
+        partial_directory = job.partial_directory()
+        retry_with_format_selector = False
         try:
             final_path = self._download_with_format(
-                job, job.selected_format_id, publish
+                job, job.selected_format_id, partial_directory, publish
             )
         except Exception as download_error:
             if job.selected_format_id is None or not is_format_unavailable(
@@ -93,38 +94,49 @@ class YtDlpMediaSource:
             ):
                 publish(classify_failure(download_error))
                 return
-            stale_format_id = job.selected_format_id
-        if stale_format_id is not None:
+            retry_with_format_selector = True
+        if retry_with_format_selector:
             # Fuera del except: yt-dlp tomaría el error del primer intento como
             # causa del segundo (sys.exc_info) y la clasificación sería otra.
             logger.info(
                 "Format %s is no longer available; retrying with %s",
-                stale_format_id,
+                job.selected_format_id,
                 job.download_options.format_selector,
             )
             try:
-                final_path = self._download_with_format(job, None, publish)
+                final_path = self._download_with_format(
+                    job, None, partial_directory, publish
+                )
             except Exception as retry_error:
                 publish(classify_failure(retry_error))
                 return
-        missing_output = _missing_output_failure(final_path)
-        if missing_output is not None:
-            publish(missing_output)
+        unfinished_failure = _unfinished_download_failure(final_path, partial_directory)
+        if unfinished_failure is not None:
+            publish(unfinished_failure)
             return
-        if stale_format_id is not None:
-            remove_partial_files_of(Path(str(final_path)), stale_format_id)
+        remove_partial_directory(partial_directory)
         publish(JobCompleted(output_path=final_path))
 
     def _download_with_format(
-        self, job: Job, format_id: str | None, publish: Publish
+        self,
+        job: Job,
+        format_id: str | None,
+        partial_directory: Path,
+        publish: Publish,
     ) -> str | None:
         """Descarga con format_id o, sin él, con el format selector del job.
 
         Returns:
-            La ruta final del archivo.
+            La ruta final que yt-dlp registró tras mover el archivo.
+
+        Raises:
+            YtDlpReturnCodeError: Si yt-dlp terminó con un código distinto de 0.
         """
         parameters = build_yt_dlp_parameters(
-            job.download_options, self._media_source_settings, job.playlist_context
+            job.download_options,
+            self._media_source_settings,
+            job.playlist_context,
+            partial_directory,
         )
         if format_id is not None:
             parameters["format"] = format_id
@@ -140,7 +152,9 @@ class YtDlpMediaSource:
                 SelectedFormatRecorder(publish), when="before_dl"
             )
             youtube_dl.add_post_processor(final_path_recorder, when="after_move")
-            youtube_dl.download([job.url])
+            return_code = youtube_dl.download([job.url])
+        if return_code != 0:
+            raise YtDlpReturnCodeError(return_code)
         return final_path_recorder.final_path
 
     def _download_progress(self, publish: Publish) -> DownloadProgressTranslator:
@@ -151,17 +165,40 @@ class YtDlpMediaSource:
         )
 
 
-def _missing_output_failure(final_path: str | None) -> JobFailed | None:
-    """JobFailed si la descarga terminó sin un archivo final utilizable."""
+class YtDlpReturnCodeError(Exception):
+    """yt-dlp terminó con un código distinto de 0 sin lanzar una excepción."""
+
+    def __init__(self, return_code: int) -> None:
+        """Guarda el código que devolvió YoutubeDL.download."""
+        self.return_code = return_code
+        super().__init__(f"yt-dlp reported errors (return code {return_code})")
+
+
+def _unfinished_download_failure(
+    final_path: str | None, partial_directory: Path
+) -> JobFailed | None:
+    """JobFailed si la descarga no terminó con un archivo final utilizable.
+
+    yt-dlp solo ejecuta los postprocessors after_move, donde se registra
+    final_path, tras todos los de post_process y tras mover el archivo a su
+    carpeta final (YoutubeDL.post_process). Una ruta registrada fuera de la
+    carpeta de parciales y con contenido es, por tanto, un archivo terminado.
+    """
     if final_path is None:
-        return JobFailed(
-            failure_reason=FailureReason.FILESYSTEM,
-            failure_message="The download finished without an output file",
-        )
+        return _filesystem_failure("The download finished without an output file")
     output_path = Path(final_path)
+    if output_path.absolute().is_relative_to(partial_directory.absolute()):
+        return _filesystem_failure(
+            f"The output file was not moved out of its partial directory: {output_path}"
+        )
     if not output_path.is_file() or output_path.stat().st_size == 0:
-        return JobFailed(
-            failure_reason=FailureReason.FILESYSTEM,
-            failure_message=f"The output file is missing or empty: {output_path}",
+        return _filesystem_failure(
+            f"The output file is missing or empty: {output_path}"
         )
     return None
+
+
+def _filesystem_failure(failure_message: str) -> JobFailed:
+    return JobFailed(
+        failure_reason=FailureReason.FILESYSTEM, failure_message=failure_message
+    )

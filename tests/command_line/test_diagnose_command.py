@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from queued_media_downloader.command_line import main
+from queued_media_downloader.job_storage.sqlite_migrations import LATEST_SCHEMA_VERSION
 from tests.command_line.conftest import ENVIRONMENT_PREFIX
 
 
@@ -16,7 +17,7 @@ def test_diagnose_reports_every_component_and_exits_with_0(
     assert exit_code == 0
     for component in ("ffmpeg", "ffprobe", "deno", "database"):
         assert f"] {component}: " in output
-    assert "schema version 2" in output
+    assert f"schema version {LATEST_SCHEMA_VERSION}" in output
     assert output.endswith("Environment ready\n")
 
 

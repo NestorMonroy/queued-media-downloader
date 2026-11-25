@@ -5,6 +5,7 @@ from dataclasses import replace
 
 from queued_media_downloader.job_storage import (
     DuplicateActiveDownloadError,
+    DuplicateOutputPathError,
     JobNotFoundError,
 )
 from queued_media_downloader.jobs import Job, JobId, JobKind, JobStatus, MediaKey
@@ -44,6 +45,7 @@ class InMemoryJobStore:
         if job.job_id is None or job.job_id not in self._jobs:
             raise JobNotFoundError(JobId(0) if job.job_id is None else job.job_id)
         self._ensure_no_duplicate(job, job.job_id)
+        self._ensure_output_path_is_free(job, job.job_id)
         self._jobs[job.job_id] = job
 
     def get_next_pending(self, limit: int) -> list[Job]:
@@ -67,6 +69,17 @@ class InMemoryJobStore:
             _is_active_download_of(job, media_key, audio_only=audio_only)
             for job in self._jobs.values()
         )
+
+    def _ensure_output_path_is_free(self, job: Job, job_id: JobId) -> None:
+        """Aplica la regla del índice unique_output_path (T44)."""
+        if job.output_path is None:
+            return
+        if any(
+            other.output_path == job.output_path
+            for other_id, other in self._jobs.items()
+            if other_id != job_id
+        ):
+            raise DuplicateOutputPathError(job.output_path)
 
     def _ensure_no_duplicate(self, job: Job, job_id: JobId) -> None:
         """Aplica la regla del índice único de descargas activas (ADR-0012).

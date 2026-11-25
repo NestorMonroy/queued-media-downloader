@@ -291,13 +291,14 @@ sequenceDiagram
         YtDlp-->>MediaSource: requested format not available
         MediaSource->>YtDlp: retry once with the original format_selector
         MediaSource-->>RunQueue: publish FormatSelected(new selected_format_id)
-        Note over MediaSource: the old .part files of this job are deleted on success
+        Note over MediaSource: the job's partial directory is deleted on success
     end
     MediaSource-->>RunQueue: publish JobCompleted
 ```
 
 - **Recuperar** (corregir estados tras un cierre inesperado) y **reanudar** (continuar una descarga parcial) son conceptos distintos ([vocabulario](00-vocabulary.md)).
 - La reanudación de bytes la hace yt-dlp (`.part`, `.ytdl`). El proyecto solo garantiza que **plantilla y formato sean los mismos** que en el primer intento.
+- **Cada job tiene su carpeta de parciales** (`<carpeta de descargas>/.partial/job-<id>`, `paths.temp` de yt-dlp): todo lo intermedio va ahí y solo el archivo terminado pasa a la carpeta final. Al terminar la descarga se borra la carpeta del job ([ADR-0010, seguimiento de T44](../notes/adr-0010-sqlite-persistent-queue.md#seguimiento-de-t44-propiedad-de-los-archivos-de-cada-job-2026-11-25)).
 - Si el sitio retiró el formato guardado, se acepta perder lo descargado antes que fallar.
 
 ---

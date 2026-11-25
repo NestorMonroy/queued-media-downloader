@@ -262,3 +262,24 @@ def test_only_an_interrupted_job_can_be_recovered(status: JobStatus) -> None:
 
     with pytest.raises(ValueError, match="interrupted"):
         job.recover_from_interruption()
+
+
+def test_partial_files_of_a_job_live_in_a_folder_named_after_its_id() -> None:
+    job = make_running_expansion()
+
+    assert job.partial_directory() == Path("downloads", ".partial", "job-7")
+
+
+def test_audio_only_job_keeps_its_partial_files_in_the_same_place() -> None:
+    # La carpeta de parciales no depende del tipo de salida: el id ya es único.
+    job = replace(
+        make_running_expansion(),
+        download_options=replace(make_download_options(), audio_only=True),
+    )
+
+    assert job.partial_directory() == Path("downloads", ".partial", "job-7")
+
+
+def test_unstored_job_has_no_partial_folder() -> None:
+    with pytest.raises(ValueError, match="stored"):
+        Job.new_expansion(URL, make_download_options()).partial_directory()

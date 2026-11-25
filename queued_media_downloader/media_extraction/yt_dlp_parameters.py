@@ -60,16 +60,19 @@ def build_yt_dlp_parameters(
     download_options: DownloadOptions,
     media_source_settings: MediaSourceSettings,
     playlist_context: PlaylistContext | None = None,
+    partial_directory: Path | None = None,
 ) -> dict[str, Any]:
     """Construye los parámetros de un YoutubeDL nuevo para un job.
 
     Cada job usa su propio YoutubeDL, así que nada se arrastra de un job a otro.
     Un hijo de playlist (con playlist_context) se guarda en la carpeta de su
-    playlist (ADR-0028).
+    playlist (ADR-0028). Con partial_directory, yt-dlp escribe ahí todo lo
+    intermedio y solo mueve a la carpeta de descargas el archivo terminado
+    (paths.temp; T44).
     """
     parameters: dict[str, Any] = {
         "format": download_options.format_selector,
-        "paths": {"home": str(_download_directory_of(download_options))},
+        "paths": _paths_of(download_options, partial_directory),
         "outtmpl": {
             "default": _output_template_of(
                 download_options, media_source_settings, playlist_context
@@ -118,3 +121,17 @@ def _output_template_of(
         playlist_context,
         media_source_settings.max_filename_length,
     )
+
+
+def _paths_of(
+    download_options: DownloadOptions, partial_directory: Path | None
+) -> dict[str, str]:
+    """Carpeta final y, si la hay, carpeta de parciales del job.
+
+    yt-dlp une paths.temp a paths.home: una ruta absoluta evita que la carpeta
+    de parciales acabe dentro de la de descargas una segunda vez.
+    """
+    paths = {"home": str(_download_directory_of(download_options))}
+    if partial_directory is not None:
+        paths["temp"] = str(partial_directory.absolute())
+    return paths

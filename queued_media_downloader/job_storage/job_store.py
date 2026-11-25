@@ -27,6 +27,17 @@ class DuplicateActiveDownloadError(Exception):
         )
 
 
+class DuplicateOutputPathError(Exception):
+    """Otro job ya tiene ese archivo final (índice unique_output_path, T44)."""
+
+    def __init__(self, output_path: str) -> None:
+        """Guarda la ruta disputada y compone el mensaje para los logs."""
+        self.output_path = output_path
+        super().__init__(
+            f"The output file {output_path} already belongs to another job"
+        )
+
+
 class JobStore(Protocol):
     """Guarda y recupera los jobs de la cola."""
 
@@ -58,6 +69,7 @@ class JobStore(Protocol):
             JobNotFoundError: Si no existe.
             DuplicateActiveDownloadError: Si dejaría dos descargas activas del
                 mismo contenido.
+            DuplicateOutputPathError: Si otro job ya tiene su output_path.
         """
         ...
 

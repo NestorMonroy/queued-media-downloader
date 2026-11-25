@@ -296,7 +296,8 @@ def test_recovered_job_with_an_unavailable_format_finishes_with_a_new_one(
     main(["run"])
     downloads = tmp_path / "downloads"
     (downloads / "sample [sample].mp4").unlink()
-    stale_partial_path = downloads / "sample [sample].webm.part"
+    stale_partial_path = downloads / ".partial" / "job-1" / "sample [sample].webm.part"
+    stale_partial_path.parent.mkdir(parents=True)
     stale_partial_path.write_bytes(b"stale")
     connection = open_database(state_directory / "queue.sqlite3")
     try:

@@ -218,7 +218,11 @@ def test_same_media_is_downloaded_once_as_video_and_once_as_audio() -> None:
     job_store = InMemoryJobStore()
     job_store.create(Job.new_expansion(URL, DOWNLOAD_OPTIONS))
     job_store.create(Job.new_expansion(URL, replace(DOWNLOAD_OPTIONS, audio_only=True)))
-    worker_pool = ScriptedWorkerPool(1, single_media_script(URL, "a"))
+    script = single_media_script(URL, "a")
+    # El guion no distingue video de audio, y en realidad sus rutas difieren
+    # (subcarpeta audio, T23); la ruta no es lo que prueba este caso.
+    script[(JobKind.DOWNLOAD, URL)][-1] = JobCompleted(output_path=None)
+    worker_pool = ScriptedWorkerPool(1, script)
 
     RunQueue(job_store, worker_pool).execute()
 
@@ -346,3 +350,33 @@ def test_nested_playlist_entry_is_expanded_in_turn() -> None:
     assert grandchild.playlist_context.playlist_id == "PL2"
     assert sorted(downloaded_urls(worker_pool)) == [video_url("a"), video_url("d")]
     assert {job.status for job in job_store.all_jobs()} == {JobStatus.COMPLETED}
+
+
+def test_job_whose_output_file_belongs_to_another_job_fails() -> None:
+    # Dos contenidos distintos con el mismo nombre final: yt-dlp toma el
+    # segundo por ya descargado y devuelve la ruta del primero (R-14).
+    shared_output = "downloads/video.mp4"
+    script: dict[ScriptKey, list[JobEvent]] = {
+        **{
+            key: events
+            for media_id in ("a", "b")
+            for key, events in single_media_script(
+                video_url(media_id), media_id
+            ).items()
+            if key[0] is JobKind.EXPANSION
+        },
+        (JobKind.DOWNLOAD, video_url("a")): [JobCompleted(output_path=shared_output)],
+        (JobKind.DOWNLOAD, video_url("b")): [JobCompleted(output_path=shared_output)],
+    }
+    job_store, _, run_queue = run_queue_with([video_url("a"), video_url("b")], script)
+
+    run_result = run_queue.execute()
+
+    first, second = job_store.all_jobs()
+    assert first.status is JobStatus.COMPLETED
+    assert first.output_path == shared_output
+    assert second.status is JobStatus.FAILED
+    assert second.failure_reason is FailureReason.FILESYSTEM
+    assert second.output_path is None
+    assert "already belongs to another job" in (second.failure_message or "")
+    assert run_result.failed_job_count == 1

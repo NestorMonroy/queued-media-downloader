@@ -4,8 +4,9 @@ Solo el proceso de run cambia el estado de los jobs (diseño, Parte 2, §2.4);
 este módulo es el único sitio donde un job event se convierte en un cambio.
 """
 
-from queued_media_downloader.job_storage import JobStore
+from queued_media_downloader.job_storage import DuplicateOutputPathError, JobStore
 from queued_media_downloader.jobs import (
+    FailureReason,
     FormatSelected,
     Job,
     JobCancelled,
@@ -57,8 +58,18 @@ class JobEventApplier:
             return None
         if not isinstance(job_event, PERSISTENT_JOB_EVENT_TYPES):
             return None
-        updated_job = self._job_after(self._job_store.get(message.job_id), job_event)
-        self._job_store.update(updated_job)
+        stored_job = self._job_store.get(message.job_id)
+        updated_job = self._job_after(stored_job, job_event)
+        try:
+            self._job_store.update(updated_job)
+        except DuplicateOutputPathError as duplicate_output:
+            # Otro contenido con el mismo nombre final (plantilla sin %(id)s o
+            # título recortado): el archivo es del otro job, no de este (R-14).
+            updated_job = stored_job.fail(
+                FailureReason.FILESYSTEM,
+                f"{duplicate_output}; use an output template that keeps %(id)s",
+            )
+            self._job_store.update(updated_job)
         return updated_job
 
     def _create_playlist_children(

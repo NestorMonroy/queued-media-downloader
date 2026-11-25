@@ -1,6 +1,7 @@
 """La entidad job: unidad de trabajo de la cola."""
 
 from dataclasses import dataclass, replace
+from pathlib import Path
 from typing import NewType, Self
 
 from queued_media_downloader.jobs.download_options import DownloadOptions
@@ -14,6 +15,9 @@ from queued_media_downloader.jobs.playlist_context import PlaylistContext
 from queued_media_downloader.jobs.playlist_entry import PlaylistEntry
 
 JobId = NewType("JobId", int)
+
+# Carpeta, dentro de la de descargas, con una subcarpeta de parciales por job.
+PARTIAL_DIRECTORY_NAME = ".partial"
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -86,6 +90,28 @@ class Job:
             playlist_context=_playlist_context_of(playlist_batch, playlist_entry),
             media_key=playlist_entry.media_key,
             title=playlist_entry.title,
+        )
+
+    def partial_directory(self) -> Path:
+        """Carpeta propia de los archivos parciales del job (T44, riesgo R-14).
+
+        yt-dlp escribe ahí todo lo intermedio (.part, .ytdl, partes .f<id>,
+        .temp) y solo mueve el archivo terminado a la carpeta de descargas.
+        Todo lo que contiene es de este job: el id no se reutiliza nunca
+        (migración 0003), aunque dos jobs den el mismo nombre a sus archivos.
+        Está dentro de la carpeta de descargas para que mover el archivo final
+        sea renombrarlo, sin copiarlo entre unidades.
+
+        Raises:
+            ValueError: Si el job aún no está guardado.
+        """
+        if self.job_id is None:
+            message = "Only a stored job has a partial directory"
+            raise ValueError(message)
+        return (
+            self.download_options.download_directory
+            / PARTIAL_DIRECTORY_NAME
+            / f"job-{self.job_id}"
         )
 
     def transition_to(self, target_status: JobStatus) -> Self:

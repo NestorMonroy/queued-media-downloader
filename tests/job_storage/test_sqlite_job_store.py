@@ -7,6 +7,7 @@ import pytest
 
 from queued_media_downloader.job_storage import (
     DuplicateActiveDownloadError,
+    DuplicateOutputPathError,
     JobNotFoundError,
 )
 from queued_media_downloader.job_storage.sqlite_connection import open_database
@@ -314,3 +315,19 @@ def test_jobs_survive_closing_and_reopening_the_database(
     second_connection.close()
 
     assert reopened_job.job_id == job_id
+
+
+def test_second_job_claiming_the_same_output_file_is_rejected(
+    job_store: SqliteJobStore,
+) -> None:
+    # Plantilla sin %(id)s o título recortado: el mismo nombre para dos
+    # contenidos distintos (R-14).
+    first = job_store.get(job_store.create(make_job("https://media.example/1")))
+    second = job_store.get(job_store.create(make_job("https://media.example/2")))
+    job_store.update(replace(first, output_path="downloads/video.mp4"))
+
+    with pytest.raises(DuplicateOutputPathError) as rejected:
+        job_store.update(replace(second, output_path="downloads/video.mp4"))
+
+    assert rejected.value.output_path == "downloads/video.mp4"
+    assert job_store.get(second.job_id).output_path is None  # type: ignore[arg-type]

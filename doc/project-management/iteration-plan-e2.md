@@ -67,7 +67,7 @@ Igual que en E1 ([ADR-0022](../notes/adr-0022-hybrid-approach-and-task-decomposi
 |---|---|---|---|---|
 | T31 | `recover_interrupted_jobs` al arrancar `run`: `RUNNING` → `PENDING`, `CANCELLATION_REQUESTED` → `CANCELLED` | Agente | Pruebas con `InMemoryJobStore` | — |
 | T32 | Reanudación con el formato guardado; A1 (reintento con el selector original), A2 (sin formato) | Agente | Contra un servidor local, una descarga con su `.part` continúa con una petición `Range`. **Hecha**; la recuperación tras una interrupción real queda en el criterio obligatorio de la [§5.1](#51-criterio-obligatorio-de-integración-entre-los-slices-b-y-c) ([seguimiento en ADR-0010](../notes/adr-0010-sqlite-persistent-queue.md#seguimiento-de-t32-reanudación-verificada-2026-11-25)) | T31 |
-| T44 | Propiedad de los archivos parciales de cada job (R-14) y respaldo de `JobCompleted` en el resultado de yt-dlp | Agente | Pruebas de regresión: nombres truncados, plantilla sin `%(id)s`, formatos abandonados, interrupción entre el formato nuevo y la limpieza | T32 |
+| T44 | Propiedad de los archivos parciales de cada job (R-14) y respaldo de `JobCompleted` en el resultado de yt-dlp | Agente | Pruebas de regresión: nombres truncados, plantilla sin `%(id)s`, formatos abandonados, interrupción entre el formato nuevo y la limpieza. **Hecha** ([seguimiento en ADR-0010](../notes/adr-0010-sqlite-persistent-queue.md#seguimiento-de-t44-propiedad-de-los-archivos-de-cada-job-2026-11-25)) | T32 |
 
 ### 4.4 Slice C: terminar el árbol de procesos (ADR-0013)
 
@@ -100,7 +100,7 @@ Igual que en E1 ([ADR-0022](../notes/adr-0022-hybrid-approach-and-task-decomposi
 | T45 | `retry JOB_ID... \| --all-failed` (UC-07): job request `RETRY`; `FAILED` y `CANCELLED` vuelven a `PENDING` e incrementan `attempt_count`; `SKIPPED` y `COMPLETED` no se reintentan | Agente | Pruebas del comando, de la bandeja y de `RunQueue` | T36, T37 |
 | T46 | `list [--status STATUS] [--parent JOB_ID]` (UC-08): solo lectura | Agente | Pruebas del caso de uso y del comando | — |
 | T47 | `show JOB_ID` (UC-09): todos los datos; en una playlist, resumen de hijos por estado | Agente | Pruebas del caso de uso y del comando | — |
-| T48 | `purge [--completed] [--cancelled]` (UC-10): borra jobs terminados sin tocar archivos | Agente | Pruebas del caso de uso y del comando | — |
+| T48 | `purge [--completed] [--cancelled]` (UC-10): borra jobs terminados sin tocar los archivos descargados; sí borra la carpeta de parciales de cada job purgado (T44) | Agente | Pruebas del caso de uso y del comando | — |
 
 ### 4.7 Cierre
 
@@ -201,7 +201,7 @@ Se amplía con cada tarea. Cada uno se verifica en la campaña.
 |---|---|---|
 | Job Object por worker: sin huérfanos al terminar el árbol, al caer el worker y al morir `run` | ADR-0029 | Experimento de T33; pruebas `windows` de T34 y T35 |
 | `Ctrl+C` llega también a los workers y a ffmpeg (mismo grupo de consola) | ADR-0029, hallazgo 4 | T39 y paso 7 |
-| Un `.part` abierto no se puede borrar | T32 | Paso 9 |
+| La carpeta de parciales de un job (`.partial\job-N`) se mueve al terminar sin copiar y se borra; rutas largas con la carpeta añadida | T44 | Pasos 9 y 11 |
 | Rutas largas y nombres de playlist con caracteres no válidos | R-10, ADR-0028 | Paso 5 (UC-04) |
 
 ---
@@ -281,9 +281,10 @@ La aceptación final de todos los escenarios queda **pendiente** de la campaña 
 | Escenario | Tareas | Implementación | Pruebas | Pendiente en Windows |
 |---|---|---|---|---|
 | Recuperación al arrancar | T31 | Hecha | Linux ✔ | Paso 7 |
-| Reanudación con `Range` | T32, T44 | Hecha con un `.part` creado por la prueba | Linux ✔ | Paso 8 |
+| Reanudación con `Range` | T32, T44 | Hecha con un `.part` creado por la prueba, en la carpeta de parciales del job | Linux ✔ | Paso 8 |
 | Interrupción real (§5.1) | T35, T42 | **Pendiente** | — | Paso 8 (obligatorio) |
 | A1 Formato ya no disponible | T32, T44 | Hecha | Linux ✔ | Paso 9 |
+| Propiedad de los parciales y del archivo final (R-14) | T44 | Hecha | Linux ✔ (nombres truncados, plantilla sin `%(id)s`, archivo final compartido) | Paso 11 |
 | A2 Sin formato guardado | E1, T32 | Hecha | Linux ✔ | — |
 | A3 Parciales borrados por el User | T32 | Hecha (yt-dlp descarga de cero) | Linux ✔ (sin `.part`) | — |
 
@@ -304,4 +305,4 @@ La aceptación final de todos los escenarios queda **pendiente** de la campaña 
 | R-04 Árbol de procesos | UC-03 A4, UC-05 A2, UC-06 | T34, T35 y pasos 4, 6 y 8 de la campaña |
 | R-05 Reanudación | UC-06 | §5.1 en T35 y paso 8 |
 | R-06 Iteración perezosa | UC-04 | Prueba `network` y paso 13 |
-| R-14 Nombres compartidos entre jobs | UC-03, UC-06 | T44 y paso 11 |
+| R-14 Nombres compartidos entre jobs | UC-03, UC-06 | T44 (hecha, Linux ✔) y paso 11 |

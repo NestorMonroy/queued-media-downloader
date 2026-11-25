@@ -9,6 +9,7 @@ from typing import Any
 
 from queued_media_downloader.job_storage.job_store import (
     DuplicateActiveDownloadError,
+    DuplicateOutputPathError,
     JobNotFoundError,
 )
 from queued_media_downloader.jobs import (
@@ -73,6 +74,8 @@ SELECT_ACTIVE_DOWNLOAD = """
 DUPLICATE_MEDIA_INDEX_MESSAGE = (
     "UNIQUE constraint failed: index 'unique_active_download_per_media'"
 )
+# Sobre una columna sin expresión nombra la columna (índice unique_output_path).
+DUPLICATE_OUTPUT_PATH_MESSAGE = "UNIQUE constraint failed: jobs.output_path"
 
 
 class SqliteJobStore:
@@ -145,14 +148,15 @@ class SqliteJobStore:
         return row is not None
 
     def _execute_write(self, statement: str, job: Job) -> sqlite3.Cursor:
-        """Ejecuta una escritura y traduce la violación del índice de duplicados."""
+        """Ejecuta una escritura y traduce las violaciones de los índices únicos."""
         try:
             return self._connection.execute(statement, _parameters_from(job))
         except sqlite3.IntegrityError as integrity_error:
-            if job.media_key is not None and DUPLICATE_MEDIA_INDEX_MESSAGE in str(
-                integrity_error
-            ):
+            message = str(integrity_error)
+            if job.media_key is not None and DUPLICATE_MEDIA_INDEX_MESSAGE in message:
                 raise DuplicateActiveDownloadError(job.media_key) from integrity_error
+            if job.output_path is not None and DUPLICATE_OUTPUT_PATH_MESSAGE in message:
+                raise DuplicateOutputPathError(job.output_path) from integrity_error
             raise
 
 

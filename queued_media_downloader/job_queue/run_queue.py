@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 from queued_media_downloader.job_queue.job_event_applier import JobEventApplier
 from queued_media_downloader.job_storage import JobStore
-from queued_media_downloader.jobs import Job, JobFailed
+from queued_media_downloader.jobs import Job, JobStatus
 from queued_media_downloader.workers import WorkerMessage, WorkerPool
 
 # Espera máxima por los mensajes de los workers en cada vuelta del bucle; acota
@@ -62,7 +62,11 @@ class RunQueue:
                 updated_job = self._job_event_applier.apply(message)
                 self._present(message, updated_job)
                 running_job_count -= message.ends_the_job_run
-                failed_job_count += isinstance(message.job_event, JobFailed)
+                # Se cuenta el estado que quedó guardado, no el job event: un
+                # JobCompleted puede dejar el job FAILED (T44).
+                failed_job_count += (
+                    updated_job is not None and updated_job.status is JobStatus.FAILED
+                )
 
     def _submit_pending_jobs(self) -> int:
         """Envía un job pendiente por worker libre; devuelve cuántos envió.
