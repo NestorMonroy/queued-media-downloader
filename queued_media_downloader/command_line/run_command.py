@@ -11,6 +11,9 @@ from queued_media_downloader.command_line.composition_root import (
     open_job_store_and_inbox,
     open_worker_pool,
 )
+from queued_media_downloader.command_line.console_interruption import (
+    handling_interruptions,
+)
 from queued_media_downloader.command_line.exit_code import ExitCode
 from queued_media_downloader.command_line.job_presenter import JobPresenter
 from queued_media_downloader.command_line.log_file import logging_to_file
@@ -47,9 +50,10 @@ def run_run_command(arguments: argparse.Namespace) -> int:
     """Verifica ffmpeg, ejecuta la cola y resume el resultado.
 
     Returns:
-        SUCCESS si ningún job falló, JOBS_FAILED si alguno falló y
-        USAGE_ERROR si la configuración no es válida o no hay un ffmpeg
-        utilizable; en ese caso no se ejecuta ningún job.
+        SUCCESS si ningún job falló, JOBS_FAILED si alguno falló,
+        INTERRUPTED si el User pulsó Ctrl+C y USAGE_ERROR si la configuración
+        no es válida o no hay un ffmpeg utilizable; en ese caso no se ejecuta
+        ningún job.
     """
     try:
         settings = load_command_settings({"worker_count": arguments.worker_count})
@@ -68,14 +72,25 @@ def run_run_command(arguments: argparse.Namespace) -> int:
         # Antes de enviar ningún job (UC-06): nada queda RUNNING sin worker.
         _report_recovery(RecoverInterruptedJobs(job_store).execute())
         presenter = JobPresenter(sys.stdout)
-        run_result = RunQueue(
-            job_store,
-            worker_pool,
-            inbox,
-            present=presenter.present,
-            present_job_request=presenter.present_job_request,
-            cancellation_grace_seconds=settings.cancellation_grace_seconds,
-        ).execute()
+        with handling_interruptions() as interruption_request:
+            try:
+                run_result = RunQueue(
+                    job_store,
+                    worker_pool,
+                    inbox,
+                    present=presenter.present,
+                    present_job_request=presenter.present_job_request,
+                    cancellation_grace_seconds=settings.cancellation_grace_seconds,
+                    stop_requested=interruption_request,
+                ).execute()
+            except KeyboardInterrupt:
+                # Segundo Ctrl+C: sin esperar a que los jobs se detengan.
+                worker_pool.shut_down(immediately=True)
+                print("Stopped; interrupted jobs will resume on the next run")
+                return ExitCode.INTERRUPTED
+    if run_result.interrupted:
+        print("Interrupted; the running jobs will resume on the next run")
+        return ExitCode.INTERRUPTED
     if run_result.failed_job_count == 0:
         print("All jobs finished")
         return ExitCode.SUCCESS

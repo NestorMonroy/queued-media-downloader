@@ -84,7 +84,7 @@ Igual que en E1 ([ADR-0022](../notes/adr-0022-hybrid-approach-and-task-decomposi
 | T36 | Comando `cancel` y `JobRequestInbox` sobre la tabla `job_requests`; A5 (sin `run` activo) y A7 (job terminado) | Agente | Pruebas del comando y de la bandeja. **Hecha**: Linux ✔ | — |
 | T37 | `RunQueue` procesa las job requests en cada vuelta: A1 (`PENDING`), flujo básico (`RUNNING`) y A4 (playlist con sus hijos) | Agente | Pruebas con `ScriptedWorkerPool`. **Hecha**, con la cancelación cooperativa en el worker (hilo de cancelación y `JobCancelledError`): Linux ✔ | T36, T28 |
 | T38 | Hilo de cancelación en el worker y `DownloadCancelled` en el hook de progreso; A2 (terminación forzada tras `cancellation_grace_seconds`) y A3 (termina antes de verlo) | Agente | Cancelar contra el servidor local, también durante la unión, sin procesos huérfanos. **Hecha**: Linux ✔ (yt-dlp real contra el servidor lento; job sin avances con un hijo, en lugar de una unión real); la cancelación durante una unión real con ffmpeg, en la campaña (paso 6) | T35, T37 |
-| T39 | `Ctrl+C` en `run` (A6): el primero cancela los jobs en curso, el segundo termina los workers | Agente | Prueba con una señal al proceso de `run` | T38, T31 |
+| T39 | `Ctrl+C` en `run` (A6): el primero cancela los jobs en curso, el segundo termina los workers | Agente | Prueba con una señal al proceso de `run`. **Hecha**: el primero detiene los jobs **sin cancelarlos** (siguen `RUNNING` y se reanudan, como pide A6 y ADR-0029); el segundo termina los árboles ya; código 130. Linux ✔ (señales reales); Windows ⏳ (paso 7) | T38, T31 |
 
 ### 4.6 Slice E: operación de la cola
 
@@ -202,7 +202,7 @@ Se amplía con cada tarea. Cada uno se verifica en la campaña.
 | Requisito | Origen | Prueba prevista |
 |---|---|---|
 | Job Object por worker: sin huérfanos al terminar el árbol, al caer el worker y al morir `run`; sin escape por `CREATE_BREAKAWAY_FROM_JOB`; handle no heredable | ADR-0029, T34 | Experimento de T33; `pytest -m windows` (`tests/workers/test_process_tree_terminator.py`, 10 pruebas) y T35 |
-| `Ctrl+C` llega también a los workers y a ffmpeg (mismo grupo de consola) | ADR-0029, hallazgo 4 | T39 y paso 7 |
+| `Ctrl+C` llega también a los workers y a ffmpeg (mismo grupo de consola): el worker llama a `SetConsoleCtrlHandler(NULL, TRUE)`, que heredan sus hijos | ADR-0029, hallazgo 4; T39 | Paso 7: un `Ctrl+C` durante una unión real no debe abortar ffmpeg ni marcar el job `FAILED` |
 | Cancelar durante una unión real de ffmpeg termina ffmpeg tras el plazo y no deja procesos | UC-05 A2, T38 | Paso 6 |
 | La carpeta de parciales de un job (`.partial\job-N`) se mueve al terminar sin copiar y se borra; rutas largas con la carpeta añadida | T44 | Pasos 9 y 11 |
 | Rutas largas y nombres de playlist con caracteres no válidos | R-10, ADR-0028 | Paso 5 (UC-04) |
@@ -276,7 +276,7 @@ La aceptación final de todos los escenarios queda **pendiente** de la campaña 
 | A3 Termina antes de ver la bandera | T37 | Hecha: `JobCompleted` gana; cualquier otro final confirma la cancelación | Linux ✔ | — |
 | A4 Playlist con sus hijos | T36, T37 | Hecha: registro (T36); en `run`, también los hijos creados después y sin nuevos hijos de un lote tardío (T37) | Linux ✔ | Paso 5 |
 | A5 Sin `run` activo | T36, T37 | Hecha | Linux ✔ | — |
-| A6 `Ctrl+C` | T39 | **Pendiente** | — | Paso 7 |
+| A6 `Ctrl+C` | T39 | Hecha: el primero detiene la cola y deja los jobs para reanudarse; el segundo termina ya; el worker y sus hijos ignoran `Ctrl+C` | Linux ✔ (`SIGINT` real al proceso de `run`, reanudación con `Range`) | Paso 7 (en Windows es un evento de consola que llega a todos los procesos) |
 | A7 Job terminado | T36, T37 | Hecha en `cancel` y en `run` | Linux ✔ | — |
 
 ### UC-06 Recuperar la cola y reanudar descargas

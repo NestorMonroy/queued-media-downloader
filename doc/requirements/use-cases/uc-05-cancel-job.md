@@ -30,7 +30,7 @@ El User cancela uno o varios jobs. Si el job aún no empezó, se cancela de inme
 - **A3. El job termina antes de ver la bandera** (paso 5): llega `JobCompleted` y el job queda `COMPLETED`.
 - **A4. Cancelar una playlist** (paso 2): se registra `CANCEL` para la expansión y para cada hijo no terminado.
 - **A5. `run` no está en ejecución** (paso 3): la job request se procesa al arrancar el siguiente `run`.
-- **A6. `Ctrl+C` durante `run`:** el sistema deja de enviar jobs y pide la cancelación de los jobs en curso (pasos 4 a 6 y A2). Un segundo `Ctrl+C` termina los workers de inmediato. Los jobs interrumpidos se recuperan en el siguiente `run` (UC-06).
+- **A6. `Ctrl+C` durante `run`:** el sistema deja de enviar jobs y detiene los jobs en curso con el mismo mecanismo que la cancelación (pasos 5 y A2), pero sin cancelarlos: siguen `RUNNING`, con sus archivos parciales. Un segundo `Ctrl+C` termina los workers de inmediato. `run` termina con código `130`, y los jobs interrumpidos se recuperan y se reanudan en el siguiente `run` (UC-06; interrupción recuperable, [ADR-0029](../../notes/adr-0029-process-tree-termination-on-windows.md)).
 - **A7. Job ya terminado** (`COMPLETED`, `SKIPPED`, `CANCELLED`): la job request se marca procesada sin cambios y se informa al User.
 
 ## Postcondiciones

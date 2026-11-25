@@ -102,9 +102,10 @@ class ScriptedWorkerPool:
         """Workers ficticios sin job asignado."""
         return self._worker_count - self._busy_job_count
 
-    def shut_down(self) -> None:
-        """Registra que se apagó."""
+    def shut_down(self, *, immediately: bool = False) -> None:
+        """Registra que se apagó, y si fue de inmediato."""
         self.was_shut_down = True
+        self.was_shut_down_immediately = immediately
 
     def _publish(self, job_id: JobId, job_event: JobEvent) -> None:
         sequence_number = self._sequence_numbers.get(job_id, 0) + 1

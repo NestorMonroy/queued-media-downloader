@@ -56,6 +56,10 @@ class WorkerPool(Protocol):
         """Número de workers sin job asignado."""
         ...
 
-    def shut_down(self) -> None:
-        """Detiene todos los workers."""
+    def shut_down(self, *, immediately: bool = False) -> None:
+        """Detiene todos los workers.
+
+        Con immediately, termina el árbol de cada worker sin esperar a que
+        acabe su job (segundo Ctrl+C, UC-05 A6).
+        """
         ...

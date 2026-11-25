@@ -211,3 +211,77 @@ def test_worker_that_confirms_in_time_is_not_terminated() -> None:
 
     assert pool.terminated_job_ids == []
     assert job_store.get(JobId(1)).status is JobStatus.CANCELLED
+
+
+class StopAfter:
+    """stop_requested que se activa al presentar cierto job event (primer Ctrl+C)."""
+
+    def __init__(self, event_type: type[object]) -> None:
+        self._event_type = event_type
+        self.requested = False
+
+    def present(self, message: WorkerMessage, job: Job | None) -> None:
+        del job
+        if isinstance(message.job_event, self._event_type):
+            self.requested = True
+
+    def __call__(self) -> bool:
+        return self.requested
+
+
+def test_interruption_stops_running_jobs_and_leaves_them_recoverable() -> None:
+    # A6: el primer Ctrl+C deja de enviar jobs y detiene los que están en curso
+    # sin cancelarlos: siguen RUNNING y el siguiente run los recupera (UC-06).
+    other_url = "https://media.example/watch?v=other"
+    script: dict[ScriptKey, list[ScriptStep]] = {
+        (JobKind.EXPANSION, URL): [FOUND_A],
+        (JobKind.DOWNLOAD, URL): [
+            FormatSelected(selected_format_id="18"),
+            WAIT_FOR_CANCELLATION,
+        ],
+    }
+    job_store, inbox, pool = queue_with([URL, other_url], script)
+    stop = StopAfter(FormatSelected)
+
+    run_result = RunQueue(
+        job_store, pool, inbox, present=stop.present, stop_requested=stop
+    ).execute()
+
+    assert run_result.interrupted
+    assert pool.cancellation_requests == [JobId(1)]
+    assert job_store.get(JobId(1)).status is JobStatus.RUNNING
+    assert job_store.get(JobId(2)).status is JobStatus.PENDING
+    assert [job.job_id for job in pool.submitted_jobs] == [JobId(1), JobId(1)]
+
+
+def test_interrupted_job_that_does_not_stop_in_time_is_terminated_still_running() -> (
+    None
+):
+    script: dict[ScriptKey, list[ScriptStep]] = {
+        (JobKind.EXPANSION, URL): [FOUND_A],
+        (JobKind.DOWNLOAD, URL): [
+            FormatSelected(selected_format_id="18"),
+            WAIT_FOR_CANCELLATION,
+        ],
+    }
+    job_store, inbox, pool = queue_with([URL], script, ignores_cancellation=True)
+    stop = StopAfter(FormatSelected)
+
+    run_result = RunQueue(
+        job_store,
+        pool,
+        inbox,
+        present=stop.present,
+        stop_requested=stop,
+        cancellation_grace_seconds=0.0,
+    ).execute()
+
+    assert run_result.interrupted
+    assert pool.terminated_job_ids == [JobId(1)]
+    assert job_store.get(JobId(1)).status is JobStatus.RUNNING
+
+
+def test_run_that_is_not_interrupted_says_so() -> None:
+    job_store, inbox, pool = queue_with([], {})
+
+    assert not RunQueue(job_store, pool, inbox).execute().interrupted

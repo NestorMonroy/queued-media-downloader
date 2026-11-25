@@ -45,11 +45,19 @@ def present_no_job_request(job_request: JobRequest, job: Job) -> None:
     """Presentación por defecto de las job requests: no muestra nada."""
 
 
+def never_stop() -> bool:
+    """stop_requested por defecto: nadie interrumpe la cola."""
+    return False
+
+
 @dataclass(frozen=True, slots=True)
 class RunQueueResult:
     """Resultado de una ejecución de la cola; decide el código de salida."""
 
     failed_job_count: int
+    # El User interrumpió run (Ctrl+C): los jobs en curso siguen RUNNING y el
+    # siguiente run los recupera (UC-05 A6, UC-06).
+    interrupted: bool = False
 
 
 class RunQueue:
@@ -66,12 +74,15 @@ class RunQueue:
         present: Present = present_nothing,
         present_job_request: PresentJobRequest = present_no_job_request,
         cancellation_grace_seconds: float = DEFAULT_CANCELLATION_GRACE_SECONDS,
+        stop_requested: Callable[[], bool] = never_stop,
     ) -> None:
         """Usa job_store, worker_pool y la bandeja de job requests.
 
         present recibe cada mensaje ya aplicado; present_job_request, cada job
         request procesada. Un worker que no confirma una cancelación en
         cancellation_grace_seconds se termina con su árbol (UC-05 A2).
+        Cuando stop_requested devuelve True (primer Ctrl+C), la cola deja de
+        enviar jobs y detiene los que están en curso sin cambiar su estado.
         """
         self._job_store = job_store
         self._worker_pool = worker_pool
@@ -80,8 +91,11 @@ class RunQueue:
         self._present_job_request = present_job_request
         self._job_event_applier = JobEventApplier(job_store)
         self._cancellation_grace_seconds = cancellation_grace_seconds
+        self._stop_requested = stop_requested
         self._running_job_ids: set[JobId] = set()
         self._cancellation_deadlines: dict[JobId, float] = {}
+        # Jobs detenidos por una interrupción: siguen RUNNING (UC-05 A6).
+        self._interrupted_job_ids: set[JobId] | None = None
 
     def execute(self) -> RunQueueResult:
         """Ejecuta jobs hasta que no queden pendientes ni en curso.
@@ -91,12 +105,19 @@ class RunQueue:
         """
         failed_job_count = 0
         while True:
-            # Antes de enviar nada: un job cancelado no debe llegar a un worker.
-            self._process_job_requests()
+            if self._interrupted_job_ids is None and self._stop_requested():
+                self._interrupt_running_jobs()
+            if self._interrupted_job_ids is None:
+                # Antes de enviar nada: un job cancelado no debe llegar a un worker.
+                self._process_job_requests()
             self._terminate_unconfirmed_cancellations()
-            self._submit_pending_jobs()
+            if self._interrupted_job_ids is None:
+                self._submit_pending_jobs()
             if not self._running_job_ids:
-                return RunQueueResult(failed_job_count=failed_job_count)
+                return RunQueueResult(
+                    failed_job_count=failed_job_count,
+                    interrupted=self._interrupted_job_ids is not None,
+                )
             for message in self._worker_pool.collect_events(COLLECT_TIMEOUT_SECONDS):
                 failed_job_count += self._apply(message)
 
@@ -107,12 +128,38 @@ class RunQueue:
         puede dejar el job FAILED (T44). Los jobs en curso son un conjunto: un
         mensaje final tardío de un job ya terminado no descuenta dos veces.
         """
+        if self._was_interrupted(message):
+            # El job se detuvo por la interrupción: no se cancela, sigue RUNNING.
+            self._running_job_ids.discard(message.job_id)
+            self._cancellation_deadlines.pop(message.job_id, None)
+            return 0
         updated_job = self._job_event_applier.apply(message)
         self._present(message, updated_job)
         if message.ends_the_job_run:
             self._running_job_ids.discard(message.job_id)
             self._cancellation_deadlines.pop(message.job_id, None)
         return int(updated_job is not None and updated_job.status is JobStatus.FAILED)
+
+    def _was_interrupted(self, message: WorkerMessage) -> bool:
+        """Indica si message es el JobCancelled de un job detenido por Ctrl+C."""
+        return (
+            self._interrupted_job_ids is not None
+            and message.job_id in self._interrupted_job_ids
+            and isinstance(message.job_event, JobCancelled)
+        )
+
+    def _interrupt_running_jobs(self) -> None:
+        """Primer Ctrl+C: detiene los jobs en curso como una cancelación (A6).
+
+        Usa la misma petición cooperativa y el mismo plazo que UC-05, pero el
+        JobCancelled de estos jobs no se aplica: siguen RUNNING, con su .part,
+        y el siguiente run los recupera y los reanuda (UC-06).
+        """
+        self._interrupted_job_ids = set(self._running_job_ids)
+        deadline = time.monotonic() + self._cancellation_grace_seconds
+        for job_id in self._interrupted_job_ids:
+            self._worker_pool.request_cancellation(job_id)
+            self._cancellation_deadlines.setdefault(job_id, deadline)
 
     def _terminate_unconfirmed_cancellations(self) -> None:
         """Termina el árbol de los workers que no confirmaron a tiempo (A2).

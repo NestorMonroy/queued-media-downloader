@@ -19,6 +19,9 @@ from queued_media_downloader.media_extraction import (
     MediaSource,
     Publish,
 )
+from queued_media_downloader.workers.console_interrupts import (
+    ignore_console_interrupts,
+)
 from queued_media_downloader.workers.job_cancellation import (
     CancellationQueue,
     JobCancellationListener,
@@ -113,6 +116,7 @@ def worker_loop(
     """
     # Antes de cualquier job: los procesos que lance yt-dlp quedan en su árbol.
     become_process_tree_root()
+    ignore_console_interrupts()
     configure_worker_logging(log_queue)
     cancellation_listener = JobCancellationListener(cancellation_queue)
     media_source = media_source_factory()

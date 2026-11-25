@@ -9,3 +9,5 @@ class ExitCode(IntEnum):
     SUCCESS = 0
     JOBS_FAILED = 1
     USAGE_ERROR = 2
+    # Convención de los intérpretes de comandos: 128 + SIGINT (UC-05 A6).
+    INTERRUPTED = 130

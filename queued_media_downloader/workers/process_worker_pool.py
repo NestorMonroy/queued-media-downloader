@@ -150,8 +150,16 @@ class ProcessWorkerPool:
                 return True
         return False
 
-    def shut_down(self) -> None:
-        """Pide a cada worker que termine y termina el árbol de los que no lo hagan."""
+    def shut_down(self, *, immediately: bool = False) -> None:
+        """Pide a cada worker que termine y termina el árbol de los que no lo hagan.
+
+        Con immediately, termina el árbol de cada worker sin pedírselo.
+        """
+        if immediately:
+            for worker in self._workers:
+                self._terminate_worker(worker)
+            self._workers = []
+            return
         for worker in self._workers:
             if worker.process.is_alive():
                 worker.instruction_queue.put(ShutDown())
