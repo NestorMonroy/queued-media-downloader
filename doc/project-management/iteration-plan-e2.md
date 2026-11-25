@@ -75,7 +75,7 @@ Igual que en E1 ([ADR-0022](../notes/adr-0022-hybrid-approach-and-task-decomposi
 |---|---|---|---|---|
 | T33 | Análisis de la implementación para Windows del `ProcessTreeTerminator` y decisión del Responsable (D1) | Agente, Responsable | ADR con la decisión. **Hecha**: D1 aprobada ([ADR-0029](../notes/adr-0029-process-tree-termination-on-windows.md)); el experimento en Windows pasa a la campaña final | — |
 | T34 | Contrato `ProcessTreeTerminator` con implementación POSIX (grupo de procesos) y Windows según D1 | Agente | Prueba sobre hijo y nieto en cualquier sistema y prueba `windows`. **Hecha**: Linux ✔; 10 pruebas `windows` ⏳ ([seguimiento en ADR-0029](../notes/adr-0029-process-tree-termination-on-windows.md#seguimiento-de-t34-2026-11-25)) | T33 |
-| T35 | El pool registra cada worker al arrancar y ofrece `terminate_worker_running(job_id)`, que termina su árbol y lo reemplaza | Agente | Prueba con un worker que lanza un subproceso, y el escenario de la [§5.1](#51-criterio-obligatorio-de-integración-entre-los-slices-b-y-c) automatizado | T34 |
+| T35 | El pool registra cada worker al arrancar y ofrece `terminate_worker_running(job_id)`, que termina su árbol y lo reemplaza | Agente | Prueba con un worker que lanza un subproceso, y el escenario de la [§5.1](#51-criterio-obligatorio-de-integración-entre-los-slices-b-y-c) automatizado. **Hecha**: Linux ✔; Windows ⏳ | T34 |
 
 ### 4.5 Slice D: cancelar (UC-05)
 
@@ -159,7 +159,9 @@ T32 demostró la reanudación con un `.part` creado por la prueba. Aprobar T32 n
 | 9 | — | El job queda `COMPLETED` con su `output_path` |
 | 10 | — | No queda ningún proceso huérfano ni archivo parcial del job |
 
-**Estado:** pendiente de ejecución.
+**Estado:**
+- **Automatizado en T35** (`tests/job_queue/test_real_interruption_recovery.py`): pasos 1 a 10, con la interrupción hecha por `terminate_worker_running`. Linux ✔ (estable en 5 ejecuciones seguidas).
+- **Windows ⏳:** la misma prueba, con el Job Object, en la campaña final (paso 3); y el paso manual con la muerte del proceso principal (`Stop-Process -Force` sobre `run`), que la prueba automatizada no cubre (paso 8).
 
 ## 6. Evaluación
 
@@ -246,7 +248,7 @@ La aceptación final de todos los escenarios queda **pendiente** de la campaña 
 | A1 Duplicado | E1, T21, T23 | Hecha | Linux ✔; Windows E1 ✔ | — |
 | A2 Fallos de red, no disponible, geo, no soportada | E1, T24 | Hecha | Linux ✔; Windows E1 ✔ (fallo controlado) | — |
 | A3 Extractor desactualizado | E1 | Hecha | Linux ✔ | — |
-| A4 Worker muere sin evento final | E1 (T20) | Hecha; **sin terminar sus descendientes** hasta T35 | Linux ✔ | Pasos 5 y 6 |
+| A4 Worker muere sin evento final | E1 (T20), T35 | Hecha; sus descendientes se terminan antes de sustituirlo (T35) | Linux ✔ | Pasos 5 y 6 |
 | A5 `--keep-waiting` | T40 | **Pendiente** | — | Paso 5 |
 | A6 Reciclado de workers | T41 | **Pendiente** | — | Paso 5 |
 
@@ -269,7 +271,7 @@ La aceptación final de todos los escenarios queda **pendiente** de la campaña 
 |---|---|---|---|---|
 | Flujo básico (cooperativa) | T36–T38 | **Pendiente** | — | Pasos 5 y 6 |
 | A1 `PENDING` | T37 | **Pendiente** | — | — |
-| A2 Terminación forzada | T34, T35, T38 | Terminador hecho (T34); integración pendiente (T35, T38) | Linux ✔ (terminador POSIX) | Experimento de T33; `windows` de T34 y T35; pasos 6 y 7 |
+| A2 Terminación forzada | T34, T35, T38 | Terminador (T34) y `terminate_worker_running` (T35) hechos; falta el plazo de cancelación (T38) | Linux ✔ (terminador y pool) | Experimento de T33; `windows` de T34; pasos 6 y 7 |
 | A3 Termina antes de ver la bandera | T38 | **Pendiente** | — | — |
 | A4 Playlist con sus hijos | T37 | **Pendiente** | — | Paso 5 |
 | A5 Sin `run` activo | T36 | **Pendiente** | — | — |
@@ -282,7 +284,7 @@ La aceptación final de todos los escenarios queda **pendiente** de la campaña 
 |---|---|---|---|---|
 | Recuperación al arrancar | T31 | Hecha | Linux ✔ | Paso 7 |
 | Reanudación con `Range` | T32, T44 | Hecha con un `.part` creado por la prueba, en la carpeta de parciales del job | Linux ✔ | Paso 8 |
-| Interrupción real (§5.1) | T35, T42 | **Pendiente** | — | Paso 8 (obligatorio) |
+| Interrupción real (§5.1) | T35, T42 | Hecha y automatizada (T35) | Linux ✔ | Pasos 3 y 8 (obligatorio), incluida la muerte del proceso principal |
 | A1 Formato ya no disponible | T32, T44 | Hecha | Linux ✔ | Paso 9 |
 | Propiedad de los parciales y del archivo final (R-14) | T44 | Hecha | Linux ✔ (nombres truncados, plantilla sin `%(id)s`, archivo final compartido) | Paso 11 |
 | A2 Sin formato guardado | E1, T32 | Hecha | Linux ✔ | — |
@@ -302,7 +304,7 @@ La aceptación final de todos los escenarios queda **pendiente** de la campaña 
 | Riesgo | Afecta a | Se cierra con |
 |---|---|---|
 | R-02 Memoria | UC-03, UC-04 | Paso 13 de la campaña |
-| R-04 Árbol de procesos | UC-03 A4, UC-05 A2, UC-06 | T34, T35 y pasos 4, 6 y 8 de la campaña |
-| R-05 Reanudación | UC-06 | §5.1 en T35 y paso 8 |
+| R-04 Árbol de procesos | UC-03 A4, UC-05 A2, UC-06 | T34 y T35 hechas (Linux ✔); pasos 3, 4, 6 y 8 de la campaña |
+| R-05 Reanudación | UC-06 | §5.1 automatizado en T35 (Linux ✔) y paso 8 |
 | R-06 Iteración perezosa | UC-04 | Prueba `network` y paso 13 |
 | R-14 Nombres compartidos entre jobs | UC-03, UC-06 | T44 (hecha, Linux ✔) y paso 11 |

@@ -3,7 +3,7 @@
 from collections import deque
 from collections.abc import Mapping, Sequence
 
-from queued_media_downloader.jobs import Job, JobEvent, JobKind, JobStarted
+from queued_media_downloader.jobs import Job, JobEvent, JobId, JobKind, JobStarted
 from queued_media_downloader.workers import NoIdleWorkerError, WorkerMessage
 
 ScriptKey = tuple[JobKind, str]
@@ -25,6 +25,7 @@ class ScriptedWorkerPool:
         self._busy_job_count = 0
         self._undelivered: deque[WorkerMessage] = deque()
         self.submitted_jobs: list[Job] = []
+        self.terminated_job_ids: list[JobId] = []
         self.was_shut_down = False
 
     def submit(self, job: Job) -> None:
@@ -53,6 +54,17 @@ class ScriptedWorkerPool:
         self._undelivered.clear()
         self._busy_job_count -= sum(message.ends_the_job_run for message in delivered)
         return delivered
+
+    def terminate_worker_running(self, job_id: JobId) -> bool:
+        """Descarta lo que el job aún no publicó y libera su worker ficticio."""
+        undelivered_of_job = [m for m in self._undelivered if m.job_id == job_id]
+        if not undelivered_of_job:
+            return False
+        for message in undelivered_of_job:
+            self._undelivered.remove(message)
+        self._busy_job_count -= 1
+        self.terminated_job_ids.append(job_id)
+        return True
 
     def count_idle_workers(self) -> int:
         """Workers ficticios sin job asignado."""

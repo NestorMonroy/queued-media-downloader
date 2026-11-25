@@ -25,6 +25,7 @@ from tests.doubles.process_tree import (
     WatchedProcess,
     attempt_breakaway,
     plain_process,
+    platform_process_tree_terminator,
     start_tree,
     wait_for_roles,
     wait_until_all_dead,
@@ -41,17 +42,7 @@ TreeStarter = Callable[[Path], tuple[ProcessTreeTerminator, ProcessTree]]
 
 def create_terminator() -> ProcessTreeTerminator:
     """La implementación de la plataforma en la que se ejecuta la prueba."""
-    if sys.platform == "win32":
-        from queued_media_downloader.workers.windows_process_tree_terminator import (
-            WindowsProcessTreeTerminator,
-        )
-
-        return WindowsProcessTreeTerminator()
-    from queued_media_downloader.workers.posix_process_tree_terminator import (
-        PosixProcessTreeTerminator,
-    )
-
-    return PosixProcessTreeTerminator()
+    return platform_process_tree_terminator()
 
 
 @pytest.fixture

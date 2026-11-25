@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from queued_media_downloader.workers.process_tree_terminator import (
+    ProcessTreeTerminator,
     become_process_tree_root,
 )
 
@@ -29,6 +30,21 @@ TREE_ROLES = ("root", "child", "grandchild")
 START_TIMEOUT_SECONDS = 30.0
 EXIT_TIMEOUT_SECONDS = 10.0
 PARTIAL_CHUNK = b"x" * 4096
+
+
+def platform_process_tree_terminator() -> ProcessTreeTerminator:
+    """El terminador de la plataforma, como lo elige composition_root."""
+    if sys.platform == "win32":
+        from queued_media_downloader.workers.windows_process_tree_terminator import (
+            WindowsProcessTreeTerminator,
+        )
+
+        return WindowsProcessTreeTerminator()
+    from queued_media_downloader.workers.posix_process_tree_terminator import (
+        PosixProcessTreeTerminator,
+    )
+
+    return PosixProcessTreeTerminator()
 
 
 def tree_root(pid_file: str, part_file: str, registered: Event) -> None:

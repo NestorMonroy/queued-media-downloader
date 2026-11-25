@@ -6,7 +6,7 @@
 | Aspecto | Estado |
 |---|---|
 | Decisión de arquitectura | **APROBADA**: Job Object por worker en Windows; grupos de procesos en POSIX |
-| Implementación en Windows | **Hecha** la del terminador (T34: `WindowsProcessTreeTerminator`, `PosixProcessTreeTerminator`); la integración en el pool, en T35 |
+| Implementación en Windows | **Hecha** (T34: terminadores; T35: integración en el pool) |
 | Validación en ejecución sobre Windows | **PENDIENTE**: experimento de T33 y pruebas `windows`, en la campaña final ([plan de E2, §7](../project-management/iteration-plan-e2.md#7-campaña-final-de-validación-en-windows)) |
 | Aceptación final | **PENDIENTE**: depende de los resultados reales de la campaña final |
 
@@ -220,3 +220,17 @@ Alternativas descartadas: `psutil` (dependencia nueva; no cubre la muerte de `ru
 | Un proceso registrado no puede salir con `CREATE_BREAKAWAY_FROM_JOB` | — | ⏳ |
 | El handle del Job Object no es heredable | — | ⏳ |
 | Registrar un proceso inexistente falla con `ProcessTreeTerminationError` | — | ⏳ |
+
+## Seguimiento de T35 (2026-11-25)
+
+`ProcessWorkerPool` recibe una fábrica de terminadores; `composition_root.create_process_tree_terminator` elige la implementación según la plataforma.
+
+| Momento | Qué hace el pool |
+|---|---|
+| Arranque de un worker | Crea su terminador y lo registra antes de devolverlo: ningún job le llega antes. Si el registro falla, termina el worker (aún sin procesos propios), libera el terminador y propaga `ProcessTreeTerminationError`; si ocurre al crear el pool, apaga los workers ya arrancados |
+| Worker caído | Termina su árbol **antes** de recoger sus últimos mensajes, publicar `WORKER_CRASHED` y arrancar el reemplazo |
+| `terminate_worker_running(job_id)` | Termina el árbol del worker, recoge lo que llegó a enviar (sigue llegando por `collect_events`), libera el terminador y arranca un reemplazo. No publica nada en nombre del job |
+| Apagado | Los workers que no salen en `SHUT_DOWN_TIMEOUT_SECONDS` se terminan con su árbol, no solo con `kill()`. Todos los terminadores se liberan |
+| `terminate_tree` falla (Windows, plazo agotado) | Se registra el error y se termina al menos el worker con `kill()` |
+
+Pruebas con procesos reales (Linux ✔; en la campaña, también en Windows): el hijo de un worker caído muere antes del reemplazo; `terminate_worker_running` termina el worker y su hijo y deja el pool listo; el apagado termina el árbol de un worker colgado; registro antes de cualquier job y liberación al final; un registro fallido no deja workers vivos; y el escenario obligatorio de la §5.1 del plan.

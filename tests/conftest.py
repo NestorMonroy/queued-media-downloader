@@ -3,6 +3,7 @@
 import functools
 import io
 import threading
+import time
 from collections.abc import Iterator
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -13,6 +14,12 @@ import pytest
 
 SAMPLE_MEDIA_NAME = "sample.mp4"
 SAMPLE_MEDIA_CONTENT = b"\x00\x00\x00\x18ftypmp42" + bytes(range(256)) * 64
+# Contenido que el servidor envía despacio, para interrumpir una descarga a
+# medias (plan de E2, §5.1): unos 3 s en total.
+SLOW_MEDIA_NAME = "slow.mp4"
+SLOW_MEDIA_CONTENT = b"\x00\x00\x00\x18ftypmp42" + bytes(range(256)) * 3072
+SLOW_CHUNK_SIZE = 16 * 1024
+SLOW_CHUNK_DELAY_SECONDS = 0.06
 # Página con dos videos: yt-dlp la interpreta como una playlist.
 TWO_VIDEOS_PAGE_NAME = "two-videos.html"
 # Feed RSS: el extractor genérico lo devuelve como una playlist de entradas
@@ -51,6 +58,9 @@ class QuietRequestHandler(SimpleHTTPRequestHandler):
 
     def send_head(self) -> Any:
         """Responde 206 con el resto del archivo si la petición lleva Range."""
+        return _slowed_down_if_requested(self.path, self._send_head())
+
+    def _send_head(self) -> Any:
         range_header = self.headers.get("Range")
         self._media_requests.append((self.path, range_header))
         if range_header is None:
@@ -68,6 +78,31 @@ class QuietRequestHandler(SimpleHTTPRequestHandler):
 
     def log_message(self, format: str, *args: Any) -> None:
         """No escribe cada petición en la salida de las pruebas."""
+
+
+class SlowReader:
+    """Entrega el cuerpo de la respuesta por bloques, con una pausa entre ellos."""
+
+    def __init__(self, source: Any) -> None:
+        """Lee de source, el archivo que devolvió send_head."""
+        self._source = source
+
+    def read(self, size: int = -1) -> bytes:
+        """Un bloque de SLOW_CHUNK_SIZE como máximo, tras una pausa."""
+        time.sleep(SLOW_CHUNK_DELAY_SECONDS)
+        limit = SLOW_CHUNK_SIZE if size < 0 else min(size, SLOW_CHUNK_SIZE)
+        return bytes(self._source.read(limit))
+
+    def close(self) -> None:
+        """Cierra el archivo de origen."""
+        self._source.close()
+
+
+def _slowed_down_if_requested(path: str, body: Any) -> Any:
+    """Envuelve el cuerpo de SLOW_MEDIA_NAME para enviarlo despacio."""
+    if body is None or not path.endswith(SLOW_MEDIA_NAME):
+        return body
+    return SlowReader(body)
 
 
 @pytest.fixture
@@ -91,6 +126,7 @@ def local_media_server(
     served_directory.mkdir()
     (served_directory / SAMPLE_MEDIA_NAME).write_bytes(SAMPLE_MEDIA_CONTENT)
     (served_directory / "other.mp4").write_bytes(SAMPLE_MEDIA_CONTENT)
+    (served_directory / SLOW_MEDIA_NAME).write_bytes(SLOW_MEDIA_CONTENT)
     (served_directory / TWO_VIDEOS_PAGE_NAME).write_text(
         TWO_VIDEOS_PAGE, encoding="utf-8"
     )

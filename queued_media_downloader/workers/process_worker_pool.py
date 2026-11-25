@@ -19,6 +19,10 @@ from queued_media_downloader.media_extraction import MediaSource
 from queued_media_downloader.workers.process_queue_receiver import (
     ProcessQueueReceiver,
 )
+from queued_media_downloader.workers.process_tree_terminator import (
+    ProcessTreeTerminationError,
+    ProcessTreeTerminator,
+)
 from queued_media_downloader.workers.worker_instructions import (
     RunJob,
     ShutDown,
@@ -46,6 +50,7 @@ class WorkerHandle:
     instruction_queue: "Queue[WorkerInstruction]"
     message_receiver: ProcessQueueReceiver
     log_record_receiver: ProcessQueueReceiver
+    process_tree_terminator: ProcessTreeTerminator
     assigned_job_id: JobId | None = None
 
     def stop_receivers(self) -> None:
@@ -60,23 +65,42 @@ class ProcessWorkerPool:
     Cada worker tiene sus propias colas de instrucciones, mensajes y registros
     de logging (diseño, Parte 2, §3.1). Un hilo por cola pasa los mensajes a una
     cola de este proceso y los registros al logging de este proceso.
+
+    Cada worker tiene además su ProcessTreeTerminator (ADR-0029): el pool nunca
+    termina solo el proceso del worker, sino su árbol entero, porque yt-dlp
+    lanza ffmpeg y deno, que sobrevivirían a su padre.
     """
 
     def __init__(
-        self, worker_count: int, media_source_factory: Callable[[], MediaSource]
+        self,
+        worker_count: int,
+        media_source_factory: Callable[[], MediaSource],
+        process_tree_terminator_factory: Callable[[], ProcessTreeTerminator],
     ) -> None:
-        """Arranca worker_count workers.
+        """Arranca worker_count workers, cada uno registrado en su terminador.
 
         Args:
             worker_count: Número de workers.
             media_source_factory: Crea la MediaSource dentro de cada worker;
                 debe poder enviarse con pickle a otro proceso.
+            process_tree_terminator_factory: Crea el terminador de cada worker.
+
+        Raises:
+            ProcessTreeTerminationError: Si un worker no se puede registrar; no
+                queda ningún worker vivo.
         """
         self._context = multiprocessing.get_context("spawn")
         self._media_source_factory = media_source_factory
+        self._process_tree_terminator_factory = process_tree_terminator_factory
         self._received_messages: queue.Queue[WorkerMessage] = queue.Queue()
         self._worker_ids = itertools.count(1)
-        self._workers = [self._start_worker() for _ in range(worker_count)]
+        self._workers: list[WorkerHandle] = []
+        try:
+            for _ in range(worker_count):
+                self._workers.append(self._start_worker())
+        except ProcessTreeTerminationError:
+            self.shut_down()
+            raise
 
     def submit(self, job: Job) -> None:
         """Envía el job a un worker libre; NoIdleWorkerError si no hay ninguno."""
@@ -100,25 +124,54 @@ class ProcessWorkerPool:
         """Número de workers sin job asignado."""
         return sum(worker.assigned_job_id is None for worker in self._workers)
 
+    def terminate_worker_running(self, job_id: JobId) -> bool:
+        """Termina el árbol del worker que ejecuta job_id y lo sustituye.
+
+        Lo que el worker llegó a enviar antes de terminar sigue llegando por
+        collect_events. El pool no publica nada en nombre del job: quien lo
+        pidió decide su estado (UC-05 A2).
+
+        Returns:
+            True si había un worker ejecutando job_id.
+        """
+        for index, worker in enumerate(self._workers):
+            if worker.assigned_job_id == job_id:
+                self._terminate_worker(worker)
+                self._workers[index] = self._start_worker()
+                return True
+        return False
+
     def shut_down(self) -> None:
-        """Pide a cada worker que termine y fuerza a los que no lo hagan a tiempo."""
+        """Pide a cada worker que termine y termina el árbol de los que no lo hagan."""
         for worker in self._workers:
             if worker.process.is_alive():
                 worker.instruction_queue.put(ShutDown())
         for worker in self._workers:
             worker.process.join(SHUT_DOWN_TIMEOUT_SECONDS)
             if worker.process.is_alive():
-                logger.warning("Worker %s did not stop; killing it", worker.worker_id)
-                worker.process.kill()
-                worker.process.join()
-            # Tras la salida del worker: así llegan sus últimos registros.
-            worker.stop_receivers()
+                logger.warning(
+                    "Worker %s did not stop; terminating it", worker.worker_id
+                )
+                self._terminate_worker(worker)
+            else:
+                # Tras la salida del worker: así llegan sus últimos registros.
+                worker.stop_receivers()
+                worker.process_tree_terminator.release()
         self._workers = []
 
     def _start_worker(self) -> WorkerHandle:
-        """Arranca un proceso worker con sus colas y los hilos que las reciben."""
+        """Arranca un worker, lo registra en su terminador y conecta sus colas.
+
+        El registro ocurre antes de devolver el worker, así que ningún job le
+        llega antes: todo proceso que lance queda dentro de su árbol.
+
+        Raises:
+            ProcessTreeTerminationError: Si no se puede registrar; el worker se
+                termina, aún sin procesos propios.
+        """
         worker_id = next(self._worker_ids)
         worker_name = f"worker-{worker_id}"
+        process_tree_terminator = self._process_tree_terminator_factory()
         instruction_queue: Queue[WorkerInstruction] = self._context.Queue()
         message_queue: Queue[WorkerMessage] = self._context.Queue()
         log_queue: Queue[LogRecord] = self._context.Queue()
@@ -135,6 +188,7 @@ class ProcessWorkerPool:
             daemon=True,
         )
         process.start()
+        self._register_worker(process, process_tree_terminator)
         return WorkerHandle(
             worker_id,
             process,
@@ -147,7 +201,36 @@ class ProcessWorkerPool:
             log_record_receiver=ProcessQueueReceiver(
                 log_queue, forward_log_record, f"{worker_name}-log-receiver"
             ),
+            process_tree_terminator=process_tree_terminator,
         )
+
+    @staticmethod
+    def _register_worker(
+        process: SpawnProcess, process_tree_terminator: ProcessTreeTerminator
+    ) -> None:
+        """Registra el worker recién arrancado; si falla, lo termina."""
+        try:
+            assert process.pid is not None
+            process_tree_terminator.register_root_process(process.pid)
+        except ProcessTreeTerminationError:
+            logger.exception("Could not register worker process %s", process.pid)
+            process.kill()
+            process.join()
+            process_tree_terminator.release()
+            raise
+
+    def _terminate_worker(self, worker: WorkerHandle) -> None:
+        """Termina el árbol del worker, recoge lo que envió y libera el terminador."""
+        try:
+            worker.process_tree_terminator.terminate_tree()
+        except ProcessTreeTerminationError:
+            logger.exception(
+                "Could not terminate the processes of worker %s", worker.worker_id
+            )
+            worker.process.kill()
+        worker.process.join(SHUT_DOWN_TIMEOUT_SECONDS)
+        worker.stop_receivers()
+        worker.process_tree_terminator.release()
 
     def _receive_messages(self, timeout_seconds: float) -> list[WorkerMessage]:
         """Espera el primer mensaje hasta timeout_seconds y toma los ya llegados."""
@@ -188,7 +271,9 @@ class ProcessWorkerPool:
                 worker.worker_id,
                 worker.process.exitcode,
             )
-            worker.stop_receivers()
+            # Antes de nada, sus descendientes: un ffmpeg huérfano seguiría
+            # escribiendo los archivos que el reintento del job va a usar.
+            self._terminate_worker(worker)
             received = self._take_received_messages()
             self._release_finished_workers(received)
             late_messages.extend(received)

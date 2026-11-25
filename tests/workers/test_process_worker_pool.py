@@ -26,6 +26,9 @@ from queued_media_downloader.workers import (
     WorkerMessage,
     WorkerPool,
 )
+from queued_media_downloader.workers.process_tree_terminator import (
+    ProcessTreeTerminationError,
+)
 from queued_media_downloader.workers.process_worker_pool import ProcessWorkerPool
 from tests.doubles.fake_media_source import (
     CRASH,
@@ -33,6 +36,14 @@ from tests.doubles.fake_media_source import (
     FakeMediaSource,
     ScriptedBehavior,
     ScriptKey,
+    SpawnChild,
+)
+from tests.doubles.fake_process_tree_terminator import FakeProcessTreeTerminator
+from tests.doubles.process_tree import (
+    WatchedProcess,
+    platform_process_tree_terminator,
+    wait_for_roles,
+    wait_until_all_dead,
 )
 
 COLLECT_TIMEOUT_SECONDS = 30.0
@@ -67,7 +78,9 @@ def start_pool() -> Iterator[
         worker_count: int, script: Mapping[ScriptKey, ScriptedBehavior]
     ) -> WorkerPool:
         pool = ProcessWorkerPool(
-            worker_count, functools.partial(FakeMediaSource, script)
+            worker_count,
+            functools.partial(FakeMediaSource, script),
+            platform_process_tree_terminator,
         )
         started_pools.append(pool)
         return pool
@@ -195,7 +208,9 @@ def test_crashed_worker_fails_its_job_and_is_replaced(
 
 
 def test_shut_down_stops_every_worker_process() -> None:
-    pool = ProcessWorkerPool(2, functools.partial(FakeMediaSource, {}))
+    pool = ProcessWorkerPool(
+        2, functools.partial(FakeMediaSource, {}), platform_process_tree_terminator
+    )
 
     pool.shut_down()
 
@@ -217,3 +232,128 @@ def test_log_records_of_a_worker_reach_the_logging_of_the_main_process(
     while expected_message not in caplog.messages and time.monotonic() < deadline:
         time.sleep(0.05)
     assert expected_message in caplog.messages
+
+
+def watch_child(pid_file: Path) -> WatchedProcess:
+    """El hijo que lanzó el job, seguido por handle."""
+    return WatchedProcess(wait_for_roles(pid_file, ("child",))["child"])
+
+
+def test_children_of_a_crashed_worker_are_terminated_before_replacing_it(
+    start_pool: Callable[[int, Mapping[ScriptKey, ScriptedBehavior]], WorkerPool],
+    tmp_path: Path,
+) -> None:
+    # Sin terminar su árbol, el ffmpeg de un worker caído seguiría escribiendo
+    # mientras el reintento escribe los mismos archivos (ADR-0029, hallazgo 1).
+    pid_file = tmp_path / "child.pids"
+    pool = start_pool(
+        1, {("download", "https://crashes"): SpawnChild(str(pid_file), then_crash=True)}
+    )
+    pool.submit(stored_job(1, "https://crashes", kind=JobKind.DOWNLOAD))
+    child = watch_child(pid_file)
+
+    try:
+        crash_messages = collect_until_final(pool, {JobId(1)})
+
+        assert not child.is_alive()
+        failure = crash_messages[-1].job_event
+        assert isinstance(failure, JobFailed)
+        assert failure.failure_reason is FailureReason.WORKER_CRASHED
+        assert pool.count_idle_workers() == 1
+    finally:
+        child.kill()
+        child.close()
+
+
+def test_terminating_the_worker_running_a_job_ends_its_tree_and_replaces_it(
+    start_pool: Callable[[int, Mapping[ScriptKey, ScriptedBehavior]], WorkerPool],
+    tmp_path: Path,
+) -> None:
+    pid_file = tmp_path / "child.pids"
+    pool = start_pool(
+        1,
+        {
+            ("download", "https://hangs"): SpawnChild(str(pid_file), then_crash=False),
+            ("download", "https://a"): [COMPLETED],
+        },
+    )
+    pool.submit(stored_job(1, "https://hangs", kind=JobKind.DOWNLOAD))
+    child = watch_child(pid_file)
+
+    try:
+        terminated = pool.terminate_worker_running(JobId(1))
+
+        assert terminated
+        assert wait_until_all_dead([child])
+        assert pool.count_idle_workers() == 1
+        pool.submit(stored_job(2, "https://a", kind=JobKind.DOWNLOAD))
+        assert collect_until_final(pool, {JobId(2)})[-1].job_event == COMPLETED
+    finally:
+        child.kill()
+        child.close()
+
+
+def test_terminating_a_job_no_worker_is_running_changes_nothing(
+    start_pool: Callable[[int, Mapping[ScriptKey, ScriptedBehavior]], WorkerPool],
+) -> None:
+    pool = start_pool(2, {})
+
+    assert not pool.terminate_worker_running(JobId(99))
+    assert pool.count_idle_workers() == 2
+
+
+def test_shut_down_terminates_the_tree_of_a_worker_that_does_not_stop(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pid_file = tmp_path / "child.pids"
+    script: dict[ScriptKey, ScriptedBehavior] = {
+        ("download", "https://hangs"): SpawnChild(str(pid_file), then_crash=False)
+    }
+    monkeypatch.setattr(
+        "queued_media_downloader.workers.process_worker_pool.SHUT_DOWN_TIMEOUT_SECONDS",
+        0.5,
+    )
+    pool = ProcessWorkerPool(
+        1, functools.partial(FakeMediaSource, script), platform_process_tree_terminator
+    )
+    pool.submit(stored_job(1, "https://hangs", kind=JobKind.DOWNLOAD))
+    child = watch_child(pid_file)
+
+    try:
+        pool.shut_down()
+
+        assert wait_until_all_dead([child])
+        assert multiprocessing.active_children() == []
+    finally:
+        child.kill()
+        child.close()
+
+
+def test_each_worker_is_registered_before_any_job_and_released_at_the_end() -> None:
+    terminators: list[FakeProcessTreeTerminator] = []
+
+    def create_fake_terminator() -> FakeProcessTreeTerminator:
+        terminators.append(FakeProcessTreeTerminator())
+        return terminators[-1]
+
+    pool = ProcessWorkerPool(
+        2, functools.partial(FakeMediaSource, {}), create_fake_terminator
+    )
+    pool.shut_down()
+
+    assert len(terminators) == 2
+    for terminator in terminators:
+        assert terminator.calls[0].startswith("register ")
+        assert terminator.calls[-1] == "release"
+
+
+def test_failed_registration_stops_the_pool_without_leaving_workers() -> None:
+    def create_failing_terminator() -> FakeProcessTreeTerminator:
+        return FakeProcessTreeTerminator(fail_registration=True)
+
+    with pytest.raises(ProcessTreeTerminationError):
+        ProcessWorkerPool(
+            2, functools.partial(FakeMediaSource, {}), create_failing_terminator
+        )
+
+    assert multiprocessing.active_children() == []

@@ -5,6 +5,7 @@ Parte 1, §3, regla 3).
 """
 
 import functools
+import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -27,7 +28,18 @@ from queued_media_downloader.media_extraction.yt_dlp_media_source import (
     YtDlpMediaSource,
 )
 from queued_media_downloader.workers import WorkerPool
+from queued_media_downloader.workers.posix_process_tree_terminator import (
+    PosixProcessTreeTerminator,
+)
+from queued_media_downloader.workers.process_tree_terminator import (
+    ProcessTreeTerminator,
+)
 from queued_media_downloader.workers.process_worker_pool import ProcessWorkerPool
+
+if sys.platform == "win32":
+    from queued_media_downloader.workers.windows_process_tree_terminator import (
+        WindowsProcessTreeTerminator,
+    )
 
 DATABASE_FILE_NAME = "queue.sqlite3"
 YT_DLP_CACHE_DIRECTORY_NAME = "yt-dlp-cache"
@@ -77,11 +89,23 @@ def open_worker_pool(
     worker_pool = ProcessWorkerPool(
         settings.worker_count,
         functools.partial(YtDlpMediaSource, media_source_settings),
+        create_process_tree_terminator,
     )
     try:
         yield worker_pool
     finally:
         worker_pool.shut_down()
+
+
+def create_process_tree_terminator() -> ProcessTreeTerminator:
+    """Terminador del árbol de un worker para la plataforma actual (ADR-0029).
+
+    Windows: un Job Object por worker. POSIX: un grupo de procesos, para
+    ejecutar el proyecto y sus pruebas en cualquier sistema.
+    """
+    if sys.platform == "win32":
+        return WindowsProcessTreeTerminator()
+    return PosixProcessTreeTerminator()
 
 
 def create_diagnose_environment(settings: Settings) -> DiagnoseEnvironment:

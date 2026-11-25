@@ -2,7 +2,7 @@
 
 from typing import Protocol
 
-from queued_media_downloader.jobs import Job
+from queued_media_downloader.jobs import Job, JobId
 from queued_media_downloader.workers.worker_message import WorkerMessage
 
 
@@ -17,8 +17,7 @@ class NoIdleWorkerError(Exception):
 class WorkerPool(Protocol):
     """Ejecuta jobs en workers y devuelve lo que publican.
 
-    La cancelación (request_cancellation, terminate_worker_running) se añade
-    con el caso de uso que la necesita.
+    La cancelación cooperativa (request_cancellation) se añade con UC-05.
     """
 
     def submit(self, job: Job) -> None:
@@ -32,8 +31,19 @@ class WorkerPool(Protocol):
     def collect_events(self, timeout_seconds: float) -> list[WorkerMessage]:
         """Devuelve los mensajes recibidos; espera hasta timeout_seconds al primero.
 
-        Si un worker murió con un job asignado, incluye un JobFailed con
-        WORKER_CRASHED para ese job y arranca un worker de reemplazo.
+        Si un worker murió con un job asignado, termina sus descendientes,
+        incluye un JobFailed con WORKER_CRASHED para ese job y arranca un worker
+        de reemplazo.
+        """
+        ...
+
+    def terminate_worker_running(self, job_id: JobId) -> bool:
+        """Termina el árbol de procesos del worker que ejecuta job_id y lo sustituye.
+
+        No publica nada en nombre del job: quien lo pide decide su estado.
+
+        Returns:
+            True si había un worker ejecutando job_id.
         """
         ...
 

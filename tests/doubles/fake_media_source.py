@@ -2,9 +2,14 @@
 
 import logging
 import os
+import subprocess
+import sys
+import time
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from enum import Enum
-from typing import Literal
+from pathlib import Path
+from typing import Literal, NoReturn
 
 from queued_media_downloader.jobs import Job, JobEvent
 from queued_media_downloader.media_extraction import Publish
@@ -22,7 +27,19 @@ class ScriptedFailure(Enum):
 CRASH = ScriptedFailure.CRASH
 RAISE = ScriptedFailure.RAISE
 
-ScriptedBehavior = Sequence[JobEvent] | ScriptedFailure
+
+@dataclass(frozen=True)
+class SpawnChild:
+    """Lanza un proceso hijo, como yt-dlp lanza ffmpeg, y después se cae o se cuelga.
+
+    El PID del hijo se anota en pid_file para que la prueba lo siga.
+    """
+
+    pid_file: str
+    then_crash: bool
+
+
+ScriptedBehavior = Sequence[JobEvent] | ScriptedFailure | SpawnChild
 
 logger = logging.getLogger(__name__)
 ScriptKey = tuple[Literal["expand", "download"], str]
@@ -51,6 +68,8 @@ class FakeMediaSource:
         """Publica los job events del guion, o se cae o lanza si así se indica."""
         logger.info("Performing %s %s", *script_key)
         behavior = self._script.get(script_key, ())
+        if isinstance(behavior, SpawnChild):
+            _spawn_child_then(behavior)
         if behavior is ScriptedFailure.CRASH:
             os._exit(3)
         if isinstance(behavior, ScriptedFailure):
@@ -58,3 +77,13 @@ class FakeMediaSource:
             raise RuntimeError(message)
         for job_event in behavior:
             publish(job_event)
+
+
+def _spawn_child_then(behavior: SpawnChild) -> NoReturn:
+    """Lanza el hijo con Popen sin creationflags y se cae o se cuelga."""
+    child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(600)"])
+    Path(behavior.pid_file).write_text(f"child {child.pid}\n", encoding="utf-8")
+    if behavior.then_crash:
+        os._exit(3)
+    while True:
+        time.sleep(1)
