@@ -38,6 +38,13 @@ class DuplicateOutputPathError(Exception):
         )
 
 
+class JobStoreLockedError(Exception):
+    """Otro proceso tiene bloqueada la base de datos más allá de su espera.
+
+    Por ejemplo, una escritura larga de run en otra terminal (UC-02 A3).
+    """
+
+
 class JobStore(Protocol):
     """Guarda y recupera los jobs de la cola."""
 

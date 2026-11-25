@@ -106,6 +106,7 @@ def open_worker_pool(
         settings.worker_count,
         functools.partial(YtDlpMediaSource, media_source_settings),
         create_process_tree_terminator,
+        max_jobs_per_worker=settings.max_jobs_per_worker,
     )
     try:
         yield worker_pool

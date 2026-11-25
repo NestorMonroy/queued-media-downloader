@@ -10,6 +10,7 @@ from queued_media_downloader.command_line.composition_root import open_job_store
 from queued_media_downloader.command_line.exit_code import ExitCode
 from queued_media_downloader.configuration import SettingsError
 from queued_media_downloader.job_queue import EnqueueMedia, InvalidUrlError
+from queued_media_downloader.job_storage import JobStoreLockedError
 from queued_media_downloader.jobs import DownloadOptions
 
 # Con --audio-only y sin --format se pide el mejor audio en lugar del video.
@@ -39,7 +40,8 @@ def run_enqueue_command(arguments: argparse.Namespace) -> int:
 
     Returns:
         SUCCESS si se encolaron todas; USAGE_ERROR si una URL o un valor de
-        configuración no es válido, sin encolar ninguna.
+        configuración no es válido, y JOBS_FAILED si la base de datos sigue
+        bloqueada (UC-02 A3); en ambos casos sin encolar ninguna.
     """
     format_selector = arguments.format_selector
     if arguments.audio_only and format_selector is None:
@@ -63,6 +65,14 @@ def run_enqueue_command(arguments: argparse.Namespace) -> int:
     except (SettingsError, InvalidUrlError) as usage_error:
         print(f"{arguments.program_name}: error: {usage_error}", file=sys.stderr)
         return ExitCode.USAGE_ERROR
+    except JobStoreLockedError as locked_error:
+        # UC-02 A3: no es un error de uso; reintentar más tarde puede bastar.
+        print(
+            f"{arguments.program_name}: error: the queue is busy ({locked_error}); "
+            "no job was queued, try again",
+            file=sys.stderr,
+        )
+        return ExitCode.JOBS_FAILED
     for job_id in job_ids:
         print(f"Queued job {job_id}")
     return ExitCode.SUCCESS

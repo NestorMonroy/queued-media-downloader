@@ -17,6 +17,7 @@ class Settings:
     worker_count: int
     progress_interval_seconds: float
     cancellation_grace_seconds: float
+    max_jobs_per_worker: int
     default_format_selector: str
     single_media_output_template: str
     max_filename_length: int

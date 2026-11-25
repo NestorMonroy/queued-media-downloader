@@ -54,6 +54,7 @@ class WorkerHandle:
     log_record_receiver: ProcessQueueReceiver
     process_tree_terminator: ProcessTreeTerminator
     assigned_job_id: JobId | None = None
+    finished_job_count: int = 0
 
     def stop_receivers(self) -> None:
         """Recoge lo que el worker dejó en sus colas y deja de recibir."""
@@ -78,6 +79,8 @@ class ProcessWorkerPool:
         worker_count: int,
         media_source_factory: Callable[[], MediaSource],
         process_tree_terminator_factory: Callable[[], ProcessTreeTerminator],
+        *,
+        max_jobs_per_worker: int | None = None,
     ) -> None:
         """Arranca worker_count workers, cada uno registrado en su terminador.
 
@@ -86,6 +89,9 @@ class ProcessWorkerPool:
             media_source_factory: Crea la MediaSource dentro de cada worker;
                 debe poder enviarse con pickle a otro proceso.
             process_tree_terminator_factory: Crea el terminador de cada worker.
+            max_jobs_per_worker: Jobs tras los que un worker se recicla (UC-03
+                A6), para que lo que retenga yt-dlp no crezca sin límite; None
+                no recicla.
 
         Raises:
             ProcessTreeTerminationError: Si un worker no se puede registrar; no
@@ -94,6 +100,7 @@ class ProcessWorkerPool:
         self._context = multiprocessing.get_context("spawn")
         self._media_source_factory = media_source_factory
         self._process_tree_terminator_factory = process_tree_terminator_factory
+        self._max_jobs_per_worker = max_jobs_per_worker
         self._received_messages: queue.Queue[WorkerMessage] = queue.Queue()
         self._worker_ids = itertools.count(1)
         self._workers: list[WorkerHandle] = []
@@ -120,6 +127,7 @@ class ProcessWorkerPool:
         messages = self._receive_messages(timeout_seconds)
         self._release_finished_workers(messages)
         messages.extend(self._replace_crashed_workers())
+        self._recycle_worn_out_workers()
         return messages
 
     def count_idle_workers(self) -> int:
@@ -275,6 +283,35 @@ class ProcessWorkerPool:
         for worker in self._workers:
             if worker.worker_id in finished_worker_ids:
                 worker.assigned_job_id = None
+                worker.finished_job_count += 1
+
+    def _recycle_worn_out_workers(self) -> None:
+        """Sustituye los workers libres que llegaron a max_jobs_per_worker (A6).
+
+        El worker termina limpiamente con ShutDown, sin job en curso; si no
+        sale a tiempo, se termina su árbol.
+        """
+        if self._max_jobs_per_worker is None:
+            return
+        for index, worker in enumerate(self._workers):
+            if (
+                worker.assigned_job_id is None
+                and worker.finished_job_count >= self._max_jobs_per_worker
+            ):
+                logger.info("Recycling worker %s", worker.worker_id)
+                self._stop_worker(worker)
+                self._workers[index] = self._start_worker()
+
+    def _stop_worker(self, worker: WorkerHandle) -> None:
+        """Pide al worker que termine y, si no lo hace a tiempo, termina su árbol."""
+        worker.instruction_queue.put(ShutDown())
+        worker.process.join(SHUT_DOWN_TIMEOUT_SECONDS)
+        if worker.process.is_alive():
+            logger.warning("Worker %s did not stop; terminating it", worker.worker_id)
+            self._terminate_worker(worker)
+            return
+        worker.stop_receivers()
+        worker.process_tree_terminator.release()
 
     def _replace_crashed_workers(self) -> list[WorkerMessage]:
         """Sustituye los workers muertos y falla el job que tenían asignado.

@@ -76,6 +76,8 @@ SETTING_DEFINITIONS: Mapping[str, SettingDefinition] = {
     "progress_interval_seconds": SettingDefinition(lambda: 0.5, _positive_number),
     # Espera antes de terminar un worker que no confirma la cancelación (UC-05 A2).
     "cancellation_grace_seconds": SettingDefinition(lambda: 10.0, _positive_number),
+    # Jobs tras los que un worker se recicla (UC-03 A6).
+    "max_jobs_per_worker": SettingDefinition(lambda: 20, _positive_integer),
     "default_format_selector": SettingDefinition(lambda: "bv*+ba/b", _non_empty_text),
     "single_media_output_template": SettingDefinition(
         lambda: "%(title)s [%(id)s].%(ext)s", _non_empty_text

@@ -6,6 +6,7 @@ from queued_media_downloader.job_storage.job_store import (
     DuplicateOutputPathError,
     JobNotFoundError,
     JobStore,
+    JobStoreLockedError,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "JobNotFoundError",
     "JobRequestInbox",
     "JobStore",
+    "JobStoreLockedError",
 ]

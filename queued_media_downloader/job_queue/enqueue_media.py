@@ -38,13 +38,15 @@ class EnqueueMedia:
 
         Raises:
             InvalidUrlError: Si alguna URL no es válida; no se crea ningún job.
+            JobStoreLockedError: Si la base de datos sigue bloqueada tras su
+                espera (UC-02 A3); no se crea ningún job.
         """
         for url in urls:
             _ensure_valid_url(url)
-        return [
-            self._job_store.create(Job.new_expansion(url, download_options))
-            for url in urls
-        ]
+        # Una sola transacción: o se encolan todas o ninguna.
+        return self._job_store.create_many(
+            [Job.new_expansion(url, download_options) for url in urls]
+        )
 
 
 def _ensure_valid_url(url: str) -> None:

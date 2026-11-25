@@ -91,7 +91,7 @@ Igual que en E1 ([ADR-0022](../notes/adr-0022-hybrid-approach-and-task-decomposi
 | ID | Tarea | Rol | Terminada cuando | Depende de |
 |---|---|---|---|---|
 | T40 | `--keep-waiting` (UC-03 A5): `run` no termina y toma los jobs que se encolan después | Agente | Prueba de extremo a extremo con dos procesos. **Hecha**: termina con `Ctrl+C` (código 130). Linux ✔ | — |
-| T41 | Reciclado de workers tras `max_jobs_per_worker` (UC-03 A6) y base de datos bloqueada en `enqueue` (UC-02 A3, código `1`, sin jobs a medias) | Agente | Pruebas del pool y del comando | T26 |
+| T41 | Reciclado de workers tras `max_jobs_per_worker` (UC-03 A6) y base de datos bloqueada en `enqueue` (UC-02 A3, código `1`, sin jobs a medias) | Agente | Pruebas del pool y del comando. **Hecha**: `enqueue` pasa a una sola transacción (antes una por URL, que podía dejar jobs a medias). Linux ✔ | T26 |
 
 ### 4.6.1 Slice F: casos de uso restantes (UC-07 a UC-10)
 
@@ -239,7 +239,7 @@ La aceptación final de todos los escenarios queda **pendiente** de la campaña 
 | Flujo básico, `--audio-only`, `--format`, `--playlist` | E1, T23, T43 | Hecha | Linux ✔; Windows E1 ✔ (sin `--playlist`) | Paso 5 con `--playlist` |
 | A1 URL no válida | E1 | Hecha | Linux ✔ | — |
 | A2 `run` en otra terminal | E1 | Hecha (WAL) | Linux ✔ | Paso 5 con dos terminales |
-| A3 Base de datos bloqueada | T41 | **Pendiente** | — | Paso 5 |
+| A3 Base de datos bloqueada | T41 | Hecha: código 1, ningún job creado | Linux ✔ (bloqueo real de otra conexión) | Paso 5 |
 
 ### UC-03 Descargar un contenido
 
@@ -251,7 +251,7 @@ La aceptación final de todos los escenarios queda **pendiente** de la campaña 
 | A3 Extractor desactualizado | E1 | Hecha | Linux ✔ | — |
 | A4 Worker muere sin evento final | E1 (T20), T35 | Hecha; sus descendientes se terminan antes de sustituirlo (T35) | Linux ✔ | Pasos 5 y 6 |
 | A5 `--keep-waiting` | T40 | Hecha; se termina con `Ctrl+C` | Linux ✔ (dos procesos reales) | Paso 5 |
-| A6 Reciclado de workers | T41 | **Pendiente** | — | Paso 5 |
+| A6 Reciclado de workers | T41 | Hecha (`max_jobs_per_worker`, 20 por defecto) | Linux ✔ (procesos reales) | Paso 5 y memoria (paso 13) |
 
 ### UC-04 Expandir una playlist
 

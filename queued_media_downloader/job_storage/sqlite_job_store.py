@@ -11,6 +11,7 @@ from queued_media_downloader.job_storage.job_store import (
     DuplicateActiveDownloadError,
     DuplicateOutputPathError,
     JobNotFoundError,
+    JobStoreLockedError,
 )
 from queued_media_downloader.jobs import (
     DownloadOptions,
@@ -74,6 +75,9 @@ SELECT_ACTIVE_DOWNLOAD = """
 DUPLICATE_MEDIA_INDEX_MESSAGE = (
     "UNIQUE constraint failed: index 'unique_active_download_per_media'"
 )
+# Lo que dice SQLite cuando otra conexión retiene el bloqueo de escritura más
+# allá de busy_timeout.
+LOCKED_DATABASE_MESSAGE = "database is locked"
 # Sobre una columna sin expresión nombra la columna (índice unique_output_path).
 DUPLICATE_OUTPUT_PATH_MESSAGE = "UNIQUE constraint failed: jobs.output_path"
 
@@ -158,6 +162,10 @@ class SqliteJobStore:
         """Ejecuta una escritura y traduce las violaciones de los índices únicos."""
         try:
             return self._connection.execute(statement, _parameters_from(job))
+        except sqlite3.OperationalError as operational_error:
+            if LOCKED_DATABASE_MESSAGE in str(operational_error):
+                raise JobStoreLockedError(str(operational_error)) from operational_error
+            raise
         except sqlite3.IntegrityError as integrity_error:
             message = str(integrity_error)
             if job.media_key is not None and DUPLICATE_MEDIA_INDEX_MESSAGE in message:

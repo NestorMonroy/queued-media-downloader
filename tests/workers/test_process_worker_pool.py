@@ -408,3 +408,27 @@ def wait_for_event(
             if message.job_id == job_id and isinstance(message.job_event, event_type):
                 return message
     pytest.fail(f"No {event_type.__name__} for job {job_id}")
+
+
+def test_worker_is_recycled_after_max_jobs_per_worker() -> None:
+    # UC-03 A6: termina limpiamente al acabar su job y un reemplazo sigue.
+    script: dict[ScriptKey, ScriptedBehavior] = {
+        ("download", f"https://{n}"): [COMPLETED] for n in range(3)
+    }
+    pool = ProcessWorkerPool(
+        1,
+        functools.partial(FakeMediaSource, script),
+        platform_process_tree_terminator,
+        max_jobs_per_worker=2,
+    )
+    try:
+        worker_ids = []
+        for n in range(3):
+            pool.submit(stored_job(n + 1, f"https://{n}", kind=JobKind.DOWNLOAD))
+            worker_ids.append(collect_until_final(pool, {JobId(n + 1)})[-1].worker_id)
+
+        assert worker_ids[0] == worker_ids[1]
+        assert worker_ids[2] != worker_ids[0]
+        assert len(multiprocessing.active_children()) == 1
+    finally:
+        pool.shut_down()
