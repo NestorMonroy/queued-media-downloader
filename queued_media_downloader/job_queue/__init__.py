@@ -6,6 +6,10 @@ from queued_media_downloader.job_queue.enqueue_media import (
     InvalidUrlError,
 )
 from queued_media_downloader.job_queue.list_jobs import JobDetails, ListJobs, ShowJob
+from queued_media_downloader.job_queue.purge_finished_jobs import (
+    PurgeFinishedJobs,
+    PurgeResult,
+)
 from queued_media_downloader.job_queue.recover_interrupted_jobs import (
     RecoverInterruptedJobs,
     RecoveryResult,
@@ -20,6 +24,8 @@ __all__ = [
     "InvalidUrlError",
     "JobDetails",
     "ListJobs",
+    "PurgeFinishedJobs",
+    "PurgeResult",
     "RecoverInterruptedJobs",
     "RecoveryResult",
     "RetryJob",

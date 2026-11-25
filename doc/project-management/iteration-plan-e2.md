@@ -100,7 +100,7 @@ Igual que en E1 ([ADR-0022](../notes/adr-0022-hybrid-approach-and-task-decomposi
 | T45 | `retry JOB_ID... \| --all-failed` (UC-07): job request `RETRY`; `FAILED` y `CANCELLED` vuelven a `PENDING` e incrementan `attempt_count`; `SKIPPED` y `COMPLETED` no se reintentan | Agente | Pruebas del comando, de la bandeja y de `RunQueue`. **Hecha**: reintentar una expansión trae también a sus descendientes fallidos o cancelados. Linux ✔ | T36, T37 |
 | T46 | `list [--status STATUS] [--parent JOB_ID]` (UC-08): solo lectura | Agente | Pruebas del caso de uso y del comando. **Hecha**: Linux ✔ | — |
 | T47 | `show JOB_ID` (UC-09): todos los datos; en una playlist, resumen de hijos por estado | Agente | Pruebas del caso de uso y del comando. **Hecha**: Linux ✔ | — |
-| T48 | `purge [--completed] [--cancelled]` (UC-10): borra jobs terminados sin tocar los archivos descargados; sí borra la carpeta de parciales de cada job purgado (T44) | Agente | Pruebas del caso de uso y del comando | — |
+| T48 | `purge [--completed] [--cancelled]` (UC-10): borra jobs terminados sin tocar los archivos descargados; sí borra la carpeta de parciales de cada job purgado (T44) | Agente | Pruebas del caso de uso y del comando. **Hecha**: sin opciones purga ambos estados; una playlist con entradas sin terminar se conserva, porque borrarla arrastraría a sus entradas (`ON DELETE CASCADE`). Linux ✔ | — |
 
 ### 4.7 Cierre
 
@@ -298,7 +298,7 @@ La aceptación final de todos los escenarios queda **pendiente** de la campaña 
 | UC-07 Reintentar un job | T45 | Hecha (`retry`, `--all-failed`; conserva formato y parciales para reanudar) | Linux ✔ | Paso 5 |
 | UC-08 Listar jobs | T46 | Hecha | Linux ✔ | Paso 12 |
 | UC-09 Ver un job | T47 | Hecha | Linux ✔ | Paso 5 |
-| UC-10 Purgar jobs terminados | T48 | **Pendiente** | — | Paso 5 |
+| UC-10 Purgar jobs terminados | T48 | Hecha | Linux ✔ | Paso 5 |
 
 ### Riesgos y dependencias abiertos
 

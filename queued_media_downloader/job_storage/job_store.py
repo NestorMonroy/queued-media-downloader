@@ -84,6 +84,10 @@ class JobStore(Protocol):
         """Devuelve hasta limit jobs pendientes, en orden de creación."""
         ...
 
+    def delete(self, job_ids: Sequence[JobId]) -> None:
+        """Borra los jobs en una sola transacción, con sus hijos y sus peticiones."""
+        ...
+
     def get_all(self) -> list[Job]:
         """Devuelve todos los jobs, en orden de creación."""
         ...

@@ -133,6 +133,13 @@ class SqliteJobStore:
         ).fetchall()
         return [_job_from_row(row) for row in rows]
 
+    def delete(self, job_ids: Sequence[JobId]) -> None:
+        """Borra los jobs en una sola transacción (ON DELETE CASCADE)."""
+        with self._connection:
+            self._connection.executemany(
+                "DELETE FROM jobs WHERE id = ?", [(job_id,) for job_id in job_ids]
+            )
+
     def get_all(self) -> list[Job]:
         """Devuelve todos los jobs, en orden de creación."""
         rows = self._connection.execute(f"{SELECT_JOB_COLUMNS} ORDER BY id").fetchall()

@@ -348,3 +348,13 @@ def test_children_of_an_expansion_come_in_creation_order(
     children = job_store.get_children(parent_id)
 
     assert [child.job_id for child in children] == [first, second]
+
+
+def test_deleting_a_playlist_deletes_its_entries(job_store: SqliteJobStore) -> None:
+    playlist = job_store.create(make_job("https://media.example/list"))
+    job_store.create(replace(make_job("https://media.example/a"), parent_id=playlist))
+    unrelated = job_store.create(make_job("https://media.example/unrelated"))
+
+    job_store.delete([playlist])
+
+    assert [job.job_id for job in job_store.get_all()] == [unrelated]

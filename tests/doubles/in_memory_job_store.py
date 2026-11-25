@@ -59,6 +59,16 @@ class InMemoryJobStore:
         """Todos los jobs guardados, en orden de creación (solo para pruebas)."""
         return list(self._jobs.values())
 
+    def delete(self, job_ids: Sequence[JobId]) -> None:
+        """Borra los jobs y, como ON DELETE CASCADE, sus descendientes."""
+        pending = list(job_ids)
+        while pending:
+            job_id = pending.pop()
+            if self._jobs.pop(job_id, None) is not None:
+                pending.extend(
+                    i for i, j in self._jobs.items() if j.parent_id == job_id
+                )
+
     def get_all(self) -> list[Job]:
         """Devuelve todos los jobs, en orden de creación."""
         return list(self._jobs.values())
