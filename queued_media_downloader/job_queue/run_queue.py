@@ -75,6 +75,8 @@ class RunQueue:
         present_job_request: PresentJobRequest = present_no_job_request,
         cancellation_grace_seconds: float = DEFAULT_CANCELLATION_GRACE_SECONDS,
         stop_requested: Callable[[], bool] = never_stop,
+        *,
+        keep_waiting: bool = False,
     ) -> None:
         """Usa job_store, worker_pool y la bandeja de job requests.
 
@@ -83,6 +85,8 @@ class RunQueue:
         cancellation_grace_seconds se termina con su árbol (UC-05 A2).
         Cuando stop_requested devuelve True (primer Ctrl+C), la cola deja de
         enviar jobs y detiene los que están en curso sin cambiar su estado.
+        Con keep_waiting, la cola no termina al vaciarse: espera jobs nuevos
+        hasta que se interrumpe (UC-03 A5).
         """
         self._job_store = job_store
         self._worker_pool = worker_pool
@@ -92,6 +96,7 @@ class RunQueue:
         self._job_event_applier = JobEventApplier(job_store)
         self._cancellation_grace_seconds = cancellation_grace_seconds
         self._stop_requested = stop_requested
+        self._keep_waiting = keep_waiting
         self._running_job_ids: set[JobId] = set()
         self._cancellation_deadlines: dict[JobId, float] = {}
         # Jobs detenidos por una interrupción: siguen RUNNING (UC-05 A6).
@@ -113,7 +118,7 @@ class RunQueue:
             self._terminate_unconfirmed_cancellations()
             if self._interrupted_job_ids is None:
                 self._submit_pending_jobs()
-            if not self._running_job_ids:
+            if not self._running_job_ids and self._is_done():
                 return RunQueueResult(
                     failed_job_count=failed_job_count,
                     interrupted=self._interrupted_job_ids is not None,
@@ -139,6 +144,10 @@ class RunQueue:
             self._running_job_ids.discard(message.job_id)
             self._cancellation_deadlines.pop(message.job_id, None)
         return int(updated_job is not None and updated_job.status is JobStatus.FAILED)
+
+    def _is_done(self) -> bool:
+        """Sin jobs en curso: termina, salvo que espere jobs nuevos y nadie la pare."""
+        return not self._keep_waiting or self._interrupted_job_ids is not None
 
     def _was_interrupted(self, message: WorkerMessage) -> bool:
         """Indica si message es el JobCancelled de un job detenido por Ctrl+C."""

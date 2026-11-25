@@ -9,6 +9,7 @@ from queued_media_downloader.jobs import (
     DownloadOptions,
     FormatSelected,
     Job,
+    JobCompleted,
     JobId,
     JobKind,
     JobRequest,
@@ -285,3 +286,33 @@ def test_run_that_is_not_interrupted_says_so() -> None:
     job_store, inbox, pool = queue_with([], {})
 
     assert not RunQueue(job_store, pool, inbox).execute().interrupted
+
+
+def test_keep_waiting_runs_jobs_enqueued_after_the_queue_emptied() -> None:
+    # UC-03 A5: run no termina al vaciarse la cola; otra terminal encola después.
+    script: dict[ScriptKey, list[ScriptStep]] = {
+        (JobKind.EXPANSION, URL): [FOUND_A],
+        (JobKind.DOWNLOAD, URL): [JobCompleted(output_path="downloads/a.mp4")],
+    }
+    job_store, inbox, pool = queue_with([], script)
+    checks = 0
+
+    def enqueue_later_then_stop() -> bool:
+        nonlocal checks
+        checks += 1
+        if checks == 5:
+            job_store.create(Job.new_expansion(URL, DOWNLOAD_OPTIONS))
+        jobs = job_store.all_jobs()
+        return bool(jobs) and jobs[0].status is JobStatus.COMPLETED
+
+    run_result = RunQueue(
+        job_store,
+        pool,
+        inbox,
+        keep_waiting=True,
+        stop_requested=enqueue_later_then_stop,
+    ).execute()
+
+    assert checks > 5
+    assert job_store.get(JobId(1)).status is JobStatus.COMPLETED
+    assert run_result.interrupted

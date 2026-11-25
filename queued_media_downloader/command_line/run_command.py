@@ -43,6 +43,11 @@ def add_run_command(
     """Registra el comando run y sus opciones (diseño, Parte 2, §4.1)."""
     run_parser = commands.add_parser("run", help="run the queued jobs")
     run_parser.add_argument("--worker-count", metavar="N")
+    run_parser.add_argument(
+        "--keep-waiting",
+        action="store_true",
+        help="do not stop when the queue is empty; wait for new jobs until Ctrl+C",
+    )
     run_parser.set_defaults(run_command=run_run_command)
 
 
@@ -82,6 +87,7 @@ def run_run_command(arguments: argparse.Namespace) -> int:
                     present_job_request=presenter.present_job_request,
                     cancellation_grace_seconds=settings.cancellation_grace_seconds,
                     stop_requested=interruption_request,
+                    keep_waiting=arguments.keep_waiting,
                 ).execute()
             except KeyboardInterrupt:
                 # Segundo Ctrl+C: sin esperar a que los jobs se detengan.

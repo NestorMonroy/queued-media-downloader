@@ -21,11 +21,11 @@ INTERRUPTION_EXIT_CODE = 130
 WAIT_TIMEOUT_SECONDS = 60.0
 
 
-def start_run(state_directory: Path) -> subprocess.Popen[str]:
+def start_run(state_directory: Path, *options: str) -> subprocess.Popen[str]:
     """Arranca run como lo haría el User, con el mismo entorno de la prueba."""
     del state_directory
     return subprocess.Popen(
-        [sys.executable, "-m", "queued_media_downloader", "run"],
+        [sys.executable, "-m", "queued_media_downloader", "run", *options],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -93,3 +93,29 @@ def test_second_ctrl_c_stops_run_at_once(
     assert time.monotonic() - started < 15
     assert "Stopped" in output
     assert read_stored_job(1).status is JobStatus.RUNNING
+
+
+def test_run_keep_waiting_takes_jobs_enqueued_from_another_terminal(
+    local_media_server: str,
+    state_directory: Path,
+    read_stored_job: Callable[[int], Job],
+) -> None:
+    # UC-03 A5, con dos procesos: run espera y enqueue llega después.
+    run = start_run(state_directory, "--keep-waiting")
+    time.sleep(1.0)
+    assert run.poll() is None
+
+    main(["enqueue", f"{local_media_server}/sample.mp4"])
+    deadline = time.monotonic() + WAIT_TIMEOUT_SECONDS
+    while time.monotonic() < deadline:
+        if read_stored_job(1).status is JobStatus.COMPLETED:
+            break
+        time.sleep(0.1)
+    still_waiting = run.poll() is None
+    run.send_signal(signal.SIGINT)
+    output, _ = run.communicate(timeout=WAIT_TIMEOUT_SECONDS)
+
+    assert read_stored_job(1).status is JobStatus.COMPLETED
+    assert still_waiting
+    assert "Job 1: completed" in output
+    assert run.returncode == INTERRUPTION_EXIT_CODE
