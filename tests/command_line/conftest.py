@@ -19,9 +19,13 @@ from queued_media_downloader.jobs import Job, JobId
 ENVIRONMENT_PREFIX = "QUEUED_MEDIA_DOWNLOADER_"
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def state_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Aísla la prueba del entorno real: estado y descargas en tmp_path."""
+    """Aísla toda prueba de comandos del entorno real: estado y descargas en tmp_path.
+
+    Es autouse: una prueba que olvide pedirla no puede escribir en la cola
+    real del usuario (pasó en T45 y T46).
+    """
     for variable in list(os.environ):
         if variable.startswith(ENVIRONMENT_PREFIX):
             monkeypatch.delenv(variable)
