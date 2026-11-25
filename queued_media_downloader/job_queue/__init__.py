@@ -9,6 +9,7 @@ from queued_media_downloader.job_queue.recover_interrupted_jobs import (
     RecoverInterruptedJobs,
     RecoveryResult,
 )
+from queued_media_downloader.job_queue.retry_job import RetryJob, RetryJobResult
 from queued_media_downloader.job_queue.run_queue import RunQueue, RunQueueResult
 
 __all__ = [
@@ -18,6 +19,8 @@ __all__ = [
     "InvalidUrlError",
     "RecoverInterruptedJobs",
     "RecoveryResult",
+    "RetryJob",
+    "RetryJobResult",
     "RunQueue",
     "RunQueueResult",
 ]

@@ -5,6 +5,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from queued_media_downloader.job_queue.job_event_applier import JobEventApplier
+from queued_media_downloader.job_queue.retry_job import retriable_descendants
 from queued_media_downloader.job_storage import JobRequestInbox, JobStore
 from queued_media_downloader.jobs import (
     Job,
@@ -191,17 +192,30 @@ class RunQueue:
                 )
 
     def _process_job_requests(self) -> None:
-        """Aplica las job requests CANCEL pendientes (UC-05, pasos 3 a 7).
-
-        Las RETRY las procesa el caso de uso de reintento (UC-07).
-        """
+        """Aplica las job requests pendientes: CANCEL (UC-05) y RETRY (UC-07)."""
         for job_request in self._job_request_inbox.get_unprocessed():
-            if job_request.request_type is not JobRequestType.CANCEL:
-                continue
-            cancelled_job = self._cancel(self._job_store.get(job_request.job_id))
+            job = self._job_store.get(job_request.job_id)
+            if job_request.request_type is JobRequestType.CANCEL:
+                processed_job = self._cancel(job)
+            else:
+                processed_job = self._retry(job)
             assert job_request.request_id is not None
             self._job_request_inbox.mark_processed(job_request.request_id)
-            self._present_job_request(job_request, cancelled_job)
+            self._present_job_request(job_request, processed_job)
+
+    def _retry(self, job: Job) -> Job:
+        """Devuelve a la cola un job FAILED o CANCELLED, con sus descendientes.
+
+        Un job que ya no se puede reintentar (terminó bien o ya volvió a la
+        cola) no cambia.
+        """
+        if not job.can_be_retried():
+            return job
+        for descendant in list(retriable_descendants(self._job_store, job)):
+            self._job_store.update(descendant.retry())
+        retried = job.retry()
+        self._job_store.update(retried)
+        return retried
 
     def _cancel(self, job: Job) -> Job:
         """Cancela el job, y si es una expansión, sus descendientes no terminados.

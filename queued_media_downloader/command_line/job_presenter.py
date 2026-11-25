@@ -11,6 +11,7 @@ from queued_media_downloader.jobs import (
     JobEvent,
     JobFailed,
     JobRequest,
+    JobRequestType,
     JobStarted,
     JobStatus,
     PlaylistEntriesFound,
@@ -48,14 +49,23 @@ class JobPresenter:
             print(f"Job {message.job_id}: {description}", file=self._output, flush=True)
 
     def present_job_request(self, job_request: JobRequest, job: Job) -> None:
-        """Escribe qué hizo run con una job request de cancel (UC-05)."""
-        if job.status is JobStatus.CANCELLED:
+        """Escribe qué hizo run con una job request de cancel o retry."""
+        if job_request.request_type is JobRequestType.RETRY:
+            description = _describe_retry(job)
+        elif job.status is JobStatus.CANCELLED:
             description = "cancelled"
         elif job.status is JobStatus.CANCELLATION_REQUESTED:
             description = "cancellation requested"
         else:
             description = f"already {job.status.value}; nothing to cancel"
         print(f"Job {job_request.job_id}: {description}", file=self._output, flush=True)
+
+
+def _describe_retry(job: Job) -> str:
+    """Resultado de una job request RETRY (UC-07)."""
+    if job.status is JobStatus.PENDING:
+        return f"queued again (attempt {job.attempt_count + 1})"
+    return f"not retried; it is {job.status.value}"
 
 
 def _describe(job_event: JobEvent, job: Job | None) -> str | None:

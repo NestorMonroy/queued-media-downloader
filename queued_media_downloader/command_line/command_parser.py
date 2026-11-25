@@ -8,6 +8,7 @@ from queued_media_downloader.command_line.cancel_command import add_cancel_comma
 from queued_media_downloader.command_line.diagnose_command import add_diagnose_command
 from queued_media_downloader.command_line.enqueue_command import add_enqueue_command
 from queued_media_downloader.command_line.exit_code import ExitCode
+from queued_media_downloader.command_line.retry_command import add_retry_command
 from queued_media_downloader.command_line.run_command import add_run_command
 
 DISTRIBUTION_NAME = "queued-media-downloader"
@@ -26,6 +27,7 @@ def build_command_parser() -> argparse.ArgumentParser:
     add_enqueue_command(commands)
     add_run_command(commands)
     add_cancel_command(commands)
+    add_retry_command(commands)
     add_diagnose_command(commands)
     return command_parser
 

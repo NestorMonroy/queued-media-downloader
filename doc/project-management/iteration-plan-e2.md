@@ -97,7 +97,7 @@ Igual que en E1 ([ADR-0022](../notes/adr-0022-hybrid-approach-and-task-decomposi
 
 | ID | Tarea | Rol | Terminada cuando | Depende de |
 |---|---|---|---|---|
-| T45 | `retry JOB_ID... \| --all-failed` (UC-07): job request `RETRY`; `FAILED` y `CANCELLED` vuelven a `PENDING` e incrementan `attempt_count`; `SKIPPED` y `COMPLETED` no se reintentan | Agente | Pruebas del comando, de la bandeja y de `RunQueue` | T36, T37 |
+| T45 | `retry JOB_ID... \| --all-failed` (UC-07): job request `RETRY`; `FAILED` y `CANCELLED` vuelven a `PENDING` e incrementan `attempt_count`; `SKIPPED` y `COMPLETED` no se reintentan | Agente | Pruebas del comando, de la bandeja y de `RunQueue`. **Hecha**: reintentar una expansión trae también a sus descendientes fallidos o cancelados. Linux ✔ | T36, T37 |
 | T46 | `list [--status STATUS] [--parent JOB_ID]` (UC-08): solo lectura | Agente | Pruebas del caso de uso y del comando | — |
 | T47 | `show JOB_ID` (UC-09): todos los datos; en una playlist, resumen de hijos por estado | Agente | Pruebas del caso de uso y del comando | — |
 | T48 | `purge [--completed] [--cancelled]` (UC-10): borra jobs terminados sin tocar los archivos descargados; sí borra la carpeta de parciales de cada job purgado (T44) | Agente | Pruebas del caso de uso y del comando | — |
@@ -263,7 +263,7 @@ La aceptación final de todos los escenarios queda **pendiente** de la campaña 
 | A3 No disponible | T27, T28 | Hecha | Linux ✔ | Paso 5 |
 | A4 `multi_video` | T27 | Hecha (se expande como playlist) | Linux ✔ | — |
 | A5 Cancelación durante la expansión | T37, T38 | Hecha: la expansión se detiene en su siguiente lote y no crea más hijos | Linux ✔ (dobles) | Paso 5 |
-| A6 Fallo a mitad de la expansión | T27; reintento con T45 | Fallo hecho; reintento **pendiente** | Linux ✔ (fallo) | Paso 5 |
+| A6 Fallo a mitad de la expansión | T27, T45 | Hecha: el reintento vuelve a expandir y los duplicados quedan `SKIPPED` | Linux ✔ | Paso 5 |
 | Video dentro de una lista (`--playlist`) | T27, T43 | Hecha | Linux ✔; `network` ⏳ | Paso 3 |
 
 ### UC-05 Cancelar un job
@@ -295,7 +295,7 @@ La aceptación final de todos los escenarios queda **pendiente** de la campaña 
 
 | Caso de uso | Tareas | Implementación | Pruebas | Pendiente en Windows |
 |---|---|---|---|---|
-| UC-07 Reintentar un job | T45 | **Pendiente** | — | Paso 5 |
+| UC-07 Reintentar un job | T45 | Hecha (`retry`, `--all-failed`; conserva formato y parciales para reanudar) | Linux ✔ | Paso 5 |
 | UC-08 Listar jobs | T46 | **Pendiente** | — | Paso 12 |
 | UC-09 Ver un job | T47 | **Pendiente** | — | Paso 5 |
 | UC-10 Purgar jobs terminados | T48 | **Pendiente** | — | Paso 5 |

@@ -21,6 +21,9 @@ FINISHED_STATUSES = frozenset(
     {JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED, JobStatus.SKIPPED}
 )
 
+# Estados desde los que un job se puede reintentar (UC-07).
+RETRIABLE_STATUSES = frozenset({JobStatus.FAILED, JobStatus.CANCELLED})
+
 # Carpeta, dentro de la de descargas, con una subcarpeta de parciales por job.
 PARTIAL_DIRECTORY_NAME = ".partial"
 
@@ -95,6 +98,24 @@ class Job:
             playlist_context=_playlist_context_of(playlist_batch, playlist_entry),
             media_key=playlist_entry.media_key,
             title=playlist_entry.title,
+        )
+
+    def can_be_retried(self) -> bool:
+        """Solo un job FAILED o CANCELLED vuelve a la cola (UC-07)."""
+        return self.status in RETRIABLE_STATUSES
+
+    def retry(self) -> Self:
+        """Vuelve a la cola como un intento más (UC-07).
+
+        Conserva lo que registró, como el formato elegido y su carpeta de
+        parciales, para reanudar en lugar de empezar de cero (UC-06).
+        """
+        retried = self.transition_to(JobStatus.PENDING)
+        return replace(
+            retried,
+            attempt_count=self.attempt_count + 1,
+            failure_reason=None,
+            failure_message=None,
         )
 
     def is_finished(self) -> bool:

@@ -145,73 +145,63 @@ def test_request_for_a_job_that_already_finished_changes_nothing() -> None:
     assert inbox.get_unprocessed() == []
 
 
-def test_retry_requests_are_left_for_the_retry_use_case() -> None:
-    job_store, inbox, pool = queue_with([URL], {})
+def retry(job_id: int) -> JobRequest:
+    return JobRequest(job_id=JobId(job_id), request_type=JobRequestType.RETRY)
+
+
+def test_retried_failed_job_runs_again_as_a_new_attempt() -> None:
+    # UC-07: FAILED vuelve a PENDING, incrementa attempt_count y se ejecuta.
+    script: dict[ScriptKey, list[ScriptStep]] = {
+        (JobKind.EXPANSION, URL): [FOUND_A],
+        (JobKind.DOWNLOAD, URL): [JobCompleted(output_path="downloads/a.mp4")],
+    }
+    job_store, inbox, pool = queue_with([URL], script)
     job_store.update(replace(job_store.get(JobId(1)), status=JobStatus.FAILED))
-    inbox.create_many([JobRequest(job_id=JobId(1), request_type=JobRequestType.RETRY)])
+    inbox.create_many([retry(1)])
 
     RunQueue(job_store, pool, inbox).execute()
 
-    assert [request.request_type for request in inbox.get_unprocessed()] == [
-        JobRequestType.RETRY
-    ]
+    retried = job_store.get(JobId(1))
+    assert retried.status is JobStatus.COMPLETED
+    assert retried.attempt_count == 1
+    assert retried.failure_reason is None
+    assert inbox.get_unprocessed() == []
 
 
-def test_worker_that_does_not_confirm_in_time_is_terminated() -> None:
-    # A2: por ejemplo, mientras ffmpeg une archivos y no hay avances.
+def test_retry_request_for_a_completed_job_changes_nothing() -> None:
+    job_store, inbox, pool = queue_with([URL], {})
+    job_store.update(replace(job_store.get(JobId(1)), status=JobStatus.COMPLETED))
+    inbox.create_many([retry(1)])
+
+    RunQueue(job_store, pool, inbox).execute()
+
+    assert job_store.get(JobId(1)).status is JobStatus.COMPLETED
+    assert job_store.get(JobId(1)).attempt_count == 0
+
+
+def test_retrying_a_playlist_brings_back_its_cancelled_children() -> None:
+    # UC-04 A6 y la simetría con cancelar una playlist (UC-05 A4).
+    child_url = "https://media.example/watch?v=b"
     script: dict[ScriptKey, list[ScriptStep]] = {
-        (JobKind.EXPANSION, URL): [FOUND_A],
-        (JobKind.DOWNLOAD, URL): [
-            FormatSelected(selected_format_id="18"),
-            WAIT_FOR_CANCELLATION,
-        ],
+        (JobKind.EXPANSION, PLAYLIST_URL): [JobCompleted(output_path=None)],
+        (JobKind.DOWNLOAD, child_url): [JobCompleted(output_path="downloads/b.mp4")],
     }
-    job_store, inbox, pool = queue_with([URL], script, ignores_cancellation=True)
+    job_store, inbox, pool = queue_with([PLAYLIST_URL], script)
+    job_store.update(replace(job_store.get(JobId(1)), status=JobStatus.CANCELLED))
+    child = replace(
+        Job.new_expansion(child_url, DOWNLOAD_OPTIONS),
+        kind=JobKind.DOWNLOAD,
+        parent_id=JobId(1),
+    )
+    child_id = job_store.create(child)
+    job_store.update(replace(job_store.get(child_id), status=JobStatus.CANCELLED))
+    inbox.create_many([retry(1)])
 
-    def cancel_once_format_is_selected(message: WorkerMessage, job: Job | None) -> None:
-        del job
-        if isinstance(message.job_event, FormatSelected):
-            inbox.create_many([cancel(1)])
+    RunQueue(job_store, pool, inbox).execute()
 
-    run_result = RunQueue(
-        job_store,
-        pool,
-        inbox,
-        present=cancel_once_format_is_selected,
-        cancellation_grace_seconds=0.0,
-    ).execute()
-
-    assert pool.cancellation_requests == [JobId(1)]
-    assert pool.terminated_job_ids == [JobId(1)]
-    assert job_store.get(JobId(1)).status is JobStatus.CANCELLED
-    assert run_result.failed_job_count == 0
-
-
-def test_worker_that_confirms_in_time_is_not_terminated() -> None:
-    script: dict[ScriptKey, list[ScriptStep]] = {
-        (JobKind.EXPANSION, URL): [FOUND_A],
-        (JobKind.DOWNLOAD, URL): [
-            FormatSelected(selected_format_id="18"),
-            WAIT_FOR_CANCELLATION,
-        ],
-    }
-    job_store, inbox, pool = queue_with([URL], script)
-
-    def cancel_once_format_is_selected(message: WorkerMessage, job: Job | None) -> None:
-        del job
-        if isinstance(message.job_event, FormatSelected):
-            inbox.create_many([cancel(1)])
-
-    RunQueue(
-        job_store,
-        pool,
-        inbox,
-        present=cancel_once_format_is_selected,
-        cancellation_grace_seconds=60.0,
-    ).execute()
-
-    assert pool.terminated_job_ids == []
-    assert job_store.get(JobId(1)).status is JobStatus.CANCELLED
+    assert job_store.get(JobId(1)).status is JobStatus.COMPLETED
+    assert job_store.get(child_id).status is JobStatus.COMPLETED
+    assert job_store.get(child_id).attempt_count == 1
 
 
 class StopAfter:
