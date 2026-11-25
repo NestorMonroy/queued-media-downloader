@@ -11,7 +11,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Literal, NoReturn
 
-from queued_media_downloader.jobs import Job, JobEvent
+from queued_media_downloader.jobs import DownloadProgressed, Job, JobEvent
 from queued_media_downloader.media_extraction import Publish
 
 
@@ -39,7 +39,15 @@ class SpawnChild:
     then_crash: bool
 
 
-ScriptedBehavior = Sequence[JobEvent] | ScriptedFailure | SpawnChild
+@dataclass(frozen=True)
+class ProgressForever:
+    """Publica avance sin terminar nunca, como una descarga larga.
+
+    Solo la cancelación lo detiene: publish lanza JobCancelledError.
+    """
+
+
+ScriptedBehavior = Sequence[JobEvent] | ScriptedFailure | SpawnChild | ProgressForever
 
 logger = logging.getLogger(__name__)
 ScriptKey = tuple[Literal["expand", "download"], str]
@@ -70,6 +78,8 @@ class FakeMediaSource:
         behavior = self._script.get(script_key, ())
         if isinstance(behavior, SpawnChild):
             _spawn_child_then(behavior)
+        if isinstance(behavior, ProgressForever):
+            _publish_progress_forever(publish)
         if behavior is ScriptedFailure.CRASH:
             os._exit(3)
         if isinstance(behavior, ScriptedFailure):
@@ -87,3 +97,19 @@ def _spawn_child_then(behavior: SpawnChild) -> NoReturn:
         os._exit(3)
     while True:
         time.sleep(1)
+
+
+def _publish_progress_forever(publish: Publish) -> NoReturn:
+    """Publica avance hasta que publish lance JobCancelledError."""
+    downloaded_bytes = 0
+    while True:
+        downloaded_bytes += 1024
+        publish(
+            DownloadProgressed(
+                downloaded_bytes=downloaded_bytes,
+                total_bytes=None,
+                bytes_per_second=None,
+                eta_seconds=None,
+            )
+        )
+        time.sleep(0.05)

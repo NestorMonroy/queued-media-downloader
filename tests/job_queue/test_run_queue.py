@@ -23,6 +23,7 @@ from queued_media_downloader.jobs import (
     SingleMediaFound,
 )
 from queued_media_downloader.workers import WorkerMessage
+from tests.doubles.in_memory_job_request_inbox import InMemoryJobRequestInbox
 from tests.doubles.in_memory_job_store import InMemoryJobStore
 from tests.doubles.scripted_worker_pool import ScriptedWorkerPool, ScriptKey
 
@@ -113,7 +114,8 @@ def run_queue_with(
     for url in urls:
         job_store.create(Job.new_expansion(url, DOWNLOAD_OPTIONS))
     worker_pool = ScriptedWorkerPool(worker_count, script)
-    return job_store, worker_pool, RunQueue(job_store, worker_pool)
+    inbox = InMemoryJobRequestInbox(job_store)
+    return job_store, worker_pool, RunQueue(job_store, worker_pool, inbox)
 
 
 def test_single_media_url_is_expanded_then_downloaded_to_completion() -> None:
@@ -197,6 +199,7 @@ def test_every_worker_message_is_presented() -> None:
     RunQueue(
         job_store,
         worker_pool,
+        InMemoryJobRequestInbox(job_store),
         present=lambda message, _job: presented.append(message),
     ).execute()
 
@@ -224,7 +227,7 @@ def test_same_media_is_downloaded_once_as_video_and_once_as_audio() -> None:
     script[(JobKind.DOWNLOAD, URL)][-1] = JobCompleted(output_path=None)
     worker_pool = ScriptedWorkerPool(1, script)
 
-    RunQueue(job_store, worker_pool).execute()
+    RunQueue(job_store, worker_pool, InMemoryJobRequestInbox(job_store)).execute()
 
     assert {job.status for job in job_store.all_jobs()} == {JobStatus.COMPLETED}
     downloads = [j for j in worker_pool.submitted_jobs if j.kind is JobKind.DOWNLOAD]
@@ -241,6 +244,7 @@ def test_presentation_receives_the_job_as_the_event_left_it() -> None:
     RunQueue(
         job_store,
         worker_pool,
+        InMemoryJobRequestInbox(job_store),
         present=lambda message, job: presented.append((message.job_event, job)),
     ).execute()
 

@@ -24,6 +24,7 @@ from queued_media_downloader.workers.process_tree_terminator import (
     ProcessTreeTerminator,
 )
 from queued_media_downloader.workers.worker_instructions import (
+    CancelJob,
     RunJob,
     ShutDown,
     WorkerInstruction,
@@ -48,6 +49,7 @@ class WorkerHandle:
     worker_id: int
     process: SpawnProcess
     instruction_queue: "Queue[WorkerInstruction]"
+    cancellation_queue: "Queue[CancelJob]"
     message_receiver: ProcessQueueReceiver
     log_record_receiver: ProcessQueueReceiver
     process_tree_terminator: ProcessTreeTerminator
@@ -124,6 +126,13 @@ class ProcessWorkerPool:
         """Número de workers sin job asignado."""
         return sum(worker.assigned_job_id is None for worker in self._workers)
 
+    def request_cancellation(self, job_id: JobId) -> None:
+        """Pide al worker que ejecuta job_id que lo detenga, por su cola propia."""
+        for worker in self._workers:
+            if worker.assigned_job_id == job_id:
+                worker.cancellation_queue.put(CancelJob(job_id))
+                return
+
     def terminate_worker_running(self, job_id: JobId) -> bool:
         """Termina el árbol del worker que ejecuta job_id y lo sustituye.
 
@@ -173,6 +182,7 @@ class ProcessWorkerPool:
         worker_name = f"worker-{worker_id}"
         process_tree_terminator = self._process_tree_terminator_factory()
         instruction_queue: Queue[WorkerInstruction] = self._context.Queue()
+        cancellation_queue: Queue[CancelJob] = self._context.Queue()
         message_queue: Queue[WorkerMessage] = self._context.Queue()
         log_queue: Queue[LogRecord] = self._context.Queue()
         process = self._context.Process(
@@ -183,6 +193,7 @@ class ProcessWorkerPool:
                 instruction_queue,
                 message_queue,
                 log_queue,
+                cancellation_queue,
             ),
             name=worker_name,
             daemon=True,
@@ -193,6 +204,7 @@ class ProcessWorkerPool:
             worker_id,
             process,
             instruction_queue,
+            cancellation_queue,
             message_receiver=ProcessQueueReceiver(
                 message_queue,
                 self._received_messages.put,

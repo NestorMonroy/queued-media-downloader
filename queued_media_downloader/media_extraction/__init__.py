@@ -8,6 +8,7 @@ from queued_media_downloader.media_extraction.javascript_runtime import (
     JavaScriptRuntime,
 )
 from queued_media_downloader.media_extraction.media_source import (
+    JobCancelledError,
     MediaSource,
     Publish,
 )
@@ -15,4 +16,10 @@ from queued_media_downloader.media_extraction.media_source_settings import (
     MediaSourceSettings,
 )
 
-__all__ = ["JavaScriptRuntime", "MediaSource", "MediaSourceSettings", "Publish"]
+__all__ = [
+    "JavaScriptRuntime",
+    "JobCancelledError",
+    "MediaSource",
+    "MediaSourceSettings",
+    "Publish",
+]

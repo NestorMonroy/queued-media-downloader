@@ -8,7 +8,7 @@ from queued_media_downloader.command_line.command_settings import (
 )
 from queued_media_downloader.command_line.composition_root import (
     create_ffmpeg_locator,
-    open_job_store,
+    open_job_store_and_inbox,
     open_worker_pool,
 )
 from queued_media_downloader.command_line.exit_code import ExitCode
@@ -62,13 +62,18 @@ def run_run_command(arguments: argparse.Namespace) -> int:
     print(_describe_ffmpeg(ffmpeg_installation))
     with (
         logging_to_file(settings.state_directory) as log_path,
-        open_job_store(settings.state_directory) as job_store,
+        open_job_store_and_inbox(settings.state_directory) as (job_store, inbox),
         open_worker_pool(settings, ffmpeg_installation.ffmpeg_location) as worker_pool,
     ):
         # Antes de enviar ningún job (UC-06): nada queda RUNNING sin worker.
         _report_recovery(RecoverInterruptedJobs(job_store).execute())
+        presenter = JobPresenter(sys.stdout)
         run_result = RunQueue(
-            job_store, worker_pool, present=JobPresenter(sys.stdout).present
+            job_store,
+            worker_pool,
+            inbox,
+            present=presenter.present,
+            present_job_request=presenter.present_job_request,
         ).execute()
     if run_result.failed_job_count == 0:
         print("All jobs finished")

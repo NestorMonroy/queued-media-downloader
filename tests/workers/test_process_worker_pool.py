@@ -10,8 +10,10 @@ import pytest
 
 from queued_media_downloader.jobs import (
     DownloadOptions,
+    DownloadProgressed,
     FailureReason,
     Job,
+    JobCancelled,
     JobCompleted,
     JobFailed,
     JobId,
@@ -34,6 +36,7 @@ from tests.doubles.fake_media_source import (
     CRASH,
     RAISE,
     FakeMediaSource,
+    ProgressForever,
     ScriptedBehavior,
     ScriptKey,
     SpawnChild,
@@ -357,3 +360,51 @@ def test_failed_registration_stops_the_pool_without_leaving_workers() -> None:
         )
 
     assert multiprocessing.active_children() == []
+
+
+def test_cancellation_stops_the_job_at_its_next_event_and_keeps_the_worker(
+    start_pool: Callable[[int, Mapping[ScriptKey, ScriptedBehavior]], WorkerPool],
+) -> None:
+    # UC-05, pasos 4 a 6: la bandera se ve en el siguiente avance publicado.
+    pool = start_pool(
+        1,
+        {
+            ("download", "https://long"): ProgressForever(),
+            ("download", "https://a"): [COMPLETED],
+        },
+    )
+    pool.submit(stored_job(1, "https://long", kind=JobKind.DOWNLOAD))
+    first_progress = wait_for_event(pool, JobId(1), DownloadProgressed)
+
+    pool.request_cancellation(JobId(1))
+    cancelled = wait_for_event(pool, JobId(1), JobCancelled)
+
+    assert cancelled.worker_id == first_progress.worker_id
+    assert pool.count_idle_workers() == 1
+    pool.submit(stored_job(2, "https://a", kind=JobKind.DOWNLOAD))
+    next_job = collect_until_final(pool, {JobId(2)})[-1]
+    assert next_job.job_event == COMPLETED
+    assert next_job.worker_id == cancelled.worker_id
+
+
+def test_cancelling_a_job_no_worker_is_running_has_no_effect(
+    start_pool: Callable[[int, Mapping[ScriptKey, ScriptedBehavior]], WorkerPool],
+) -> None:
+    pool = start_pool(1, {("download", "https://a"): [COMPLETED]})
+
+    pool.request_cancellation(JobId(99))
+    pool.submit(stored_job(1, "https://a", kind=JobKind.DOWNLOAD))
+
+    assert collect_until_final(pool, {JobId(1)})[-1].job_event == COMPLETED
+
+
+def wait_for_event(
+    pool: WorkerPool, job_id: JobId, event_type: type[object]
+) -> WorkerMessage:
+    """Recoge mensajes hasta el primero de event_type para job_id."""
+    deadline = time.monotonic() + COLLECT_TIMEOUT_SECONDS
+    while time.monotonic() < deadline:
+        for message in pool.collect_events(timeout_seconds=0.2):
+            if message.job_id == job_id and isinstance(message.job_event, event_type):
+                return message
+    pytest.fail(f"No {event_type.__name__} for job {job_id}")

@@ -4,8 +4,14 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from queued_media_downloader.job_queue.job_event_applier import JobEventApplier
-from queued_media_downloader.job_storage import JobStore
-from queued_media_downloader.jobs import Job, JobStatus
+from queued_media_downloader.job_storage import JobRequestInbox, JobStore
+from queued_media_downloader.jobs import (
+    Job,
+    JobKind,
+    JobRequest,
+    JobRequestType,
+    JobStatus,
+)
 from queued_media_downloader.workers import WorkerMessage, WorkerPool
 
 # Espera máxima por los mensajes de los workers en cada vuelta del bucle; acota
@@ -17,8 +23,16 @@ COLLECT_TIMEOUT_SECONDS = 0.5
 Present = Callable[[WorkerMessage, Job | None], None]
 
 
+# Recibe cada job request procesada y el job tal como quedó.
+PresentJobRequest = Callable[[JobRequest, Job], None]
+
+
 def present_nothing(message: WorkerMessage, job: Job | None) -> None:
     """Presentación por defecto: no muestra nada."""
+
+
+def present_no_job_request(job_request: JobRequest, job: Job) -> None:
+    """Presentación por defecto de las job requests: no muestra nada."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -38,12 +52,20 @@ class RunQueue:
         self,
         job_store: JobStore,
         worker_pool: WorkerPool,
+        job_request_inbox: JobRequestInbox,
         present: Present = present_nothing,
+        present_job_request: PresentJobRequest = present_no_job_request,
     ) -> None:
-        """Usa job_store y worker_pool; present recibe cada mensaje ya aplicado."""
+        """Usa job_store, worker_pool y la bandeja de job requests.
+
+        present recibe cada mensaje ya aplicado; present_job_request, cada job
+        request procesada.
+        """
         self._job_store = job_store
         self._worker_pool = worker_pool
+        self._job_request_inbox = job_request_inbox
         self._present = present
+        self._present_job_request = present_job_request
         self._job_event_applier = JobEventApplier(job_store)
 
     def execute(self) -> RunQueueResult:
@@ -55,6 +77,8 @@ class RunQueue:
         running_job_count = 0
         failed_job_count = 0
         while True:
+            # Antes de enviar nada: un job cancelado no debe llegar a un worker.
+            self._process_job_requests()
             running_job_count += self._submit_pending_jobs()
             if running_job_count == 0:
                 return RunQueueResult(failed_job_count=failed_job_count)
@@ -67,6 +91,41 @@ class RunQueue:
                 failed_job_count += (
                     updated_job is not None and updated_job.status is JobStatus.FAILED
                 )
+
+    def _process_job_requests(self) -> None:
+        """Aplica las job requests CANCEL pendientes (UC-05, pasos 3 a 7).
+
+        Las RETRY las procesa el caso de uso de reintento (UC-07).
+        """
+        for job_request in self._job_request_inbox.get_unprocessed():
+            if job_request.request_type is not JobRequestType.CANCEL:
+                continue
+            cancelled_job = self._cancel(self._job_store.get(job_request.job_id))
+            assert job_request.request_id is not None
+            self._job_request_inbox.mark_processed(job_request.request_id)
+            self._present_job_request(job_request, cancelled_job)
+
+    def _cancel(self, job: Job) -> Job:
+        """Cancela el job, y si es una expansión, sus descendientes no terminados.
+
+        Un job PENDING se cancela ya (A1); uno RUNNING pasa a
+        CANCELLATION_REQUESTED y se pide al worker que lo detenga. Uno ya
+        terminado o ya cancelándose no cambia (A7).
+        """
+        if job.status is JobStatus.PENDING:
+            job = job.transition_to(JobStatus.CANCELLED)
+            self._job_store.update(job)
+        elif job.status is JobStatus.RUNNING:
+            job = job.transition_to(JobStatus.CANCELLATION_REQUESTED)
+            self._job_store.update(job)
+            assert job.job_id is not None
+            self._worker_pool.request_cancellation(job.job_id)
+        if job.kind is JobKind.EXPANSION and job.job_id is not None:
+            # Hijos creados después de registrar la petición (A4).
+            for child in self._job_store.get_children(job.job_id):
+                if not child.is_finished():
+                    self._cancel(child)
+        return job
 
     def _submit_pending_jobs(self) -> int:
         """Envía un job pendiente por worker libre; devuelve cuántos envió.

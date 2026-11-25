@@ -4,18 +4,23 @@ import logging
 from pathlib import Path
 
 from yt_dlp import YoutubeDL
+from yt_dlp.utils import DownloadCancelled
 
 from queued_media_downloader.jobs import (
     FailureReason,
     Job,
     JobCompleted,
+    JobEvent,
     JobFailed,
 )
 from queued_media_downloader.media_extraction.failure_classifier import (
     classify_failure,
     is_format_unavailable,
 )
-from queued_media_downloader.media_extraction.media_source import Publish
+from queued_media_downloader.media_extraction.media_source import (
+    JobCancelledError,
+    Publish,
+)
 from queued_media_downloader.media_extraction.media_source_settings import (
     MediaSourceSettings,
 )
@@ -65,9 +70,11 @@ class YtDlpMediaSource:
                 expand_url(
                     youtube_dl,
                     job.url,
-                    publish,
+                    _cancellable(publish),
                     self._media_source_settings.playlist_batch_size,
                 )
+        except YtDlpJobCancelled as cancellation:
+            raise JobCancelledError from cancellation
         except Exception as extraction_error:
             publish(classify_failure(extraction_error))
 
@@ -84,10 +91,13 @@ class YtDlpMediaSource:
         """
         partial_directory = job.partial_directory()
         retry_with_format_selector = False
+        publish = _cancellable(publish)
         try:
             final_path = self._download_with_format(
                 job, job.selected_format_id, partial_directory, publish
             )
+        except YtDlpJobCancelled as cancellation:
+            raise JobCancelledError from cancellation
         except Exception as download_error:
             if job.selected_format_id is None or not is_format_unavailable(
                 download_error
@@ -107,6 +117,8 @@ class YtDlpMediaSource:
                 final_path = self._download_with_format(
                     job, None, partial_directory, publish
                 )
+            except YtDlpJobCancelled as cancellation:
+                raise JobCancelledError from cancellation
             except Exception as retry_error:
                 publish(classify_failure(retry_error))
                 return
@@ -163,6 +175,27 @@ class YtDlpMediaSource:
             publish,
             interval_seconds=self._media_source_settings.progress_interval_seconds,
         )
+
+
+class YtDlpJobCancelled(DownloadCancelled):  # type: ignore[misc]
+    """JobCancelledError dentro de yt-dlp.
+
+    yt-dlp deja salir DownloadCancelled de sus hooks y de download() sin
+    convertirla en un error (YoutubeDL.download), así que la cancelación llega
+    hasta esta MediaSource, que la devuelve como JobCancelledError.
+    """
+
+
+def _cancellable(publish: Publish) -> Publish:
+    """Publish cuya JobCancelledError atraviesa yt-dlp como DownloadCancelled."""
+
+    def publish_inside_yt_dlp(job_event: JobEvent) -> None:
+        try:
+            publish(job_event)
+        except JobCancelledError as cancellation:
+            raise YtDlpJobCancelled from cancellation
+
+    return publish_inside_yt_dlp
 
 
 class YtDlpReturnCodeError(Exception):

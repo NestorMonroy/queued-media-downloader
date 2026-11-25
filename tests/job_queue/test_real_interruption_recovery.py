@@ -25,6 +25,9 @@ from queued_media_downloader.job_queue import (
 )
 from queued_media_downloader.job_queue.job_event_applier import JobEventApplier
 from queued_media_downloader.job_storage.sqlite_connection import open_database
+from queued_media_downloader.job_storage.sqlite_job_request_inbox import (
+    SqliteJobRequestInbox,
+)
 from queued_media_downloader.job_storage.sqlite_job_store import SqliteJobStore
 from queued_media_downloader.jobs import (
     DownloadOptions,
@@ -47,10 +50,12 @@ WAIT_TIMEOUT_SECONDS = 60.0
 
 
 @contextmanager
-def opened_job_store(database_path: Path) -> Iterator[SqliteJobStore]:
+def opened_queue(
+    database_path: Path,
+) -> Iterator[tuple[SqliteJobStore, SqliteJobRequestInbox]]:
     connection = open_database(database_path)
     try:
-        yield SqliteJobStore(connection)
+        yield SqliteJobStore(connection), SqliteJobRequestInbox(connection)
     finally:
         connection.close()
 
@@ -119,7 +124,7 @@ def test_download_interrupted_for_real_resumes_from_its_partial_file(
     )
 
     # 1-3. Descarga real, interrumpida a medias; se termina el árbol del worker.
-    with opened_job_store(database_path) as job_store:
+    with opened_queue(database_path) as (job_store, _):
         EnqueueMedia(job_store).execute([media_url], download_options)
         worker_pool = start_pool(tmp_path)
         try:
@@ -132,7 +137,7 @@ def test_download_interrupted_for_real_resumes_from_its_partial_file(
     assert multiprocessing.active_children() == []
 
     # 4. Estado y archivos preservados; nada sigue escribiendo el .part.
-    with opened_job_store(database_path) as job_store:
+    with opened_queue(database_path) as (job_store, _):
         interrupted = job_store.get(job_id)
     partial_size = _partial_size(interrupted)
     time.sleep(0.5)
@@ -143,11 +148,11 @@ def test_download_interrupted_for_real_resumes_from_its_partial_file(
 
     # 5-6. "Reinicio": otra conexión, otro pool, recuperación y cola.
     media_requests.clear()
-    with opened_job_store(database_path) as job_store:
+    with opened_queue(database_path) as (job_store, inbox):
         recovery = RecoverInterruptedJobs(job_store).execute()
         worker_pool = start_pool(tmp_path)
         try:
-            run_result = RunQueue(job_store, worker_pool).execute()
+            run_result = RunQueue(job_store, worker_pool, inbox).execute()
         finally:
             worker_pool.shut_down()
         finished = job_store.get(job_id)

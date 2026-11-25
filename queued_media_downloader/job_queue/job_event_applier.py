@@ -52,9 +52,10 @@ class JobEventApplier:
         """
         job_event = message.job_event
         if isinstance(job_event, PlaylistEntriesFound):
-            self._create_playlist_children(
-                self._job_store.get(message.job_id), job_event
-            )
+            expansion = self._job_store.get(message.job_id)
+            # Una expansión que se está cancelando ya no crea hijos (UC-05 A4).
+            if expansion.status is JobStatus.RUNNING:
+                self._create_playlist_children(expansion, job_event)
             return None
         if not isinstance(job_event, PERSISTENT_JOB_EVENT_TYPES):
             return None
@@ -111,7 +112,16 @@ class JobEventApplier:
         )
 
     def _job_after(self, job: Job, job_event: PersistentJobEvent) -> Job:
-        """Devuelve el job tal como queda tras job_event."""
+        """Devuelve el job tal como queda tras job_event.
+
+        Mientras se cancela, cualquier final que no sea JobCompleted confirma la
+        cancelación: un fallo o un contenido encontrado ya no interesan al User,
+        y JobCompleted gana porque el archivo ya está terminado (UC-05 A3).
+        """
+        if job.status is JobStatus.CANCELLATION_REQUESTED and isinstance(
+            job_event, SingleMediaFound | JobFailed | JobCancelled
+        ):
+            return job.confirm_cancellation()
         match job_event:
             case SingleMediaFound(media_key=media_key, title=title):
                 if self._job_store.has_active_download(

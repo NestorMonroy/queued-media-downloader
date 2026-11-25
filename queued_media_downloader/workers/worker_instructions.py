@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from queued_media_downloader.jobs import Job
+from queued_media_downloader.jobs import Job, JobId
 
 
 @dataclass(frozen=True, slots=True)
@@ -18,3 +18,10 @@ class ShutDown:
 
 
 WorkerInstruction = RunJob | ShutDown
+
+
+@dataclass(frozen=True, slots=True)
+class CancelJob:
+    """Detener el job en curso; viaja por la cola de cancelaciones del worker."""
+
+    job_id: JobId

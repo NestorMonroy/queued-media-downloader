@@ -15,10 +15,7 @@ class NoIdleWorkerError(Exception):
 
 
 class WorkerPool(Protocol):
-    """Ejecuta jobs en workers y devuelve lo que publican.
-
-    La cancelación cooperativa (request_cancellation) se añade con UC-05.
-    """
+    """Ejecuta jobs en workers y devuelve lo que publican."""
 
     def submit(self, job: Job) -> None:
         """Envía el job a un worker libre.
@@ -34,6 +31,14 @@ class WorkerPool(Protocol):
         Si un worker murió con un job asignado, termina sus descendientes,
         incluye un JobFailed con WORKER_CRASHED para ese job y arranca un worker
         de reemplazo.
+        """
+        ...
+
+    def request_cancellation(self, job_id: JobId) -> None:
+        """Pide al worker que ejecuta job_id que lo detenga (UC-05, paso 5).
+
+        Es cooperativa: el worker la ve en el siguiente job event que publica y
+        termina con JobCancelled. Si el job ya terminó, no tiene efecto.
         """
         ...
 

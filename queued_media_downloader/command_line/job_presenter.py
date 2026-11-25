@@ -10,6 +10,7 @@ from queued_media_downloader.jobs import (
     JobCompleted,
     JobEvent,
     JobFailed,
+    JobRequest,
     JobStarted,
     JobStatus,
     PlaylistEntriesFound,
@@ -38,9 +39,23 @@ class JobPresenter:
         job es el job tal como quedó tras el job event; None si el job event
         solo informa del avance.
         """
-        description = _describe(message.job_event, job)
+        if job is not None and job.status is JobStatus.CANCELLED:
+            # También un fallo o un contenido encontrado mientras se cancelaba.
+            description: str | None = "cancelled"
+        else:
+            description = _describe(message.job_event, job)
         if description is not None:
             print(f"Job {message.job_id}: {description}", file=self._output, flush=True)
+
+    def present_job_request(self, job_request: JobRequest, job: Job) -> None:
+        """Escribe qué hizo run con una job request de cancel (UC-05)."""
+        if job.status is JobStatus.CANCELLED:
+            description = "cancelled"
+        elif job.status is JobStatus.CANCELLATION_REQUESTED:
+            description = "cancellation requested"
+        else:
+            description = f"already {job.status.value}; nothing to cancel"
+        print(f"Job {job_request.job_id}: {description}", file=self._output, flush=True)
 
 
 def _describe(job_event: JobEvent, job: Job | None) -> str | None:
