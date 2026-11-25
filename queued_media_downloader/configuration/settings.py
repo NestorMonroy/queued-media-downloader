@@ -16,6 +16,7 @@ class Settings:
     state_directory: Path
     worker_count: int
     progress_interval_seconds: float
+    cancellation_grace_seconds: float
     default_format_selector: str
     single_media_output_template: str
     max_filename_length: int

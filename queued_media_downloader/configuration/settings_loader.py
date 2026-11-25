@@ -74,6 +74,8 @@ SETTING_DEFINITIONS: Mapping[str, SettingDefinition] = {
     "state_directory": SettingDefinition(lambda: project_root() / "state", _path),
     "worker_count": SettingDefinition(lambda: 1, _positive_integer),
     "progress_interval_seconds": SettingDefinition(lambda: 0.5, _positive_number),
+    # Espera antes de terminar un worker que no confirma la cancelación (UC-05 A2).
+    "cancellation_grace_seconds": SettingDefinition(lambda: 10.0, _positive_number),
     "default_format_selector": SettingDefinition(lambda: "bv*+ba/b", _non_empty_text),
     "single_media_output_template": SettingDefinition(
         lambda: "%(title)s [%(id)s].%(ext)s", _non_empty_text

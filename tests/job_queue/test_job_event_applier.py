@@ -113,3 +113,24 @@ def test_batch_of_a_cancelling_expansion_creates_no_children() -> None:
     JobEventApplier(job_store).apply(message(job_id, batch))
 
     assert job_store.get_children(job_id) == []
+
+
+@pytest.mark.parametrize(
+    "job_event",
+    [
+        JobCompleted(output_path="a.mp4"),
+        JobCancelled(),
+        JobFailed(failure_reason=FailureReason.NETWORK, failure_message="Reset"),
+    ],
+    ids=["completed", "cancelled", "failed"],
+)
+def test_late_event_of_a_job_already_finished_is_ignored(job_event: JobEvent) -> None:
+    # Tras una terminación forzada aún puede llegar lo que el worker envió antes.
+    job_store = InMemoryJobStore()
+    job_id = store_cancelling_job(job_store, JobKind.DOWNLOAD)
+    job_store.update(job_store.get(job_id).confirm_cancellation())
+
+    updated_job = JobEventApplier(job_store).apply(message(job_id, job_event))
+
+    assert updated_job is None
+    assert job_store.get(job_id).status is JobStatus.CANCELLED

@@ -18,6 +18,9 @@ FINAL_JOB_EVENT_TYPES = (SingleMediaFound, JobCompleted, JobFailed, JobCancelled
 # Número de secuencia de los mensajes que el pool publica en nombre de un
 # worker caído; los del worker empiezan en 1.
 POOL_SEQUENCE_NUMBER = 0
+# worker_id de los mensajes que la cola aplica en nombre de un worker ya
+# terminado (UC-05 A2); los workers empiezan en 1.
+POOL_WORKER_ID = 0
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

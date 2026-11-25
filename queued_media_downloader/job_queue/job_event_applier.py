@@ -4,6 +4,8 @@ Solo el proceso de run cambia el estado de los jobs (diseño, Parte 2, §2.4);
 este módulo es el único sitio donde un job event se convierte en un cambio.
 """
 
+import logging
+
 from queued_media_downloader.job_storage import DuplicateOutputPathError, JobStore
 from queued_media_downloader.jobs import (
     FailureReason,
@@ -19,6 +21,8 @@ from queued_media_downloader.jobs import (
     SingleMediaFound,
 )
 from queued_media_downloader.workers import WorkerMessage
+
+logger = logging.getLogger(__name__)
 
 # Job events que solo informan del avance: no se persisten (diseño, Parte 1, §5).
 # JobStarted tampoco cambia nada: el job pasó a RUNNING al enviarse.
@@ -60,6 +64,16 @@ class JobEventApplier:
         if not isinstance(job_event, PERSISTENT_JOB_EVENT_TYPES):
             return None
         stored_job = self._job_store.get(message.job_id)
+        if stored_job.is_finished():
+            # Lo que un worker envió antes de que se terminara su árbol
+            # (UC-05 A2): el job ya tiene su estado definitivo.
+            logger.info(
+                "Ignoring %s for job %s, already %s",
+                type(job_event).__name__,
+                message.job_id,
+                stored_job.status.value,
+            )
+            return None
         updated_job = self._job_after(stored_job, job_event)
         try:
             self._job_store.update(updated_job)

@@ -154,3 +154,60 @@ def test_retry_requests_are_left_for_the_retry_use_case() -> None:
     assert [request.request_type for request in inbox.get_unprocessed()] == [
         JobRequestType.RETRY
     ]
+
+
+def test_worker_that_does_not_confirm_in_time_is_terminated() -> None:
+    # A2: por ejemplo, mientras ffmpeg une archivos y no hay avances.
+    script: dict[ScriptKey, list[ScriptStep]] = {
+        (JobKind.EXPANSION, URL): [FOUND_A],
+        (JobKind.DOWNLOAD, URL): [
+            FormatSelected(selected_format_id="18"),
+            WAIT_FOR_CANCELLATION,
+        ],
+    }
+    job_store, inbox, pool = queue_with([URL], script, ignores_cancellation=True)
+
+    def cancel_once_format_is_selected(message: WorkerMessage, job: Job | None) -> None:
+        del job
+        if isinstance(message.job_event, FormatSelected):
+            inbox.create_many([cancel(1)])
+
+    run_result = RunQueue(
+        job_store,
+        pool,
+        inbox,
+        present=cancel_once_format_is_selected,
+        cancellation_grace_seconds=0.0,
+    ).execute()
+
+    assert pool.cancellation_requests == [JobId(1)]
+    assert pool.terminated_job_ids == [JobId(1)]
+    assert job_store.get(JobId(1)).status is JobStatus.CANCELLED
+    assert run_result.failed_job_count == 0
+
+
+def test_worker_that_confirms_in_time_is_not_terminated() -> None:
+    script: dict[ScriptKey, list[ScriptStep]] = {
+        (JobKind.EXPANSION, URL): [FOUND_A],
+        (JobKind.DOWNLOAD, URL): [
+            FormatSelected(selected_format_id="18"),
+            WAIT_FOR_CANCELLATION,
+        ],
+    }
+    job_store, inbox, pool = queue_with([URL], script)
+
+    def cancel_once_format_is_selected(message: WorkerMessage, job: Job | None) -> None:
+        del job
+        if isinstance(message.job_event, FormatSelected):
+            inbox.create_many([cancel(1)])
+
+    RunQueue(
+        job_store,
+        pool,
+        inbox,
+        present=cancel_once_format_is_selected,
+        cancellation_grace_seconds=60.0,
+    ).execute()
+
+    assert pool.terminated_job_ids == []
+    assert job_store.get(JobId(1)).status is JobStatus.CANCELLED

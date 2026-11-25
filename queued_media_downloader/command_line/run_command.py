@@ -74,6 +74,7 @@ def run_run_command(arguments: argparse.Namespace) -> int:
             inbox,
             present=presenter.present,
             present_job_request=presenter.present_job_request,
+            cancellation_grace_seconds=settings.cancellation_grace_seconds,
         ).execute()
     if run_result.failed_job_count == 0:
         print("All jobs finished")

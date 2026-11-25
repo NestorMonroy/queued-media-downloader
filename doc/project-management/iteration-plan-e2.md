@@ -83,7 +83,7 @@ Igual que en E1 ([ADR-0022](../notes/adr-0022-hybrid-approach-and-task-decomposi
 |---|---|---|---|---|
 | T36 | Comando `cancel` y `JobRequestInbox` sobre la tabla `job_requests`; A5 (sin `run` activo) y A7 (job terminado) | Agente | Pruebas del comando y de la bandeja. **Hecha**: Linux ✔ | — |
 | T37 | `RunQueue` procesa las job requests en cada vuelta: A1 (`PENDING`), flujo básico (`RUNNING`) y A4 (playlist con sus hijos) | Agente | Pruebas con `ScriptedWorkerPool`. **Hecha**, con la cancelación cooperativa en el worker (hilo de cancelación y `JobCancelledError`): Linux ✔ | T36, T28 |
-| T38 | Hilo de cancelación en el worker y `DownloadCancelled` en el hook de progreso; A2 (terminación forzada tras `cancellation_grace_seconds`) y A3 (termina antes de verlo) | Agente | Cancelar contra el servidor local, también durante la unión, sin procesos huérfanos | T35, T37 |
+| T38 | Hilo de cancelación en el worker y `DownloadCancelled` en el hook de progreso; A2 (terminación forzada tras `cancellation_grace_seconds`) y A3 (termina antes de verlo) | Agente | Cancelar contra el servidor local, también durante la unión, sin procesos huérfanos. **Hecha**: Linux ✔ (yt-dlp real contra el servidor lento; job sin avances con un hijo, en lugar de una unión real); la cancelación durante una unión real con ffmpeg, en la campaña (paso 6) | T35, T37 |
 | T39 | `Ctrl+C` en `run` (A6): el primero cancela los jobs en curso, el segundo termina los workers | Agente | Prueba con una señal al proceso de `run` | T38, T31 |
 
 ### 4.6 Slice E: operación de la cola
@@ -203,6 +203,7 @@ Se amplía con cada tarea. Cada uno se verifica en la campaña.
 |---|---|---|
 | Job Object por worker: sin huérfanos al terminar el árbol, al caer el worker y al morir `run`; sin escape por `CREATE_BREAKAWAY_FROM_JOB`; handle no heredable | ADR-0029, T34 | Experimento de T33; `pytest -m windows` (`tests/workers/test_process_tree_terminator.py`, 10 pruebas) y T35 |
 | `Ctrl+C` llega también a los workers y a ffmpeg (mismo grupo de consola) | ADR-0029, hallazgo 4 | T39 y paso 7 |
+| Cancelar durante una unión real de ffmpeg termina ffmpeg tras el plazo y no deja procesos | UC-05 A2, T38 | Paso 6 |
 | La carpeta de parciales de un job (`.partial\job-N`) se mueve al terminar sin copiar y se borra; rutas largas con la carpeta añadida | T44 | Pasos 9 y 11 |
 | Rutas largas y nombres de playlist con caracteres no válidos | R-10, ADR-0028 | Paso 5 (UC-04) |
 
@@ -269,9 +270,9 @@ La aceptación final de todos los escenarios queda **pendiente** de la campaña 
 
 | Escenario | Tareas | Implementación | Pruebas | Pendiente en Windows |
 |---|---|---|---|---|
-| Flujo básico (cooperativa) | T36, T37, T38 | Hecha (T37): `CANCELLATION_REQUESTED`, petición al worker, `JobCancelled` en el siguiente avance; falta probarla con yt-dlp real (T38) | Linux ✔ (`ScriptedWorkerPool` y worker real con `FakeMediaSource`) | Pasos 5 y 6 |
+| Flujo básico (cooperativa) | T36, T37, T38 | Hecha: `CANCELLATION_REQUESTED`, petición al worker, `JobCancelled` en el siguiente avance; el `.part` se conserva | Linux ✔ (también con yt-dlp real contra el servidor lento) | Pasos 5 y 6 |
 | A1 `PENDING` | T37 | Hecha | Linux ✔ | — |
-| A2 Terminación forzada | T34, T35, T38 | Terminador (T34) y `terminate_worker_running` (T35) hechos; falta el plazo de cancelación (T38) | Linux ✔ (terminador y pool) | Experimento de T33; `windows` de T34; pasos 6 y 7 |
+| A2 Terminación forzada | T34, T35, T38 | Hecha: tras `cancellation_grace_seconds` (10 s), el árbol del worker se termina y el job queda `CANCELLED`; los mensajes tardíos se ignoran | Linux ✔ (job sin avances con un hijo) | Experimento de T33; `windows` de T34; paso 6 con una unión real de ffmpeg |
 | A3 Termina antes de ver la bandera | T37 | Hecha: `JobCompleted` gana; cualquier otro final confirma la cancelación | Linux ✔ | — |
 | A4 Playlist con sus hijos | T36, T37 | Hecha: registro (T36); en `run`, también los hijos creados después y sin nuevos hijos de un lote tardío (T37) | Linux ✔ | Paso 5 |
 | A5 Sin `run` activo | T36, T37 | Hecha | Linux ✔ | — |
