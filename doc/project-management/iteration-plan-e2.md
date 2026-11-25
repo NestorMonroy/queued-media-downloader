@@ -173,6 +173,8 @@ T32 demostró la reanudación con un `.part` creado por la prueba. Aprobar T32 n
 
 Se ejecuta una sola vez, cuando la matriz de la §8 muestre todos los escenarios implementados. Es la tarea T42. La aceptación definitiva del proyecto depende de sus resultados reales.
 
+**Guion paso a paso, con las órdenes y el registro de resultados:** [windows-validation-campaign.md](windows-validation-campaign.md).
+
 ### 7.1 Procedimiento
 
 En un equipo físico con Windows 10 u 11 x64, Smart App Control desactivado ([ADR-0026](../notes/adr-0026-smart-app-control-precondition.md)), Git con Git LFS y uv instalados.
@@ -183,7 +185,7 @@ En un equipo físico con Windows 10 u 11 x64, Smart App Control desactivado ([AD
 | 2. Dependencias | `uv run queued-media-downloader diagnose` | Salida completa |
 | 3. Suite automatizada | Las cinco comprobaciones; `uv run pytest -m windows`; `uv run pytest -m network` | Resumen de pytest: pasadas, fallidas y omitidas, por separado |
 | 4. Experimento de T33 | `uv run python scripts/experiments/process_tree_termination.py --json doc/notes/experiments/t33-windows-results.json` | Tabla y JSON en [el documento del experimento](../notes/experiments/t33-process-tree-termination.md) |
-| 5. Casos de uso | Cada escenario de la matriz (§8) marcado como pendiente en Windows, con el guion que se prepare para la campaña | Resultado por escenario en la matriz |
+| 5. Casos de uso | Cada escenario de la matriz (§8) marcado como pendiente en Windows, con el [guion de la campaña](windows-validation-campaign.md#paso-5-casos-de-uso) | Resultado por escenario en la matriz |
 | 6. Procesos | Tras cada cancelación, interrupción y cierre: ningún proceso de ffmpeg, deno ni worker (`Get-Process`) | Salida de `Get-Process` |
 | 7. Cierres | Cierre normal de `run`; `Ctrl+C` una y dos veces; cierre de la ventana de la terminal; `run` terminado con `Stop-Process -Force` | Estado de los jobs (`list`) y procesos vivos |
 | 8. Interrupción real (§5.1) | El escenario obligatorio entre los slices B y C, automatizado en T35 | Resultado de la prueba y del paso manual |
@@ -211,7 +213,7 @@ Se amplía con cada tarea. Cada uno se verifica en la campaña.
 
 ## 8. Matriz de casos de uso: implementación y validación
 
-Estado al 2026-11-25. Se actualiza al integrar cada tarea.
+Estado al 2026-11-25, tras T48: **todos los escenarios de UC-01 a UC-10 están implementados y probados en Linux**. Lo que falta es la validación en Windows, en la campaña (§7). Se actualiza con la evidencia de la campaña.
 
 Leyenda de pruebas:
 - **Linux ✔:** automatizada y ejecutada con éxito en el entorno de desarrollo.
