@@ -1,8 +1,10 @@
 """Fixtures compartidas por varias carpetas de pruebas."""
 
 import functools
+import io
 import threading
 from collections.abc import Iterator
+from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -34,15 +36,47 @@ TWO_VIDEOS_PAGE = (
 
 
 class QuietRequestHandler(SimpleHTTPRequestHandler):
-    """Sirve archivos sin escribir cada petición en la salida de las pruebas."""
+    """Sirve archivos, admite Range y anota las cabeceras Range que recibe.
+
+    SimpleHTTPRequestHandler ignora Range; sin él, yt-dlp no podría continuar
+    un .part (UC-06, paso 6).
+    """
+
+    def __init__(self, *args: Any, range_requests: list[str], **kwargs: Any) -> None:
+        """Anota en range_requests cada cabecera Range recibida."""
+        self._range_requests = range_requests
+        super().__init__(*args, **kwargs)
+
+    def send_head(self) -> Any:
+        """Responde 206 con el resto del archivo si la petición lleva Range."""
+        range_header = self.headers.get("Range")
+        if range_header is None:
+            return super().send_head()
+        self._range_requests.append(range_header)
+        content = Path(self.translate_path(self.path)).read_bytes()
+        first_byte = int(range_header.removeprefix("bytes=").split("-")[0])
+        self.send_response(HTTPStatus.PARTIAL_CONTENT)
+        self.send_header("Content-Type", self.guess_type(self.path))
+        self.send_header(
+            "Content-Range", f"bytes {first_byte}-{len(content) - 1}/{len(content)}"
+        )
+        self.send_header("Content-Length", str(len(content) - first_byte))
+        self.end_headers()
+        return io.BytesIO(content[first_byte:])
 
     def log_message(self, format: str, *args: Any) -> None:
-        """No registra nada."""
+        """No escribe cada petición en la salida de las pruebas."""
+
+
+@pytest.fixture
+def range_requests() -> list[str]:
+    """Cabeceras Range que recibió el servidor local, en orden."""
+    return []
 
 
 @pytest.fixture
 def local_media_server(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, range_requests: list[str]
 ) -> Iterator[str]:
     """Servidor HTTP local con videos, playlists y redirecciones; devuelve su URL base.
 
@@ -60,7 +94,9 @@ def local_media_server(
         monkeypatch.setenv(variable, "127.0.0.1,localhost")
     (served_directory / "redirect.html").write_text(REDIRECT_PAGE, encoding="utf-8")
     request_handler = functools.partial(
-        QuietRequestHandler, directory=str(served_directory)
+        QuietRequestHandler,
+        directory=str(served_directory),
+        range_requests=range_requests,
     )
     server = ThreadingHTTPServer(("127.0.0.1", 0), request_handler)
     server_thread = threading.Thread(target=server.serve_forever, daemon=True)

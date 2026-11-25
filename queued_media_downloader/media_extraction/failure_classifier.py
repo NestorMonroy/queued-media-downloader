@@ -25,6 +25,9 @@ OUTDATED_EXTRACTOR_HINT = (
     "The site probably changed; the pinned yt-dlp version may need an update."
 )
 YT_DLP_ERROR_PREFIX = "ERROR: "
+# Texto con el que yt-dlp avisa de que el formato pedido no se ofrece
+# (YoutubeDL.process_video_result, versión fijada 2026.10.26).
+FORMAT_UNAVAILABLE_MESSAGE = "Requested format is not available"
 # yt-dlp añade la causa al final del mensaje: " (caused by <HTTPError 404: ...>)".
 CAUSE_SUFFIX = re.compile(r" \(caused by .*\)$")
 
@@ -36,6 +39,14 @@ def classify_failure(error: Exception) -> JobFailed:
     if failure_reason is FailureReason.EXTRACTOR_OUTDATED:
         failure_message = f"{failure_message}. {OUTDATED_EXTRACTOR_HINT}"
     return JobFailed(failure_reason=failure_reason, failure_message=failure_message)
+
+
+def is_format_unavailable(error: Exception) -> bool:
+    """Indica si el error es que el sitio ya no ofrece el formato pedido."""
+    original_error = _original_error(error)
+    return isinstance(original_error, ExtractorError) and (
+        FORMAT_UNAVAILABLE_MESSAGE in original_error.orig_msg
+    )
 
 
 def _original_error(error: Exception) -> Exception:

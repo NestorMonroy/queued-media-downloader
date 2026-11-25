@@ -27,6 +27,7 @@ from queued_media_downloader.media_extraction.yt_dlp_expansion import (
 from queued_media_downloader.media_extraction.yt_dlp_media_source import (
     YtDlpMediaSource,
 )
+from tests.conftest import SAMPLE_MEDIA_CONTENT
 
 
 def expansion_job(url: str, download_directory: Path) -> Job:
@@ -216,12 +217,60 @@ def test_playlist_child_is_downloaded_into_its_playlist_folder(
     assert published_events[-1] == JobCompleted(output_path=str(output_path))
 
 
-def test_download_reuses_the_format_selected_in_the_first_attempt(
+def test_interrupted_download_continues_from_its_partial_file(
+    local_media_server: str, tmp_path: Path, range_requests: list[str]
+) -> None:
+    # Lo que deja un run interrumpido: el .part con los primeros bytes.
+    published_events: list[JobEvent] = []
+    served_content = SAMPLE_MEDIA_CONTENT
+    partial_path = tmp_path / "sample [sample].mp4.part"
+    partial_path.write_bytes(served_content[:5000])
+    job = download_job(
+        f"{local_media_server}/sample.mp4", tmp_path, selected_format_id="mp4"
+    )
+
+    media_source(tmp_path).download(job, published_events.append)
+
+    output_path = tmp_path / "sample [sample].mp4"
+    assert range_requests == ["bytes=5000-"]
+    assert output_path.read_bytes() == served_content
+    assert not partial_path.exists()
+    assert published_events[-1] == JobCompleted(output_path=str(output_path))
+
+
+def test_unavailable_saved_format_is_retried_with_the_original_selector(
+    local_media_server: str, tmp_path: Path
+) -> None:
+    # A1: el formato del primer intento ya no se ofrece; su .part sobra.
+    published_events: list[JobEvent] = []
+    stale_partial_path = tmp_path / "sample [sample].f999.mp4.part"
+    stale_partial_path.write_bytes(b"stale")
+    unrelated_path = tmp_path / "other [other].f999.mp4.part"
+    unrelated_path.write_bytes(b"other job")
+    job = download_job(
+        f"{local_media_server}/sample.mp4", tmp_path, selected_format_id="999"
+    )
+
+    media_source(tmp_path).download(job, published_events.append)
+
+    output_path = tmp_path / "sample [sample].mp4"
+    assert FormatSelected(selected_format_id="mp4") in published_events
+    assert published_events[-1] == JobCompleted(output_path=str(output_path))
+    assert output_path.read_bytes() == SAMPLE_MEDIA_CONTENT
+    assert not stale_partial_path.exists()
+    assert unrelated_path.exists()
+
+
+def test_failed_retry_with_the_original_selector_publishes_its_failure(
     local_media_server: str, tmp_path: Path
 ) -> None:
     published_events: list[JobEvent] = []
     job = download_job(
         f"{local_media_server}/sample.mp4", tmp_path, selected_format_id="999"
+    )
+    job = replace(
+        job,
+        download_options=replace(job.download_options, format_selector="777"),
     )
 
     media_source(tmp_path).download(job, published_events.append)

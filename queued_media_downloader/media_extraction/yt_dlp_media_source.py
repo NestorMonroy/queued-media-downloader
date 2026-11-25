@@ -1,5 +1,8 @@
 """MediaSource implementada con la librería yt-dlp."""
 
+import logging
+from pathlib import Path
+
 from yt_dlp import YoutubeDL
 
 from queued_media_downloader.jobs import (
@@ -8,10 +11,14 @@ from queued_media_downloader.jobs import (
 )
 from queued_media_downloader.media_extraction.failure_classifier import (
     classify_failure,
+    is_format_unavailable,
 )
 from queued_media_downloader.media_extraction.media_source import Publish
 from queued_media_downloader.media_extraction.media_source_settings import (
     MediaSourceSettings,
+)
+from queued_media_downloader.media_extraction.partial_files import (
+    remove_partial_files_of,
 )
 from queued_media_downloader.media_extraction.progress_event_translator import (
     DownloadProgressTranslator,
@@ -26,6 +33,8 @@ from queued_media_downloader.media_extraction.yt_dlp_expansion import expand_url
 from queued_media_downloader.media_extraction.yt_dlp_parameters import (
     build_yt_dlp_parameters,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class YtDlpMediaSource:
@@ -61,14 +70,50 @@ class YtDlpMediaSource:
             publish(classify_failure(extraction_error))
 
     def download(self, job: Job, publish: Publish) -> None:
-        """Descarga el contenido y publica el formato, el avance y el resultado."""
+        """Descarga el contenido y publica el formato, el avance y el resultado.
+
+        Al reanudar se pide el formato del primer intento, para que su .part
+        siga siendo válido (ADR-0010). Si el sitio ya no lo ofrece, se reintenta
+        una vez con el format selector original y se borran los parciales del
+        formato anterior (UC-06, A1).
+        """
+        try:
+            final_path = self._download_with_format(
+                job, job.selected_format_id, publish
+            )
+        except Exception as download_error:
+            if job.selected_format_id is None or not is_format_unavailable(
+                download_error
+            ):
+                publish(classify_failure(download_error))
+                return
+            logger.info(
+                "Format %s is no longer available; retrying with %s",
+                job.selected_format_id,
+                job.download_options.format_selector,
+            )
+            try:
+                final_path = self._download_with_format(job, None, publish)
+            except Exception as retry_error:
+                publish(classify_failure(retry_error))
+                return
+            if final_path is not None:
+                remove_partial_files_of(Path(final_path))
+        publish(JobCompleted(output_path=final_path))
+
+    def _download_with_format(
+        self, job: Job, format_id: str | None, publish: Publish
+    ) -> str | None:
+        """Descarga con format_id o, sin él, con el format selector del job.
+
+        Returns:
+            La ruta final del archivo.
+        """
         parameters = build_yt_dlp_parameters(
             job.download_options, self._media_source_settings, job.playlist_context
         )
-        if job.selected_format_id is not None:
-            # Al reanudar se pide el mismo formato que en el primer intento,
-            # para que el .part siga siendo válido (ADR-0010).
-            parameters["format"] = job.selected_format_id
+        if format_id is not None:
+            parameters["format"] = format_id
         parameters["progress_hooks"] = [self._download_progress(publish).translate]
         parameters["postprocessor_hooks"] = [
             PostprocessingProgressTranslator(
@@ -76,17 +121,13 @@ class YtDlpMediaSource:
             ).translate
         ]
         final_path_recorder = FinalPathRecorder()
-        try:
-            with YoutubeDL(parameters) as youtube_dl:
-                youtube_dl.add_post_processor(
-                    SelectedFormatRecorder(publish), when="before_dl"
-                )
-                youtube_dl.add_post_processor(final_path_recorder, when="after_move")
-                youtube_dl.download([job.url])
-        except Exception as download_error:
-            publish(classify_failure(download_error))
-            return
-        publish(JobCompleted(output_path=final_path_recorder.final_path))
+        with YoutubeDL(parameters) as youtube_dl:
+            youtube_dl.add_post_processor(
+                SelectedFormatRecorder(publish), when="before_dl"
+            )
+            youtube_dl.add_post_processor(final_path_recorder, when="after_move")
+            youtube_dl.download([job.url])
+        return final_path_recorder.final_path
 
     def _download_progress(self, publish: Publish) -> DownloadProgressTranslator:
         """Traductor de progreso con el intervalo de la configuración."""
