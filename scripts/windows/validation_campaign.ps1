@@ -88,7 +88,7 @@ function Start-ValidationRun {
     if (Test-Path ".\config.toml") { throw "Move config.toml out of the clone first" }
     $isPublished = $head -eq $publishedMain
     if (-not $isPublished -and -not $AllowUnpublishedCommit) {
-        throw "The clone is at $head, but the published main is $publishedMain. Run: git switch main; git merge --ff-only origin/main"
+        throw "The clone is at $head, but the published main is $publishedMain. Run: git switch main; git pull --ff-only origin main; uv sync"
     }
     $root = Get-ValidationEvidenceRoot $EvidenceRoot
     $runName = "$(Get-Date -Format 'yyyyMMdd-HHmmss')-$($head.Substring(0, 12))"
