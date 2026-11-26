@@ -31,6 +31,7 @@ Si uno de esos módulos cambió, leer el cambio y adaptar el código y las prueb
 2. `uv lock --upgrade-package yt-dlp` y comprobar con `git diff uv.lock` qué paquetes cambiaron.
 3. `uv sync`.
 4. Actualizar `VERIFIED_YT_DLP_VERSION` en `tests/media_extraction/test_yt_dlp_format_error_contract.py` solo después de comprobar el contrato (las pruebas de ese archivo lo verifican contra la librería instalada).
+   Las pruebas de contrato con textos de yt-dlp son `test_yt_dlp_format_error_contract.py` (formato que ya no se ofrece) y `test_yt_dlp_download_retry_contract.py` (downloader que agota los reintentos); si una falla, revisar la constante correspondiente de `failure_classifier.py` contra el código nuevo de yt-dlp.
 
 ## 3. Verificar
 

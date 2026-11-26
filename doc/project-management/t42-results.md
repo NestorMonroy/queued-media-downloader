@@ -97,3 +97,20 @@ Primera ejecución con el guion 3.0, sobre el `main` publicado (`run.txt`: *comm
 ### Pendiente en Windows tras esta ejecución
 
 Confirmar T42-D4 y T42-D6 (repetir 5.2 en una ejecución nueva, con una segunda playlist que repita un video de la primera para UC-04 A2); pasos 5.3 a 5.7 (`--playlist`, `--keep-waiting` y dos terminales, cancelación, reintentos y purga, cola ocupada), 6 a 12 (procesos tras cancelar, cierres y `Ctrl+C`, reanudación tras un cierre forzado, cambio de formato, integridad, propiedad de archivos y concurrencia, estado persistido) y 13 (memoria y SUP-P04). La validación de UC-01 a UC-10 no está completa.
+
+## Ejecución `20261125-222227-ddffe96cb470` (commit `ddffe96cb470658855e6702caf4618534297c99f`, 2026-11-25)
+
+Consola del Evaluador; sin archivo de evidencia todavía. `Start-ValidationRun` y `diagnose` pasan (código 0; yt-dlp 2026.11.23 con yt-dlp-ejs 0.8.0, esquema 4).
+
+| Paso | Resultado | Evidencia | Observaciones |
+|---|---|---|---|
+| 5.2 Playlists | **pasa con defectos** | `queue-5.2.log`, `queue-5.2-2.log` (código 0) | Las mismas dos playlists (15 y 2 entradas). 6 descargas `COMPLETED`; 2 `UNAVAILABLE` (los videos retirados de T42-D5, comportamiento ya documentado); 1 `UNKNOWN` (T42-D7) y 8 `NETWORK` por un corte de DNS del equipo (`getaddrinfo failed`), ajeno al producto. **T42-D4 confirmado**: `Save-ValidationQueueState` terminó con código 0 y los emojis salen como `?`. **T42-D6 confirmado**: `show 1` muestra el título de la playlist. **UC-04 A2 probado**: al volver a encolar las dos playlists (dos veces), sus 17 hijos se crearon `SKIPPED`, también los de descargas `FAILED`: una descarga fallida sigue siendo activa (SUP-R05, ADR-0012) y se recupera con `retry` sobre el job original. `New-ValidationQueue "5.2"` repetido se negó sin borrar nada |
+
+| Id | Paso | Origen | Gravedad | Descripción | Estado |
+|---|---|---|---|---|---|
+| T42-D7 | 5.2 | *Producto, general* (contrato con yt-dlp) | Menor | Un timeout de conexión al servidor de video quedó como `UNKNOWN` en lugar de `NETWORK`. Cuando el downloader HTTP de yt-dlp agota los reintentos, lanza el `DownloadError` fuera de un bloque `except` (`FileDownloader.report_retry` → `YoutubeDL.trouble`): el error de red original se pierde y solo queda el texto `[download] Got error: …` | Corregido: ese texto se clasifica como `NETWORK` (`DOWNLOAD_RETRIES_EXHAUSTED_MESSAGE`); prueba de contrato con el código real de yt-dlp, `test_yt_dlp_download_retry_contract.py`, añadida al procedimiento de actualización. **Pendiente de confirmar en Windows** (requiere un corte de red durante una descarga; si no se reproduce, queda cubierto por la prueba de contrato) |
+| T42-D8 | 5.2 | *Procedimiento de validación* | Menor | En la evidencia, las rayas (`—`) de los títulos salen como `�` y los emojis como `?`: Python escribe en cp1252 y PowerShell lee la tubería con otra codificación | Corregido en `Invoke-ValidationStep`: los programas escriben y PowerShell lee en UTF-8 durante cada paso. No se pudo ejecutar PowerShell en el entorno de desarrollo: **pendiente de confirmar en Windows** |
+
+### Pendiente en Windows tras esta ejecución
+
+Las correcciones de T42-D7 y T42-D8 están en un commit posterior a `ddffe96`. Para no repetir pasos, la ejecución `20261125-222227-ddffe96cb470` sigue con los pasos 5.3 a 13 sin actualizar el clon; T42-D7 y T42-D8 se confirman en la siguiente ejecución, junto con las correcciones que salgan de esos pasos.

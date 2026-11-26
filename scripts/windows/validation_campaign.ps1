@@ -180,15 +180,24 @@ function Invoke-ValidationStep {
     $executable = $Command[0]
     $arguments = @($Command | Select-Object -Skip 1)
     $previousPreference = $ErrorActionPreference
+    $previousOutputEncoding = [Console]::OutputEncoding
+    $previousPythonEncoding = $env:PYTHONIOENCODING
     # En Windows PowerShell 5.1, la salida de error de un programa llega como
     # registros de error: con Stop, la orden se cortaría a medias.
     $ErrorActionPreference = "Continue"
+    # Con la salida redirigida, Python escribe en cp1252 y PowerShell la lee
+    # con otra codificación: los títulos llegaban a la evidencia con "?" y
+    # rayas como U+FFFD. En UTF-8 por los dos lados, la evidencia los conserva.
+    $env:PYTHONIOENCODING = "utf-8"
+    [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false
     try {
         & $executable @arguments 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath $log | Out-Host
         $code = $LASTEXITCODE
     }
     finally {
         $ErrorActionPreference = $previousPreference
+        [Console]::OutputEncoding = $previousOutputEncoding
+        $env:PYTHONIOENCODING = $previousPythonEncoding
     }
     $codes = Join-Path (Get-ValidationEvidenceDirectory) "exit-codes.txt"
     Add-Content -Encoding utf8 $codes "$(Get-Date -Format o) ${Name}: $code ($log)"

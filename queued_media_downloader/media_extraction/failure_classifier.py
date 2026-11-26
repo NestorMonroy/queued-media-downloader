@@ -28,6 +28,11 @@ YT_DLP_ERROR_PREFIX = "ERROR: "
 # Texto con el que yt-dlp avisa de que el formato pedido no se ofrece
 # (YoutubeDL.process_video_result; igual en 2026.10.26 y 2026.11.23).
 FORMAT_UNAVAILABLE_MESSAGE = "Requested format is not available"
+# Texto con el que el downloader HTTP de yt-dlp informa que agotó los
+# reintentos (FileDownloader.report_retry; igual en 2026.10.26 y 2026.11.23).
+# Ese DownloadError se lanza fuera de un bloque except y no guarda el error
+# original; el downloader solo reintenta fallos de red y respuestas 5xx.
+DOWNLOAD_RETRIES_EXHAUSTED_MESSAGE = "[download] Got error: "
 # yt-dlp añade la causa al final del mensaje: " (caused by <HTTPError 404: ...>)".
 CAUSE_SUFFIX = re.compile(r" \(caused by .*\)$")
 
@@ -77,6 +82,10 @@ def _failure_reason_of(error: Exception) -> FailureReason:
         return FailureReason.POSTPROCESSING
     if isinstance(error, OSError):
         return FailureReason.FILESYSTEM
+    if isinstance(error, DownloadError) and DOWNLOAD_RETRIES_EXHAUSTED_MESSAGE in str(
+        error
+    ):
+        return FailureReason.NETWORK
     return FailureReason.UNKNOWN
 
 
