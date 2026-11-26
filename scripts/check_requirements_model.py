@@ -32,7 +32,10 @@ Comprobaciones (todas con stop-on-error en el código de salida):
    «parcial»; no asigna flujos implementados ni inexistentes. Su columna Alcance
    separa lo aprobado de las propuestas: «Aceptado» para los flujos aprobados de
    un caso aceptado y «Propuesto» para los flujos marcados como propuestos y para
-   todos los de un candidato. La tabla entre
+   todos los de un candidato, salvo que el campo Estado del candidato diga
+   «Horizonte: futuro»: entonces sus flujos tienen el alcance «Futuro» y la
+   unidad «Roadmap», que solo admite ese alcance (objetivos fuera de E3). La
+   tabla entre
    <!-- e3-dependencies:start --> y <!-- e3-dependencies:end --> define las
    unidades y sus dependencias, sin ciclos ni unidades desconocidas, y cada
    unidad cubre algún flujo. Cada regla de «Reglas aprobadas sin implementar» y
@@ -41,6 +44,10 @@ Comprobaciones (todas con stop-on-error en el código de salida):
    propuesto) aparece en el plan. Una regla propuesta no está también entre las
    aprobadas y un requisito propuesto no se declara aceptado. Es consistencia
    documental, no evidencia de implementación.
+6. Registro de decisiones (doc/project-management/governance.md): la tabla entre
+   <!-- decision-register:start --> y <!-- decision-register:end --> tiene una
+   fila por cada decisión D-n definida en el análisis de requisitos, y solo
+   esas, sin repetir, con un estado de DECISION_STATES.
 
 Estado de un flujo (alternativo o de excepción): la marca explícita
 `[estado: IMPLEMENTACIÓN]`, con los sufijos opcionales `; condicionado` y
@@ -87,7 +94,13 @@ REALIZATION_TABLE = "uc-realization"
 APPLICABILITY_TABLE = "platform-applicability"
 DESIGN_STATES = ("Realizado", "Definido", "Condicionado", "Candidato")
 CANDIDATE_DESIGN_STATE = "Candidato"
-SCOPES = ("Aceptado", "Propuesto")
+SCOPES = ("Aceptado", "Propuesto", "Futuro")
+FUTURE_SCOPE = "Futuro"
+ROADMAP_UNIT = "Roadmap"
+FUTURE_HORIZON = re.compile(r"Horizonte: futuro", re.IGNORECASE)
+GOVERNANCE = Path("doc/project-management/governance.md")
+DECISION_TABLE = "decision-register"
+DECISION_STATES = ("Aprobada", "Pendiente", "Sustituida")
 PLATFORM_STATES = (
     "Disponible",
     "Parcial",
@@ -145,6 +158,7 @@ class UseCaseCounts:
     pending_flows: list[str] = field(default_factory=list)
     proposed_flows: list[str] = field(default_factory=list)
     basic_pending: bool = False
+    future: bool = False
     rules: int = 0
     supplementary: int = 0
     criteria: int = 0
@@ -300,6 +314,7 @@ def use_case_counts(path: Path) -> UseCaseCounts:
             else:
                 counts.pending_flows.append(flow)
     status_line = re.search(r"^- \*\*Estado:\*\* ([^\n]+)", text, re.MULTILINE)
+    counts.future = bool(status_line and FUTURE_HORIZON.search(status_line.group(1)))
     counts.basic_pending = bool(
         status_line
         and re.search(r"Implementación: (ausente|parcial)", status_line.group(1))
@@ -573,6 +588,11 @@ def flow_coverage_problems(
             problems.append(f"{PLAN}: {identifier} uses unknown unit {unit}")
         if scope not in SCOPES:
             problems.append(f"{PLAN}: {identifier} has unknown scope {scope!r}")
+        elif (scope == FUTURE_SCOPE) != (unit == ROADMAP_UNIT):
+            problems.append(
+                f"{PLAN}: {identifier} uses scope {FUTURE_SCOPE} only with unit"
+                f" {ROADMAP_UNIT}"
+            )
         names = [flow.strip() for flow in flows.split(",")]
         assigned.setdefault(identifier, Counter()).update(names)
         scopes.update({(identifier, name): scope for name in names})
@@ -591,14 +611,14 @@ def flow_coverage_problems(
 
 def expected_scopes(use_case: UseCaseCounts) -> dict[str, str]:
     """Alcance que debe tener en el plan cada flujo pendiente de un caso de uso."""
-    candidate = use_case.definition == "candidato"
-    expected = {
-        flow: "Propuesto" if candidate else "Aceptado"
-        for flow in use_case.pending_flows
-    }
+    if use_case.definition != "candidato":
+        own = "Aceptado"
+    else:
+        own = FUTURE_SCOPE if use_case.future else "Propuesto"
+    expected = dict.fromkeys(use_case.pending_flows, own)
     expected |= dict.fromkeys(use_case.proposed_flows, "Propuesto")
     if use_case.basic_pending:
-        expected[BASIC_FLOW] = "Propuesto" if candidate else "Aceptado"
+        expected[BASIC_FLOW] = own
     return expected
 
 
@@ -696,6 +716,38 @@ def proposal_problems(root: Path) -> list[str]:
     return problems
 
 
+def decision_problems(root: Path) -> list[str]:
+    """Registro de decisiones completo, sin repeticiones y con estados conocidos."""
+    path = root / GOVERNANCE
+    if not path.exists():
+        return [f"{GOVERNANCE}: missing"]
+    rows = marked_rows(path.read_text("utf-8"), DECISION_TABLE)
+    if rows is None:
+        return [f"{GOVERNANCE}: missing {DECISION_TABLE} markers"]
+    found = Counter(row[0] for row in rows)
+    defined = {f"D-{value}" for value in defined_identifiers(root)["D"]}
+    return [
+        *(
+            f"{GOVERNANCE}: {name} is not registered"
+            for name in sorted(defined - set(found))
+        ),
+        *(
+            f"{GOVERNANCE}: {name} is not a defined decision"
+            for name in sorted(set(found) - defined)
+        ),
+        *(
+            f"{GOVERNANCE}: {name} is registered twice"
+            for name, count in sorted(found.items())
+            if count > 1
+        ),
+        *(
+            f"{GOVERNANCE}: {row[0]} has unknown state {row[-1]!r}"
+            for row in rows
+            if row[-1] not in DECISION_STATES
+        ),
+    ]
+
+
 def main() -> int:
     """Ejecuta las verificaciones y devuelve 0 si el modelo es coherente."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -711,6 +763,7 @@ def main() -> int:
         *matrix_problems(root, write=arguments.write),
         *design_problems(root),
         *plan_problems(root),
+        *decision_problems(root),
     ]
     for problem in problems:
         print(problem)

@@ -68,6 +68,15 @@ PLAN = """# Plan
 
 
 PLAN_PATH = "doc/project-management/iteration-plan-e3.md"
+GOVERNANCE_PATH = "doc/project-management/governance.md"
+GOVERNANCE = """# Gobierno
+
+<!-- decision-register:start -->
+| D | Decisión | Responsabilidad | Estado |
+|---|---|---|---|
+| D-1 | Algo | Requisitos | Aprobada |
+<!-- decision-register:end -->
+"""
 
 
 def load_script() -> ModuleType:
@@ -113,6 +122,7 @@ def repository(tmp_path: Path) -> Path:
     )
     write(tmp_path / "doc/design/03-target-architecture-and-evolution.md", DESIGN)
     write(tmp_path / "doc/project-management/iteration-plan-e3.md", PLAN)
+    write(tmp_path / GOVERNANCE_PATH, GOVERNANCE)
     subprocess.run(
         [sys.executable, str(SCRIPT), "--root", str(tmp_path), "--write"],
         check=True,
@@ -513,3 +523,95 @@ def test_a_proposal_is_not_mixed_with_approved_requirements(repository: Path) ->
     assert "BR-01 is both proposed and approved" in result.stdout
     assert "SUP-F01 is both proposed and accepted" in result.stdout
     assert "BR-02 has no strategy in the plan" in result.stdout
+
+
+FUTURE_CANDIDATE = CANDIDATE.replace(
+    "Implementación: ausente.", "Horizonte: futuro. Implementación: ausente."
+)
+FUTURE_DESIGN = DESIGN.replace(
+    "<!-- uc-realization:end -->",
+    "| UC-02 | Propuesta | Candidato |\n<!-- uc-realization:end -->",
+).replace(
+    "<!-- platform-applicability:end -->",
+    "| UC-02 | Futura | Futura | Futura | Futura | — |\n"
+    "<!-- platform-applicability:end -->",
+)
+ROADMAP_UNIT = "| Roadmap | — | — | Fuera de E3 |\n<!-- e3-dependencies:end -->"
+
+
+def test_a_future_candidate_is_planned_in_the_roadmap(repository: Path) -> None:
+    write(repository / "doc/requirements/use-cases/uc-02-future.md", FUTURE_CANDIDATE)
+    write(repository / DESIGN_PATH, FUTURE_DESIGN)
+    subprocess.run(
+        [sys.executable, str(SCRIPT), "--root", str(repository), "--write"],
+        check=False,
+        capture_output=True,
+        timeout=60,
+    )
+    plan = PLAN.replace("<!-- e3-dependencies:end -->", ROADMAP_UNIT)
+
+    write(
+        repository / PLAN_PATH,
+        plan.replace(
+            "<!-- e3-coverage:end -->",
+            "| UC-02 | Básico, A1 | Roadmap | Propuesto |\n<!-- e3-coverage:end -->",
+        ),
+    )
+    result = check(repository).stdout
+    assert "UC-02 Básico must have scope Futuro" in result
+    assert "UC-02 uses scope Futuro only with unit Roadmap" in result
+
+    write(
+        repository / PLAN_PATH,
+        plan.replace(
+            "<!-- e3-coverage:end -->",
+            "| UC-02 | Básico, A1 | U2 | Futuro |\n<!-- e3-coverage:end -->",
+        ),
+    )
+    assert "UC-02 uses scope Futuro only with unit Roadmap" in check(repository).stdout
+
+    write(
+        repository / PLAN_PATH,
+        plan.replace(
+            "<!-- e3-coverage:end -->",
+            "| UC-02 | Básico, A1 | Roadmap | Futuro |\n<!-- e3-coverage:end -->",
+        ),
+    )
+    assert check(repository).returncode == 0
+
+
+@pytest.mark.parametrize(
+    ("row", "message"),
+    [
+        ("", "D-1 is not registered"),
+        (
+            "| D-1 | Algo | Requisitos | Aprobada |\n"
+            "| D-1 | Algo | Requisitos | Aprobada |",
+            "D-1 is registered twice",
+        ),
+        (
+            "| D-1 | Algo | Requisitos | Aprobada |\n"
+            "| D-9 | Otra | Requisitos | Aprobada |",
+            "D-9 is not a defined decision",
+        ),
+        ("| D-1 | Algo | Requisitos | Quizá |", "D-1 has unknown state 'Quizá'"),
+    ],
+)
+def test_the_decision_register_lists_each_decision_once_with_a_known_state(
+    repository: Path, row: str, message: str
+) -> None:
+    write(
+        repository / GOVERNANCE_PATH,
+        GOVERNANCE.replace("| D-1 | Algo | Requisitos | Aprobada |", row),
+    )
+
+    result = check(repository)
+
+    assert result.returncode == 1
+    assert message in result.stdout
+
+
+def test_a_missing_decision_register_fails(repository: Path) -> None:
+    (repository / GOVERNANCE_PATH).unlink()
+
+    assert "governance.md: missing" in check(repository).stdout
