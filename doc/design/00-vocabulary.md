@@ -41,6 +41,18 @@ Este documento fija **una palabra por concepto** (principio #8). Todo identifica
 | **access profile** (perfil de acceso) | Referencia con nombre a credenciales legítimas del User para ciertos sitios; nunca contiene el secreto ([UC-19](../requirements/use-cases/uc-19-manage-authorized-access-profiles.md), BR-34) | account, login, cookie profile |
 | **execution window** (ventana de ejecución) | Intervalo programado en el que `run` puede enviar jobs ([UC-21](../requirements/use-cases/uc-21-schedule-queue-execution.md), BR-37) | schedule (a secas, para la ventana), cron |
 | **program client** (programa cliente) | Otro programa que usa el producto sin interpretar texto para personas (SUP-I01) | bot, agent (a secas) |
+| **media identity** (identidad del contenido) | El contenido remoto: `MediaKey` (extractor + id) | content id |
+| **request identity** (identidad de la petición) | El resultado pedido: media key + especificación normalizada del resultado, con la versión del algoritmo ([BR-32](../requirements/business-rules.md), D-16). No incluye opciones operativas ni el acceso | request hash, fingerprint |
+| **job identity** (identidad del job) | El trabajo persistido: `job_id` + `created_at`, el **owner token** | id (a secas) |
+| **result identity** (identidad del resultado) | Cada resultado de un job: su tipo y su ruta final normalizada (D-15) | output (a secas, para un archivo) |
+| **ownership evidence** (evidencia de propiedad) | Reclamación con el owner token y registro del resultado; no prueba la integridad ([BR-31](../requirements/business-rules.md)) | lock |
+| **output** | Término del código (`output_path`, output claim): el archivo final de un job. En los requisitos, «resultado» | — |
+| **effective configuration** (configuración efectiva) | Valores que resultan de la precedencia argumentos > variables de entorno > `config.toml` > valores por defecto, con el perfil para las opciones de resultado (§13.17 del análisis) | settings (a secas) |
+| **verification** (verificación) | Comprobar la conformidad con un contrato: pruebas automáticas o UC-26 sobre un resultado | validation |
+| **validation** (validación) | Demostrar que el producto sirve a su propósito en la plataforma objetivo (campaña en Windows) | verification |
+| **backup** / **restore** (respaldo, restauración) | Copia coherente del estado de una instalación y su recuperación en ella (UC-23) | export (no traslada) |
+| **export** / **import** (exportar, importar) | Traslado versionado de jobs, historial y preferencias a otra instalación, sin propiedad ni secretos (UC-22) | backup (no restaura) |
+| **cancel** frente a **pause**, **stop** e **interruption** | Cancelar: el User ya no quiere el job. Pausar: dejar de enviar jobs, conservando la intención. Detener: terminar `run` de forma ordenada. Interrumpir: `Ctrl+C`, sin intención persistida (D-6) | — |
 | **pause** (pausa) | Estado de la cola en el que `run` no envía jobs; no cambia el estado de ningún job ([UC-14](../requirements/use-cases/uc-14-control-queue-execution.md)) | suspend, stop, hold |
 | **business rule** (regla de negocio) | Directiva declarativa que gobierna una decisión de un caso de uso, en el [catálogo](../requirements/business-rules.md) | policy (a secas), setting |
 | **site wait** (espera del sitio) | Plazo durante el que `run` no envía jobs de un sitio bloqueado; se guarda en la base de datos | cooldown, ban, pause (a secas) |

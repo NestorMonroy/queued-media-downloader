@@ -9,7 +9,8 @@
 - **Relación:** se ejecuta como un job de la cola (`run`), como UC-03, porque hace peticiones al sitio y puede ir en lote. UC-03 A16 cubre el caso de descargar esta información junto con el contenido. UC-15 la muestra en pantalla sin guardar nada.
 - **Prioridad:** media
 - **Significativo para la arquitectura:** sí: un job cuyo resultado no es un archivo multimedia (D-15)
-- **Estado:** propuesto; no implementado. Depende de D-15 y D-16.
+- **Estado:** aceptado (Responsable, 2026-11-26). Implementación: ausente. Condiciones técnicas: D-15 y D-16.
+- **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
 - **Origen:**
   - **yt-dlp:** `skip_download` con `writesubtitles`, `writeautomaticsub`, `subtitleslangs`, `convertsubtitles`, `writedescription`, `writeinfojson`, `writethumbnail`.
   - **YTDownload-2026:** archivos complementarios por defecto y su guía, «modo A».
@@ -34,23 +35,23 @@ No incluye:
 2. El sistema crea el job con esas opciones (UC-02).
 3. `run` envía el job; el worker extrae la información sin descargar el contenido.
 4. El worker escribe cada resultado pedido junto al nombre del contenido, con la reclamación de ese nombre (BR-31).
-5. El job termina `COMPLETED` cuando están todos sus resultados obligatorios ([BR-30](../business-rules.md)). Para cada resultado pedido que el sitio no ofrece, se registra que no estaba disponible.
+5. El job termina `COMPLETED` cuando están todos sus resultados obligatorios ([BR-30](../business-rules.md)). Todo resultado pedido es obligatorio salvo que el User lo marque como opcional (`--subtitles es,en?`, BR-29). Para cada opcional que el sitio no ofrece, se registra que no estaba disponible.
 
 ## Flujos alternativos
 
-- **A1. Subtítulos automáticos:** solo si se piden; se marcan como automáticos en el nombre o en los metadatos.
-- **A2. Idioma no disponible:** es un resultado opcional ausente; el job termina `COMPLETED` con un aviso (BR-30).
-- **A3. Conversión de subtítulos** (`--subtitle-format srt`): ffmpeg convierte; si falla, se conserva el original y se avisa.
-- **A4. Playlist o canal:** se expande como UC-04; cada entrada es un job de información.
-- **A5. Contenido ya descargado por otro job:** los archivos complementarios se escriben junto a él solo si el job que lo descargó es del mismo User y su nombre no está reclamado por otro (BR-31); si no, en una carpeta propia.
-- **A6. Condición externa:** UC-11 o UC-17.
-- **A7. Comentarios** (propuesto, prioridad baja): `--comments` con `getcomments` de yt-dlp. Puede requerir muchas peticiones al sitio, así que se aplica el ritmo de BR-02 y se avisa. Es un resultado opcional.
-- **A8. Reglas de metadatos** (propuesto, prioridad baja): derivar o corregir metadatos (por ejemplo, artista y título a partir del título) con la sintaxis de `parse-metadata` de yt-dlp, validada y sin ejecutar comandos; también disponible en UC-02 A7.
+- **A1. Subtítulos automáticos:** `[estado: ausente]` solo si se piden; se marcan como automáticos en el nombre o en los metadatos.
+- **A2. Idioma no disponible:** `[estado: ausente]` si se pidió como opcional, queda registrado como ausente y el job termina `COMPLETED`; si es obligatorio, el job falla con `UNAVAILABLE` para ese resultado y conserva los demás (BR-30).
+- **A3. Conversión de subtítulos** `[estado: ausente]` (`--subtitle-format srt`): ffmpeg convierte; si falla, se conserva el original y se avisa.
+- **A4. Playlist o canal:** `[estado: ausente]` se expande como UC-04; cada entrada es un job de información.
+- **A5. Contenido ya descargado por otro job:** `[estado: ausente]` los archivos complementarios se escriben junto a él solo si el job que lo descargó es del mismo User y su nombre no está reclamado por otro (BR-31); si no, en una carpeta propia.
+- **A6. Condición externa:** `[estado: ausente]` UC-11 o UC-17.
+- **A7. Comentarios** `[estado: ausente]` (prioridad baja): `--comments` con `getcomments` de yt-dlp. Puede requerir muchas peticiones al sitio, así que se aplica el ritmo de BR-02 y se avisa. Es un resultado opcional.
+- **A8. Reglas de metadatos** `[estado: ausente]` (prioridad baja): derivar o corregir metadatos (por ejemplo, artista y título a partir del título) con la sintaxis de `parse-metadata` de yt-dlp, validada y sin ejecutar comandos; también disponible en UC-02 A7.
 
 ## Excepciones
 
-- **E1. El contenido no existe o no está disponible:** como UC-03 A2.
-- **E2. No se pidió ninguna información:** código `2`.
+- **E1. El contenido no existe o no está disponible:** `[estado: ausente]` como UC-03 A2.
+- **E2. No se pidió ninguna información:** `[estado: ausente]` código `2`.
 
 ## Garantías
 
@@ -67,7 +68,7 @@ No incluye:
 ## Criterios de aceptación
 
 1. Un job de información nunca escribe un archivo multimedia.
-2. Un idioma de subtítulos que no existe no hace fallar el job, pero se informa.
+2. Un idioma pedido como opcional que no existe deja el job `COMPLETED` con la ausencia registrada; uno obligatorio deja el job `FAILED` y conserva los demás resultados.
 3. Cada archivo escrito está registrado como resultado del job y protegido por su reclamación.
 
 ## Escenarios de prueba

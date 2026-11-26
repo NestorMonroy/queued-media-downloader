@@ -1,7 +1,7 @@
 # Modelo de casos de uso
 
 - **Fase RUP:** Elaboración
-- **Versión:** 2.1 (2026-11-26; reconciliación de exclusiones: UC-18 a UC-28). 2.0 (2026-11-26; consolidación del modelo de requisitos). La 1.1 era la auditoría previa a la aceptación (T49).
+- **Versión:** 3.0 (2026-11-26; **alcance de los 26 casos de uso aceptado por el Responsable**). 2.1: reconciliación de exclusiones, UC-18 a UC-28. 2.0 (2026-11-26; consolidación del modelo de requisitos). La 1.1 era la auditoría previa a la aceptación (T49).
 - **Términos:** [vocabulario](../design/00-vocabulary.md)
 - **Razonamiento y evidencia:** [análisis de requisitos](requirements-analysis.md)
 
@@ -41,7 +41,7 @@ En UC-01, UC-02, UC-04 y UC-06, los flujos que terminan sin el objetivo (configu
 
 ## 3. Diagrama
 
-Los casos de uso significativos para la arquitectura están resaltados; los propuestos tienen el borde discontinuo, y los condicionados a una decisión, el borde ámbar. El Programa cliente no aparece: usa los mismos casos de uso que el User.
+Todos los casos de uso tienen el alcance aceptado. Los significativos para la arquitectura están resaltados; los que aún no están implementados tienen el borde discontinuo. El Programa cliente no aparece: usa los mismos casos de uso que el User.
 
 ```mermaid
 ---
@@ -133,11 +133,9 @@ flowchart LR
     classDef optional fill:#1e293b,stroke:#475569,stroke-dasharray:4 3,color:#94a3b8
     classDef focalProposed fill:#1e3a8a,stroke:#60a5fa,stroke-dasharray:4 3,color:#f1f5f9
     classDef external fill:#172032,stroke:#475569,color:#94a3b8
-    classDef conditioned fill:#1c1400,stroke:#fbbf24,stroke-dasharray:4 3,color:#fde68a
     class InstallAndVerify,DownloadSingleMedia,ExpandPlaylist,CancelJob,RecoverAndResume,EnqueueMedia focal
     class PreserveJobs,PreserveStorage focalProposed
-    class InspectMedia,ControlQueue,DiagnosticReport,DownloadProfiles,Configuration,Schedule,ExportImport,BackupRestore,SupplementaryInfo,ManageMedia,VerifyMedia optional
-    class AccessProfiles,Dependencies,Notifications conditioned
+    class InspectMedia,ControlQueue,DiagnosticReport,DownloadProfiles,Configuration,Schedule,ExportImport,BackupRestore,SupplementaryInfo,ManageMedia,VerifyMedia,AccessProfiles,Dependencies,Notifications optional
     class MediaSite,Maintainer external
 ```
 
@@ -149,34 +147,34 @@ UC-03 y UC-04 los inicia el User con `run`; se ejecutan dentro de la cola y se c
 
 | ID | Caso de uso | Comando | Arquitectura | Estado | Especificación |
 |---|---|---|---|---|---|
-| UC-01 | Instalar y verificar el entorno | `uv sync`, `diagnose` | **Sí:** uv, ffmpeg incluido, Git LFS, deno, Windows | Implementado; A9 a A11 propuestos | [Completa](use-cases/uc-01-install-and-verify-environment.md) |
-| UC-02 | Encolar contenido | `enqueue` | **Sí:** entrada a la cola, SQLite, varios procesos | Implementado; A5, A6, A8 y A9 propuestos, A7 pendiente de cualificación | [Completa](use-cases/uc-02-enqueue-media.md) |
-| UC-03 | Descargar un contenido | `run` | **Sí:** recorre toda la arquitectura | Implementado; A11 a A14 propuestos; A15 divergente; E1 sin cualificar | [Completa](use-cases/uc-03-download-single-media.md) |
-| UC-04 | Expandir una playlist | `run` | **Sí:** iteración perezosa, duplicados, jobs hijos | Implementado; A6 parcial; A8 propuesto | [Completa](use-cases/uc-04-expand-playlist.md) |
-| UC-05 | Cancelar un job | `cancel` | **Sí:** cancelación cooperativa y forzada, árbol de procesos | Implementado | [Completa](use-cases/uc-05-cancel-job.md) |
-| UC-06 | Recuperar la cola y reanudar descargas | `run` | **Sí:** recuperación, `.part`, `selected_format_id` | Implementado; A4 parcial (R-25); A10 y A11 propuestos | [Completa](use-cases/uc-06-recover-and-resume-queue.md) |
-| UC-07 | Reintentar un job | `retry` | No | Implementado | [Completa](use-cases/uc-07-retry-job.md) |
-| UC-08 | Listar jobs | `list` | No | Implementado; A4 a A6 propuestos | [Completa](use-cases/uc-08-list-jobs.md) |
-| UC-09 | Ver un job | `show` | No | Implementado; A2 parcial; A4 y A5 propuestos | [Completa](use-cases/uc-09-show-job.md) |
-| UC-10 | Purgar jobs terminados | `purge` | No | Implementado; A5 propuesto | [Completa](use-cases/uc-10-purge-finished-jobs.md) |
-| UC-11 | Preservar los jobs ante condiciones externas (sitio y conectividad) | `run` | **Sí:** `JobDeferred`, control de admisión | Propuesto; política pendiente (D-2) | [Completa](use-cases/uc-11-preserve-jobs-under-external-conditions.md) |
+| UC-01 | Instalar y verificar el entorno | `uv sync`, `diagnose` | **Sí:** uv, ffmpeg incluido, Git LFS, deno, Windows | Aceptado; implementado; A9 a A11 sin implementar | [Completa](use-cases/uc-01-install-and-verify-environment.md) |
+| UC-02 | Encolar contenido | `enqueue` | **Sí:** entrada a la cola, SQLite, varios procesos | Aceptado; implementado; A5 a A14 sin implementar, A14 con condición técnica (R-29) | [Completa](use-cases/uc-02-enqueue-media.md) |
+| UC-03 | Descargar un contenido | `run` | **Sí:** recorre toda la arquitectura | Aceptado; implementado; A1 divergente (D-16), A2 defecto (R-28), A15 divergente (R-24), ampliaciones sin implementar | [Completa](use-cases/uc-03-download-single-media.md) |
+| UC-04 | Expandir una playlist | `run` | **Sí:** iteración perezosa, duplicados, jobs hijos | Aceptado; implementado; A6 parcial, A8 sin implementar | [Completa](use-cases/uc-04-expand-playlist.md) |
+| UC-05 | Cancelar un job | `cancel` | **Sí:** cancelación cooperativa y forzada, árbol de procesos | Aceptado; implementado; A9 sin implementar | [Completa](use-cases/uc-05-cancel-job.md) |
+| UC-06 | Recuperar la cola y reanudar descargas | `run` | **Sí:** recuperación, `.part`, `selected_format_id` | Aceptado; implementado; A4 defecto (R-25), A10 a A12 sin implementar | [Completa](use-cases/uc-06-recover-and-resume-queue.md) |
+| UC-07 | Reintentar un job | `retry` | No | Aceptado; implementado; A8 sin implementar | [Completa](use-cases/uc-07-retry-job.md) |
+| UC-08 | Listar jobs | `list` | No | Aceptado; implementado; A4 a A6 sin implementar | [Completa](use-cases/uc-08-list-jobs.md) |
+| UC-09 | Ver un job | `show` | No | Aceptado; implementado; A2 parcial, A4 a A6 sin implementar | [Completa](use-cases/uc-09-show-job.md) |
+| UC-10 | Purgar jobs terminados | `purge` | No | Aceptado; implementado; A5 y A6 sin implementar | [Completa](use-cases/uc-10-purge-finished-jobs.md) |
+| UC-11 | Preservar los jobs ante condiciones externas (sitio y conectividad) | `run` | **Sí:** `JobDeferred`, control de admisión | Aceptado; sin implementar (D-2, D-3, D-4) | [Completa](use-cases/uc-11-preserve-jobs-under-external-conditions.md) |
 | UC-12 | — | — | — | **Retirado** (2026-11-26): consolidado en UC-11 A2; el id no se reutiliza | — |
 | UC-13 | — | — | — | **Retirado** (2026-11-26): consolidado en UC-11 A3 y después sustituido por UC-17, que es una responsabilidad nueva y mayor, no su reactivación ([análisis, §13.9](requirements-analysis.md#139-gobierno-de-los-identificadores)); el id no se reutiliza | — |
-| UC-14 | Controlar temporalmente la ejecución de la cola | `pause`, `resume`, `stop` | No | Propuesto (D-6) | [Completa](use-cases/uc-14-control-queue-execution.md) |
-| UC-15 | Consultar un contenido antes de encolarlo | `inspect` | No | Propuesto | [Completa](use-cases/uc-15-inspect-media-before-enqueueing.md) |
-| UC-16 | Preparar un informe de diagnóstico | `report` | No | Propuesto | [Completa](use-cases/uc-16-prepare-a-diagnostic-report.md) |
-| UC-17 | Preservar el trabajo ante fallos de almacenamiento | `run` | **Sí:** control de admisión por unidad, identificación en la cadena de causas | Propuesto; D-5 y D-12 pendientes | [Completa](use-cases/uc-17-preserve-work-under-storage-failures.md) |
-| UC-18 | Administrar perfiles de descarga | `profile` | No | Propuesto (D-19) | [Completa](use-cases/uc-18-manage-download-profiles.md) |
-| UC-19 | Administrar perfiles de acceso autorizado | `access` | **Sí:** ciclo de vida de credenciales | Condicionado (D-1, D-7) | [Completa](use-cases/uc-19-manage-authorized-access-profiles.md) |
-| UC-20 | Administrar la configuración | `config` | No | Propuesto; parcial (carga y validación existen) | [Completa](use-cases/uc-20-manage-application-configuration.md) |
-| UC-21 | Programar la ejecución de la cola | `schedule` | Según D-13 | Propuesto (D-13) | [Completa](use-cases/uc-21-schedule-queue-execution.md) |
-| UC-22 | Exportar e importar la cola y el historial | `export`, `import` | **Sí:** formato de intercambio | Propuesto | [Completa](use-cases/uc-22-export-and-import-queue.md) |
-| UC-23 | Respaldar y restaurar la cola | `backup`, `restore` | **Sí:** copia coherente | Propuesto; parcial (UC-06 A8) | [Completa](use-cases/uc-23-back-up-and-restore-queue.md) |
-| UC-24 | Obtener la información complementaria de un contenido | `enqueue --info-only` | **Sí:** job sin resultado multimedia | Propuesto (D-15, D-16) | [Completa](use-cases/uc-24-retrieve-supplementary-media-information.md) |
-| UC-25 | Administrar los resultados descargados | `files` | **Sí:** registro de resultados | Propuesto; parcial (`output_path`) | [Completa](use-cases/uc-25-manage-downloaded-media.md) |
-| UC-26 | Verificar los resultados descargados | `verify` | No | Propuesto (D-9, D-15) | [Completa](use-cases/uc-26-verify-downloaded-media.md) |
-| UC-27 | Administrar las dependencias multimedia | `dependencies` | Según D-8 | Condicionado (D-8); sustituye al candidato «Actualizar yt-dlp» | [Completa](use-cases/uc-27-manage-media-dependencies.md) |
-| UC-28 | Recibir avisos operativos | — (`run`) | No | Condicionado (D-14) | [Completa](use-cases/uc-28-receive-operational-notifications.md) |
+| UC-14 | Controlar temporalmente la ejecución de la cola | `pause`, `resume`, `stop` | No | Aceptado; sin implementar (D-6) | [Completa](use-cases/uc-14-control-queue-execution.md) |
+| UC-15 | Consultar un contenido antes de encolarlo | `inspect` | No | Aceptado; sin implementar | [Completa](use-cases/uc-15-inspect-media-before-enqueueing.md) |
+| UC-16 | Preparar un informe de diagnóstico | `report` | No | Aceptado; sin implementar | [Completa](use-cases/uc-16-prepare-a-diagnostic-report.md) |
+| UC-17 | Preservar el trabajo ante fallos de almacenamiento | `run` | **Sí:** control de admisión por unidad, identificación en la cadena de causas | Aceptado; sin implementar (D-5, D-12) | [Completa](use-cases/uc-17-preserve-work-under-storage-failures.md) |
+| UC-18 | Administrar perfiles de descarga | `profile` | No | Aceptado; sin implementar (D-19, cualificada) | [Completa](use-cases/uc-18-manage-download-profiles.md) |
+| UC-19 | Administrar perfiles de acceso autorizado | `access` | **Sí:** ciclo de vida de credenciales | Aceptado; sin implementar (D-1, D-7); A10 con condición técnica | [Completa](use-cases/uc-19-manage-authorized-access-profiles.md) |
+| UC-20 | Administrar la configuración | `config` | No | Aceptado; parcial | [Completa](use-cases/uc-20-manage-application-configuration.md) |
+| UC-21 | Programar la ejecución de la cola | `schedule` | Según D-13 | Aceptado; sin implementar (D-13) | [Completa](use-cases/uc-21-schedule-queue-execution.md) |
+| UC-22 | Exportar e importar la cola y el historial | `export`, `import` | **Sí:** formato de intercambio | Aceptado; sin implementar (D-16, D-21) | [Completa](use-cases/uc-22-export-and-import-queue.md) |
+| UC-23 | Respaldar y restaurar la cola | `backup`, `restore` | **Sí:** copia coherente | Aceptado; parcial (UC-06 A8) | [Completa](use-cases/uc-23-back-up-and-restore-queue.md) |
+| UC-24 | Obtener la información complementaria de un contenido | `enqueue --info-only` | **Sí:** job sin resultado multimedia | Aceptado; sin implementar (D-15, D-16) | [Completa](use-cases/uc-24-retrieve-supplementary-media-information.md) |
+| UC-25 | Administrar los resultados descargados | `files` | **Sí:** registro de resultados | Aceptado; parcial (`output_path`) | [Completa](use-cases/uc-25-manage-downloaded-media.md) |
+| UC-26 | Verificar los resultados descargados | `verify` | No | Aceptado; sin implementar (D-9, D-15) | [Completa](use-cases/uc-26-verify-downloaded-media.md) |
+| UC-27 | Administrar las dependencias multimedia | `dependencies` | Según D-8 | Aceptado; sin implementar (D-8); A2 con condición técnica | [Completa](use-cases/uc-27-manage-media-dependencies.md) |
+| UC-28 | Recibir avisos operativos | — (`run`) | No | Aceptado; sin implementar (D-14) | [Completa](use-cases/uc-28-receive-operational-notifications.md) |
 
 ### 4.1 Capacidades transversales
 
@@ -204,53 +202,51 @@ El inventario de exclusiones y su cualificación están en el [análisis, §12](
 
 La genera `scripts/check_requirements_model.py` a partir de las especificaciones, y `scripts/run_checks.py` comprueba que esté al día. No se edita a mano.
 
-Tiene dos dimensiones:
-- **Definición** del caso de uso (campo Estado): aprobado, propuesto, condicionado o retirado (los retirados no tienen especificación).
-- **Estado de cada flujo:**
-  - **implementado:** existe y lo cubren las pruebas automáticas;
-  - **parcial:** existe con una brecha o limitación documentada;
-  - **defecto:** un escenario vigente se comporta mal;
-  - **divergente:** incumple el reparto de responsabilidades documentado;
-  - **propuesto** o **condicionado:** ausente en el código;
-  - **sin cualificar.**
+Tiene tres dimensiones independientes:
+- **Definición** del caso de uso (campo Estado): aceptado o retirado. Los 26 vigentes están aceptados (Responsable, 2026-11-26). Los retirados no tienen especificación y no aparecen.
+- **Implementación de cada flujo** (marca `[estado: …]` del flujo):
+  - **implementado**, **parcial** (con una brecha documentada), **defecto** (un escenario vigente se comporta mal), **divergente** (contradice una resolución o el reparto documentado), **ausente** (aceptado sin implementar) o **sin cualificar**;
+  - «condicionado» se suma cuando el flujo tiene una condición técnica pendiente (columna Condicionados).
+- **Verificación** del caso de uso: «prueba en desarrollo» si sus escenarios implementados tienen pruebas automáticas; si no, «sin evidencia». Ninguno está validado en Windows sobre el commit actual.
 
-Las reglas para leer las marcas de cada flujo están en el docstring del script.
+Que un requisito esté aceptado o especificado no significa que esté implementado. El número de casos de uso aceptados no es un porcentaje de avance.
 
 <!-- completeness-matrix:start -->
-| UC | Definición | Alternativos | Excepciones | Implementado | Parcial | Defecto | Divergente | Propuesto | Condicionado | Sin cualificar | Reglas | Suplementarios | Criterios | Necesita Windows |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| UC-01 | aprobado | 11 | 0 | 8 | 0 | 0 | 0 | 3 | 0 | 0 | 3 | 7 | 3 | Sí |
-| UC-02 | aprobado | 14 | 0 | 4 | 0 | 0 | 0 | 9 | 1 | 0 | 5 | 3 | 3 | No |
-| UC-03 | aprobado | 19 | 2 | 9 | 1 | 1 | 1 | 8 | 0 | 1 | 12 | 9 | 4 | Sí |
-| UC-04 | aprobado | 8 | 0 | 6 | 1 | 0 | 0 | 1 | 0 | 0 | 2 | 2 | 3 | No |
-| UC-05 | aprobado | 9 | 3 | 11 | 0 | 0 | 0 | 1 | 0 | 0 | 2 | 2 | 4 | Sí |
-| UC-06 | aprobado | 12 | 0 | 8 | 0 | 1 | 0 | 3 | 0 | 0 | 7 | 3 | 4 | Sí |
-| UC-07 | aprobado | 8 | 3 | 10 | 0 | 0 | 0 | 1 | 0 | 0 | 4 | 2 | 3 | Sí |
-| UC-08 | aprobado | 6 | 3 | 6 | 0 | 0 | 0 | 3 | 0 | 0 | 0 | 2 | 2 | Sí |
-| UC-09 | aprobado | 6 | 2 | 4 | 1 | 0 | 0 | 3 | 0 | 0 | 1 | 3 | 2 | Sí |
-| UC-10 | aprobado | 6 | 2 | 6 | 0 | 0 | 0 | 2 | 0 | 0 | 2 | 1 | 3 | Sí |
-| UC-11 | propuesto | 9 | 4 | 0 | 0 | 0 | 0 | 13 | 0 | 0 | 10 | 7 | 5 | Sí |
-| UC-14 | propuesto | 6 | 1 | 0 | 0 | 0 | 0 | 7 | 0 | 0 | 2 | 2 | 4 | Sí |
-| UC-15 | propuesto | 6 | 3 | 0 | 0 | 0 | 0 | 9 | 0 | 0 | 3 | 3 | 3 | Sí |
-| UC-16 | propuesto | 2 | 1 | 0 | 0 | 0 | 0 | 3 | 0 | 0 | 0 | 3 | 3 | No |
-| UC-17 | propuesto | 10 | 2 | 0 | 0 | 0 | 0 | 12 | 0 | 0 | 8 | 4 | 5 | Sí |
-| UC-18 | propuesto | 7 | 3 | 0 | 0 | 0 | 0 | 10 | 0 | 0 | 2 | 2 | 3 | No |
-| UC-19 | condicionado | 10 | 3 | 0 | 0 | 0 | 0 | 0 | 13 | 0 | 3 | 3 | 4 | Sí |
-| UC-20 | propuesto | 7 | 2 | 0 | 0 | 0 | 0 | 9 | 0 | 0 | 3 | 4 | 3 | No |
-| UC-21 | propuesto | 9 | 2 | 0 | 0 | 0 | 0 | 11 | 0 | 0 | 3 | 2 | 3 | Sí |
-| UC-22 | propuesto | 6 | 3 | 0 | 0 | 0 | 0 | 9 | 0 | 0 | 4 | 2 | 4 | No |
-| UC-23 | propuesto | 3 | 3 | 0 | 0 | 0 | 0 | 6 | 0 | 0 | 4 | 2 | 3 | No |
-| UC-24 | propuesto | 8 | 2 | 0 | 0 | 0 | 0 | 10 | 0 | 0 | 5 | 3 | 3 | Sí |
-| UC-25 | propuesto | 6 | 3 | 0 | 0 | 0 | 0 | 9 | 0 | 0 | 4 | 2 | 3 | Sí |
-| UC-26 | propuesto | 4 | 2 | 0 | 0 | 0 | 0 | 6 | 0 | 0 | 5 | 2 | 3 | Sí |
-| UC-27 | condicionado | 5 | 2 | 0 | 0 | 0 | 0 | 0 | 7 | 0 | 0 | 3 | 3 | No |
-| UC-28 | condicionado | 4 | 1 | 0 | 0 | 0 | 0 | 0 | 5 | 0 | 2 | 3 | 2 | Sí |
-| **Total** | **26** | **201** | **52** | **72** | **3** | **2** | **1** | **148** | **26** | **1** | — | — | **85** | **18 de 26** |
+| UC | Definición | Alternativos | Excepciones | Implementado | Parcial | Defecto | Divergente | Ausente | Sin cualificar | Condicionados | Reglas | Suplementarios | Criterios | Verificación | Necesita Windows |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| UC-01 | aceptado | 11 | 0 | 8 | 0 | 0 | 0 | 3 | 0 | 0 | 3 | 7 | 3 | prueba en desarrollo | Sí |
+| UC-02 | aceptado | 14 | 0 | 4 | 0 | 0 | 0 | 10 | 0 | 1 | 5 | 3 | 3 | prueba en desarrollo | No |
+| UC-03 | aceptado | 19 | 2 | 9 | 0 | 1 | 2 | 9 | 0 | 1 | 15 | 9 | 4 | prueba en desarrollo | Sí |
+| UC-04 | aceptado | 8 | 0 | 6 | 1 | 0 | 0 | 1 | 0 | 0 | 2 | 2 | 3 | prueba en desarrollo | No |
+| UC-05 | aceptado | 9 | 3 | 11 | 0 | 0 | 0 | 1 | 0 | 0 | 2 | 2 | 4 | prueba en desarrollo | Sí |
+| UC-06 | aceptado | 12 | 0 | 8 | 0 | 1 | 0 | 3 | 0 | 0 | 9 | 3 | 4 | prueba en desarrollo | Sí |
+| UC-07 | aceptado | 8 | 3 | 10 | 0 | 0 | 0 | 1 | 0 | 0 | 4 | 2 | 3 | prueba en desarrollo | Sí |
+| UC-08 | aceptado | 6 | 3 | 6 | 0 | 0 | 0 | 3 | 0 | 0 | 0 | 2 | 2 | prueba en desarrollo | Sí |
+| UC-09 | aceptado | 6 | 2 | 4 | 1 | 0 | 0 | 3 | 0 | 0 | 1 | 3 | 2 | prueba en desarrollo | Sí |
+| UC-10 | aceptado | 6 | 2 | 6 | 0 | 0 | 0 | 2 | 0 | 0 | 2 | 1 | 3 | prueba en desarrollo | Sí |
+| UC-11 | aceptado | 9 | 4 | 0 | 0 | 0 | 0 | 13 | 0 | 0 | 10 | 7 | 5 | sin evidencia | Sí |
+| UC-14 | aceptado | 6 | 1 | 0 | 0 | 0 | 0 | 7 | 0 | 0 | 2 | 2 | 4 | sin evidencia | Sí |
+| UC-15 | aceptado | 6 | 3 | 0 | 0 | 0 | 0 | 9 | 0 | 0 | 3 | 3 | 3 | sin evidencia | Sí |
+| UC-16 | aceptado | 2 | 1 | 0 | 0 | 0 | 0 | 3 | 0 | 0 | 0 | 3 | 3 | sin evidencia | No |
+| UC-17 | aceptado | 10 | 2 | 0 | 0 | 0 | 0 | 12 | 0 | 0 | 8 | 4 | 5 | sin evidencia | Sí |
+| UC-18 | aceptado | 7 | 3 | 0 | 0 | 0 | 0 | 10 | 0 | 0 | 2 | 2 | 3 | sin evidencia | No |
+| UC-19 | aceptado | 10 | 3 | 0 | 0 | 0 | 0 | 13 | 0 | 1 | 3 | 3 | 4 | sin evidencia | Sí |
+| UC-20 | aceptado | 7 | 2 | 0 | 0 | 0 | 0 | 9 | 0 | 0 | 3 | 4 | 3 | sin evidencia | No |
+| UC-21 | aceptado | 9 | 2 | 0 | 0 | 0 | 0 | 11 | 0 | 0 | 3 | 2 | 3 | sin evidencia | Sí |
+| UC-22 | aceptado | 6 | 3 | 0 | 0 | 0 | 0 | 9 | 0 | 0 | 4 | 2 | 4 | sin evidencia | No |
+| UC-23 | aceptado | 3 | 3 | 0 | 0 | 0 | 0 | 6 | 0 | 0 | 4 | 2 | 3 | sin evidencia | No |
+| UC-24 | aceptado | 8 | 2 | 0 | 0 | 0 | 0 | 10 | 0 | 0 | 5 | 3 | 3 | sin evidencia | Sí |
+| UC-25 | aceptado | 6 | 3 | 0 | 0 | 0 | 0 | 9 | 0 | 0 | 4 | 2 | 3 | sin evidencia | Sí |
+| UC-26 | aceptado | 4 | 2 | 0 | 0 | 0 | 0 | 6 | 0 | 0 | 5 | 2 | 3 | sin evidencia | Sí |
+| UC-27 | aceptado | 5 | 2 | 0 | 0 | 0 | 0 | 7 | 0 | 1 | 0 | 3 | 3 | sin evidencia | No |
+| UC-28 | aceptado | 4 | 1 | 0 | 0 | 0 | 0 | 5 | 0 | 0 | 2 | 3 | 2 | sin evidencia | Sí |
+| **Total** | **26** | **201** | **52** | **72** | **2** | **2** | **2** | **175** | **0** | **4** | — | — | **85** | **10 con prueba** | **18 de 26** |
 <!-- completeness-matrix:end -->
 
 Las columnas Reglas y Suplementarios cuentan los identificadores distintos que enlaza cada caso de uso.
 
 **Verificación:**
+- **Herramienta documental:** `scripts/check_requirements_model.py` comprueba la coherencia y los conteos, no la conformidad funcional.
 - **Implementados:** pasan las pruebas automáticas de `main` (verificados en desarrollo).
 - **Correcciones T42-D7 a D12:** esperan su confirmación en Windows ([plan de E2, §8](../project-management/iteration-plan-e2.md#8-matriz-de-casos-de-uso-implementación-y-validación)).
 - **Propuestos y condicionados:** no están implementados ni validados.

@@ -6,7 +6,8 @@
 - **Relación:** UC-06 A8 describe hoy la restauración de una copia antigua hecha a mano; este caso de uso la convierte en una operación del producto. UC-22 resuelve el traslado entre instalaciones.
 - **Prioridad:** baja
 - **Significativo para la arquitectura:** sí: copia coherente con `run` activo y restauración con el owner token
-- **Estado:** propuesto; parcial: el owner token y las reclamaciones ya protegen una base de datos restaurada (UC-06 A8), pero no existe el respaldo coherente.
+- **Estado:** aceptado (Responsable, 2026-11-26). Implementación: parcial (el owner token y las reclamaciones protegen una base de datos restaurada, UC-06 A8; el respaldo no existe). Condiciones técnicas: D-9 y D-21.
+- **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
 - **Origen:**
   - **Revisión de las restricciones de UC-06 A8:** restaurar a mano es una limitación, no una necesidad satisfecha.
   - **SQLite:** su API de copia de seguridad hace una copia coherente con la base de datos abierta.
@@ -27,15 +28,15 @@
 
 ## Flujos alternativos
 
-- **A1. Restaurar:** `restore COPIA` comprueba la integridad y la versión de esquema, renombra el estado actual como copia, coloca la restaurada y aplica las migraciones pendientes.
-- **A2. Primer `run` tras restaurar:** UC-06, con A8 (base de datos restaurada) y A11 (evidencia local). Un job `COMPLETED` cuyo archivo no está sigue UC-06 A9. Ningún archivo se toma como propio sin su reclamación con el owner token correspondiente.
-- **A3. Respaldo periódico** (si D-13 lo programa): retención de las últimas `N` copias, sin un valor fijado.
+- **A1. Restaurar:** `[estado: ausente]` `restore COPIA` comprueba la integridad y la versión de esquema, renombra el estado actual como copia, coloca la restaurada y aplica las migraciones pendientes.
+- **A2. Primer `run` tras restaurar:** `[estado: ausente]` UC-06, con A8 (base de datos restaurada) y A11 (evidencia local). Un job `COMPLETED` cuyo archivo no está sigue UC-06 A9. Ningún archivo se toma como propio sin su reclamación con el owner token correspondiente.
+- **A3. Respaldo periódico** `[estado: ausente]` (si D-13 lo programa): retención de las últimas `N` copias, sin un valor fijado.
 
 ## Excepciones
 
-- **E1. Copia dañada o de un esquema más nuevo que el programa:** no se restaura nada; código `2`.
-- **E2. `run` en ejecución durante `restore`:** se rechaza; código `1`.
-- **E3. Sin espacio para la copia:** UC-17; no queda ninguna copia a medias.
+- **E1. Copia dañada o de un esquema más nuevo que el programa:** `[estado: ausente]` no se restaura nada; código `2`.
+- **E2. `run` en ejecución durante `restore`:** `[estado: ausente]` se rechaza; código `1`.
+- **E3. Sin espacio para la copia:** `[estado: ausente]` UC-17; no queda ninguna copia a medias.
 
 ## Garantías
 

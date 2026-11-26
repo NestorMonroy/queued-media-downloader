@@ -7,7 +7,8 @@
 - **Relación:** extiende UC-03 (pasos 4 a 11) y UC-04 (paso 2). UC-03 funciona sin esta extensión: hoy cada job afectado falla con su motivo (UC-03 A2).
 - **Prioridad:** alta
 - **Significativo para la arquitectura:** sí (nuevo job event, control de admisión en la planificación de `run`)
-- **Estado:** propuesto; **no implementado**. La política de continuidad está **pendiente de decisión** (D-2, D-4 y D-5 del [análisis de requisitos](../requirements-analysis.md#9-decisiones-pendientes)).
+- **Estado:** aceptado (Responsable, 2026-11-26). Implementación: ausente. Condiciones técnicas: D-2, D-3 y D-4 ([análisis, §9](../requirements-analysis.md#9-decisiones)).
+- **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
 - **Origen:** campaña T42 (corte de red en el paso 5.2; bloqueo antibots desde el paso 5.7) y las referencias del [análisis, §6](../requirements-analysis.md#6-hallazgos-de-las-referencias-y-su-incorporación).
 - **Historial:** consolidó los antiguos UC-11 (bloqueo del sitio), UC-12 (red) y UC-13 (disco), propuestos y retirados el 2026-11-26. El mismo día, el almacenamiento salió de nuevo a UC-17: sus condiciones no se reducen a esperar. Los tres seguían el mismo flujo: reconocer, aplazar, no insistir, informar y continuar. Solo diferían en la regla que los reconoce y en su alcance, que aquí son escenarios.
 
@@ -35,22 +36,22 @@ Cada condición tiene su alcance ([catálogo de condiciones de fallo](../failure
 
 ## Flujos alternativos
 
-- **A1. Restricción del sitio** (paso 1): comprobación antibots, captcha o límite de peticiones (BR-01). Solo se dejan de enviar los jobs de ese sitio, y el sitio no recibe más peticiones hasta que la política lo permita (BR-03). El ritmo de peticiones por sitio ([BR-02](../business-rules.md)) es la prevención previa.
-- **A2. Corte de conectividad** (paso 1): no se resuelve el nombre, se rechaza la conexión o la red no es alcanzable (BR-05). Se dejan de enviar todos los jobs. La conectividad se comprueba sin hacer peticiones HTTP al sitio ([BR-06](../business-rules.md)). Al despertar de una suspensión, la conexión puede tardar unos segundos en volver (SUP-R08).
-- **A3. Almacenamiento:** las condiciones del almacenamiento (espacio, cuota, permisos, disponibilidad, uso compartido) no se tratan aquí: ver [UC-17](uc-17-preserve-work-under-storage-failures.md).
-- **A4. Varios jobs encuentran la condición a la vez** (paso 1): cada job se aplaza; el aviso es uno por condición.
-- **A5. La condición llega durante la expansión de una playlist:** la expansión se aplaza. Las entradas ya creadas se conservan y, al continuar, se encuentran como duplicadas (UC-04 A2).
-- **A6. La condición llega a mitad de una descarga o de una unión:** como el paso 2. La descarga continúa desde sus parciales y la unión se repite.
-- **A7. `run` termina o se cierra con jobs aplazados:** siguen `PENDING`. Si la restricción de un sitio tiene un plazo guardado, el siguiente `run` lo respeta (UC-06 A10).
-- **A8. El User cancela un job aplazado:** como UC-05 A1.
-- **A9. El User quiere continuar antes de tiempo** (solo si D-2 elige esperar): `run --ignore-site-waits` descarta los plazos guardados.
+- **A1. Restricción del sitio** `[estado: ausente]` (paso 1): comprobación antibots, captcha o límite de peticiones (BR-01). Solo se dejan de enviar los jobs de ese sitio, y el sitio no recibe más peticiones hasta que la política lo permita (BR-03). El ritmo de peticiones por sitio ([BR-02](../business-rules.md)) es la prevención previa.
+- **A2. Corte de conectividad** `[estado: ausente]` (paso 1): no se resuelve el nombre, se rechaza la conexión o la red no es alcanzable (BR-05). Se dejan de enviar todos los jobs. La conectividad se comprueba sin hacer peticiones HTTP al sitio ([BR-06](../business-rules.md)). Al despertar de una suspensión, la conexión puede tardar unos segundos en volver (SUP-R08).
+- **A3. Almacenamiento:** `[estado: ausente]` las condiciones del almacenamiento (espacio, cuota, permisos, disponibilidad, uso compartido) no se tratan aquí: ver [UC-17](uc-17-preserve-work-under-storage-failures.md).
+- **A4. Varios jobs encuentran la condición a la vez** `[estado: ausente]` (paso 1): cada job se aplaza; el aviso es uno por condición.
+- **A5. La condición llega durante la expansión de una playlist:** `[estado: ausente]` la expansión se aplaza. Las entradas ya creadas se conservan y, al continuar, se encuentran como duplicadas (UC-04 A2).
+- **A6. La condición llega a mitad de una descarga o de una unión:** `[estado: ausente]` como el paso 2. La descarga continúa desde sus parciales y la unión se repite.
+- **A7. `run` termina o se cierra con jobs aplazados:** `[estado: ausente]` siguen `PENDING`. Si la restricción de un sitio tiene un plazo guardado, el siguiente `run` lo respeta (UC-06 A10).
+- **A8. El User cancela un job aplazado:** `[estado: ausente]` como UC-05 A1.
+- **A9. El User quiere continuar antes de tiempo** `[estado: ausente]` (solo si D-2 elige esperar): `run --ignore-site-waits` descarta los plazos guardados.
 
 ## Excepciones
 
-- **E1. La respuesta no se reconoce como condición externa:** el job sigue UC-03 A2 y falla con su motivo. Si una actualización de yt-dlp cambia los textos, las pruebas de contrato de BR-01 lo detectan (SUP-S01).
-- **E2. El contenido pide una cuenta por sí mismo** (privado, con restricción de edad, solo para miembros): no es una restricción del sitio (BR-01) y falla con `UNAVAILABLE`.
-- **E3. Se llena la unidad del estado:** ver UC-17 E1.
-- **E4. Configuración no válida:** `run` informa de la clave y del valor y termina con código `2` sin enviar jobs.
+- **E1. La respuesta no se reconoce como condición externa:** `[estado: ausente]` el job sigue UC-03 A2 y falla con su motivo. Si una actualización de yt-dlp cambia los textos, las pruebas de contrato de BR-01 lo detectan (SUP-S01).
+- **E2. El contenido pide una cuenta por sí mismo** `[estado: ausente]` (privado, con restricción de edad, solo para miembros): no es una restricción del sitio (BR-01) y falla con `UNAVAILABLE`.
+- **E3. Se llena la unidad del estado:** `[estado: ausente]` ver UC-17 E1.
+- **E4. Configuración no válida:** `[estado: ausente]` `run` informa de la clave y del valor y termina con código `2` sin enviar jobs.
 
 ## Garantías
 

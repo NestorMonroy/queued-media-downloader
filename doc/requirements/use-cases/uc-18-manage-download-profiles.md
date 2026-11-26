@@ -7,7 +7,8 @@
 - **Relación:** UC-02 lo usa al encolar (A13); UC-20 guarda los perfiles en la configuración.
 - **Prioridad:** media
 - **Significativo para la arquitectura:** no; las download options ya se fijan por job al encolar
-- **Estado:** propuesto; no implementado. Decisión D-19 pendiente.
+- **Estado:** aceptado (Responsable, 2026-11-26). Implementación: ausente. Condición técnica: D-19.
+- **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
 - **Origen:**
   - **Seal:** preferencias globales y por descarga; plantillas de comandos, con la necesidad de reutilizar sin ejecutar comandos arbitrarios.
   - **Kannagi:** preajustes con `--config-location`.
@@ -32,19 +33,19 @@ Un perfil es un conjunto con nombre de download options válidas, guardado en la
 
 ## Flujos alternativos
 
-- **A1. Consultar:** `profile list` muestra los nombres y cuál es el predeterminado; `profile show NOMBRE`, su contenido efectivo.
-- **A2. Modificar:** `profile set NOMBRE ...`. Los jobs ya encolados no cambian: conservan la copia que recibieron (BR-33). El sistema informa de cuántos jobs pendientes usaron la versión anterior.
-- **A3. Duplicar:** `profile copy ORIGEN DESTINO`.
-- **A4. Eliminar:** `profile delete NOMBRE`. Los jobs ya encolados no cambian. Si es el predeterminado, se pide confirmación y se vuelve a los valores de la configuración.
-- **A5. Predeterminado:** `profile default NOMBRE`. `enqueue` sin `--profile` lo usa.
-- **A6. Opciones explícitas sobre un perfil:** en `enqueue --profile NOMBRE --format SELECTOR`, la opción explícita prevalece sobre la del perfil, con la misma precedencia que la configuración (SUP-F03).
-- **A7. Exportar e importar perfiles:** dentro de la configuración (UC-20 A5).
+- **A1. Consultar:** `[estado: ausente]` `profile list` muestra los nombres y cuál es el predeterminado; `profile show NOMBRE`, su contenido efectivo.
+- **A2. Modificar:** `[estado: ausente]` `profile set NOMBRE ...`. Los jobs ya encolados no cambian: conservan la copia que recibieron (BR-33). El sistema informa de cuántos jobs pendientes usaron la versión anterior.
+- **A3. Duplicar:** `[estado: ausente]` `profile copy ORIGEN DESTINO`.
+- **A4. Eliminar:** `[estado: ausente]` `profile delete NOMBRE`. Los jobs ya encolados no cambian. Si es el predeterminado, se pide confirmación y se vuelve a los valores de la configuración.
+- **A5. Predeterminado:** `[estado: ausente]` `profile default NOMBRE`. `enqueue` sin `--profile` lo usa.
+- **A6. Opciones explícitas sobre un perfil:** `[estado: ausente]` en `enqueue --profile NOMBRE --format SELECTOR`, la opción explícita prevalece sobre la del perfil, con la misma precedencia que la configuración (SUP-F03).
+- **A7. Exportar e importar perfiles:** `[estado: ausente]` dentro de la configuración (UC-20 A5).
 
 ## Excepciones
 
-- **E1. Combinación incompatible** (por ejemplo, solo audio con subtítulos incrustados, o recodificar sin un codificador disponible, D-18): el sistema nombra las opciones en conflicto y no guarda nada; código `2`.
-- **E2. Perfil inexistente:** código `2`.
-- **E3. Perfil que referencia un perfil de acceso inexistente o deshabilitado** (UC-19): se guarda con un aviso; `enqueue` falla con código `2` mientras no exista.
+- **E1. Combinación incompatible** `[estado: ausente]` (por ejemplo, solo audio con subtítulos incrustados, o recodificar sin un codificador disponible, D-18): el sistema nombra las opciones en conflicto y no guarda nada; código `2`.
+- **E2. Perfil inexistente:** `[estado: ausente]` código `2`.
+- **E3. Perfil que referencia un perfil de acceso inexistente o deshabilitado** `[estado: ausente]` (UC-19): se guarda con un aviso; `enqueue` falla con código `2` mientras no exista.
 
 ## Garantías
 

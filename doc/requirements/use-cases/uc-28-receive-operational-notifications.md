@@ -9,7 +9,8 @@
   - complementa el resumen de consola de UC-03, que solo ve quien mira la consola.
 - **Prioridad:** baja
 - **Significativo para la arquitectura:** no; un consumidor más de los job events
-- **Estado:** condicionado a D-14; no implementado.
+- **Estado:** aceptado (Responsable, 2026-11-26). Implementación: ausente. Condición técnica: D-14.
+- **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
 - **Origen:**
   - **Seal:** notificaciones por descarga y al terminar.
   - **Revisión de exclusiones:** «`run` ya resume al terminar» no avisa a quien no mira la consola ([análisis, §12](../requirements-analysis.md#12-reconciliación-de-exclusiones)).
@@ -32,14 +33,14 @@ No incluye correo, servicios de mensajería ni ejecutar comandos del User al rec
 
 ## Flujos alternativos
 
-- **A1. Varios jobs fallan por la misma causa:** un solo aviso con el número de jobs.
-- **A2. Suceso que requiere intervención** (un acceso caducado, una carpeta inválida, un extractor desactualizado): el aviso incluye la acción.
-- **A3. Preferencias:** `config set notifications ...` (UC-20); por omisión, solo la cola terminada y lo que requiere intervención.
-- **A4. Archivo de sucesos** (si D-14 lo incluye): una línea JSON por suceso en la carpeta de estado, para otros programas (SUP-I01).
+- **A1. Varios jobs fallan por la misma causa:** `[estado: ausente]` un solo aviso con el número de jobs.
+- **A2. Suceso que requiere intervención** `[estado: ausente]` (un acceso caducado, una carpeta inválida, un extractor desactualizado): el aviso incluye la acción.
+- **A3. Preferencias:** `[estado: ausente]` `config set notifications ...` (UC-20); por omisión, solo la cola terminada y lo que requiere intervención.
+- **A4. Archivo de sucesos** `[estado: ausente]` (si D-14 lo incluye): una línea JSON por suceso en la carpeta de estado, para otros programas (SUP-I01).
 
 ## Excepciones
 
-- **E1. El mecanismo de avisos no está disponible** (por ejemplo, sesión sin escritorio): el aviso se escribe en el log y la cola sigue.
+- **E1. El mecanismo de avisos no está disponible** `[estado: ausente]` (por ejemplo, sesión sin escritorio): el aviso se escribe en el log y la cola sigue.
 
 ## Garantías
 

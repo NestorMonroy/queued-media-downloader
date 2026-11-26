@@ -1,12 +1,34 @@
 # Lista de riesgos
 
-- **Versión:** 1.5 (reconciliación de exclusiones, 2026-11-26)
+- **Versión:** 1.6 (alcance aceptado y resolución de decisiones, 2026-11-26)
 - **Fecha:** 2026-11-26
 - **Revisión:** al cerrar cada iteración
 
 Exposición = probabilidad × impacto (1 bajo, 2 medio, 3 alto). Las iteraciones de Elaboración se ordenan para neutralizar primero los riesgos de mayor exposición.
 
 **Estados:** *Abierto*; *Mitigado (Linux)*: la mitigación está implementada y probada en el entorno de desarrollo, pero el riesgo depende de Windows y **no se cierra** sin la campaña T42; *Mitigado*: neutralizado con evidencia en la plataforma objetivo; *Cerrado*: corregido y sin dependencia de Windows. Ningún riesgo que dependa de Windows se cierra con evidencia de Linux.
+
+**Clasificación** (instrucción 2.2.0; complementa el estado):
+- **riesgo identificado**;
+- **riesgo con tratamiento propuesto:** hay una alternativa recomendada, sin implementar;
+- **mitigado:** implementado y con evidencia;
+- **verificado:** con evidencia en Windows;
+- **defecto:** un escenario vigente se comporta mal;
+- **divergencia:** el comportamiento contradice el reparto documentado o una resolución aprobada;
+- **restricción.**
+
+Un riesgo no se elimina porque exista una solución documentada; un defecto no se corrige con un cambio documental.
+
+| Riesgo | Clasificación | Escenario | Criterio de regresión o de cierre |
+|---|---|---|---|
+| R-14 | Mitigado (Linux) | UC-03 A7, UC-06 A7 y A8 | Pruebas `windows` del paso 11 de la campaña; con N resultados, R-30 |
+| R-24 | **Divergencia** | UC-03 A15 | Experimento `retries` convertido en prueba de contrato: dos 503 seguidos y el job se completa; con más fallos que reintentos, `NETWORK` con «Giving up after» |
+| R-25 | **Defecto** | UC-06 A4 | Con el sitio inaccesible, un job con todos sus resultados publicados y verificados termina `COMPLETED` sin peticiones; uno truncado no |
+| R-26 | Riesgo con tratamiento propuesto (D-10, BR-24) | UC-03 E1 | Un directo programado no ocupa un worker; uno activo respeta la duración máxima |
+| R-27 | Riesgo identificado; tratamiento propuesto (BR-34, BR-35, SUP-SEC01) | UC-19 | Prueba con valores trampa en todas las salidas |
+| R-28 | **Defecto** | UC-03 A2 | Los cinco caminos del catálogo de condiciones (§3.2) terminan con la condición de almacenamiento correcta |
+| R-29 | Riesgo; **pendiente de decisión excepcional del Responsable** (patentes) | UC-03 A19 | Decisión sobre recodificar a H.264 o HEVC |
+| R-30 | Riesgo con tratamiento propuesto (D-15, BR-31) | UC-03 A16 y A17, UC-24 | Todo archivo escrito por un job tiene su reclamación |
 
 | ID | Riesgo | Prob. | Impacto | Exposición | Mitigación | Iteración | Estado |
 |---|---|---|---|---|---|---|---|

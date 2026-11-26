@@ -7,7 +7,8 @@
 - **Relación:** UC-09 muestra un job y ahora también sus resultados (A6). UC-10 purga registros y nunca archivos; su A5 (purgar con archivos) pasa a este caso de uso. UC-26 verifica la integridad.
 - **Prioridad:** media
 - **Significativo para la arquitectura:** sí: requiere el registro de los resultados de cada job (D-15)
-- **Estado:** propuesto; parcial: hoy solo existe `output_path`, un archivo por job (UC-09).
+- **Estado:** aceptado (Responsable, 2026-11-26). Implementación: parcial (`output_path`, un archivo por job). Condiciones técnicas: D-11 y D-15.
+- **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
 - **Origen:**
   - **YTDownload-2026:** rutas de los archivos de cada descarga y borrado con vista previa; también un antiejemplo: borra la carpeta entera.
   - **Seal y VoiceStudio:** borrar el registro con su archivo.
@@ -36,18 +37,18 @@ Un archivo no es del producto solo por estar en la carpeta de descargas.
 
 ## Flujos alternativos
 
-- **A1. Eliminar resultados propios:** `files delete ID...` muestra primero una vista previa (archivos, tamaño total y archivos que no se tocarán) sin borrar nada, y borra solo con `--confirm`. Solo borra resultados propios ([BR-31](../business-rules.md)); nunca carpetas enteras ni archivos sin reclamación. Al terminar, suelta las reclamaciones de lo borrado y el job conserva su registro con los resultados marcados como eliminados.
-- **A2. Purgar y borrar:** `purge --delete-files` aplica A1 a los jobs purgados (UC-10 A5).
-- **A3. Resultados que faltan:** `files --missing`. El sistema no cambia el estado del job: un job `COMPLETED` cuyo archivo falta sigue `COMPLETED` (UC-06 A9) y se informa.
-- **A4. Archivos huérfanos:** `files --orphans` lista los archivos de la carpeta de descargas que tienen reclamación pero ningún job, y las reclamaciones sin archivo. Solo informa. Soltar las reclamaciones de jobs inexistentes ya lo hace `purge` (UC-10).
-- **A5. Espacio usado:** `files --usage`.
-- **A6. Mover resultados:** **pendiente de cualificación**. Moverlos rompe la relación ruta–reclamación; solo se admitiría moviendo juntos el archivo y su reclamación y actualizando el registro (D-11).
+- **A1. Eliminar resultados propios:** `[estado: ausente]` `files delete ID...` muestra primero una vista previa (archivos, tamaño total y archivos que no se tocarán) sin borrar nada, y borra solo con `--confirm`. Solo borra resultados propios ([BR-31](../business-rules.md)); nunca carpetas enteras ni archivos sin reclamación. Al terminar, suelta las reclamaciones de lo borrado y el job conserva su registro con los resultados marcados como eliminados.
+- **A2. Purgar y borrar:** `[estado: ausente]` `purge --delete-files` aplica A1 a los jobs purgados (UC-10 A5).
+- **A3. Resultados que faltan:** `[estado: ausente]` `files --missing`. El sistema no cambia el estado del job: un job `COMPLETED` cuyo archivo falta sigue `COMPLETED` (UC-06 A9) y se informa.
+- **A4. Archivos huérfanos:** `[estado: ausente]` `files --orphans` lista los archivos de la carpeta de descargas que tienen reclamación pero ningún job, y las reclamaciones sin archivo. Solo informa. Soltar las reclamaciones de jobs inexistentes ya lo hace `purge` (UC-10).
+- **A5. Espacio usado:** `[estado: ausente]` `files --usage`.
+- **A6. Mover resultados:** `[estado: ausente]` **pendiente de cualificación**. Moverlos rompe la relación ruta–reclamación; solo se admitiría moviendo juntos el archivo y su reclamación y actualizando el registro (D-11).
 
 ## Excepciones
 
-- **E1. El archivo cambió desde que el job lo escribió** (tamaño distinto, o la verificación de UC-26 falla): A1 no lo borra sin `--force`; la vista previa lo indica.
-- **E2. El borrado falla** (archivo abierto, permisos): se informa por archivo y se sigue con los demás; las reclamaciones de lo no borrado se conservan.
-- **E3. Job inexistente:** código `2`.
+- **E1. El archivo cambió desde que el job lo escribió** `[estado: ausente]` (tamaño distinto, o la verificación de UC-26 falla): A1 no lo borra sin `--force`; la vista previa lo indica.
+- **E2. El borrado falla** `[estado: ausente]` (archivo abierto, permisos): se informa por archivo y se sigue con los demás; las reclamaciones de lo no borrado se conservan.
+- **E3. Job inexistente:** `[estado: ausente]` código `2`.
 
 ## Garantías
 

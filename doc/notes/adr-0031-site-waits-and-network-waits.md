@@ -1,6 +1,7 @@
 # ADR-0031: Aplazar jobs ante condiciones externas, sin PO Tokens ni evasión
 
-- **Estado:** Propuesta. Pendiente de las decisiones D-1 a D-7 del Responsable ([análisis, §9](../requirements/requirements-analysis.md#9-decisiones-pendientes)); ninguna alternativa está aprobada.
+- **Estado:** Propuesta. Pendiente de las decisiones D-1 a D-7 del Responsable ([análisis, §9](../requirements/requirements-analysis.md#9-decisiones)); ninguna alternativa está aprobada.
+- **Revisión (instrucción 2.2.0, 2026-11-26):** las resoluciones funcionales aprobadas sustituyen los valores fijos de esta propuesta: no hay una espera universal de 60 minutos (D-4, BR-03, que respeta `Retry-After`, BR-41) ni un ritmo universal de 10 a 20 s (D-3, BR-02). La continuidad es selectiva y configurable (D-2); un aplazamiento no exige un estado ni una tabla de espera nuevos antes de cualificar el diseño (§14 del análisis). Esta propuesta se revisará en Analysis and Design.
 - **Revisión:** 2026-11-26, consolidación del modelo de requisitos. Los antiguos UC-11, UC-12 y UC-13 son ahora un solo caso de uso, UC-11, con un escenario por condición. La espera dentro de `run` (puntos 4 y 5) es solo una de las alternativas de D-2; si D-2 elige la detención ordenada, la tabla `site_waits` no hace falta.
 - **Fecha:** 2026-11-26
 - **Origen:** campaña T42 (corte de red del paso 5.2, bloqueo antibots de YouTube desde el paso 5.7); [análisis](../requirements/requirements-analysis.md)

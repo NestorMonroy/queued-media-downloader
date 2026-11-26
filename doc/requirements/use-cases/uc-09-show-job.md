@@ -4,7 +4,8 @@
 - **Actor principal:** User
 - **Disparador:** el User quiere saber dónde quedó un contenido o por qué falló.
 - **Significativo para la arquitectura:** no
-- **Estado:** aprobado; implementado. Los escenarios propuestos, condicionados, divergentes y defectuosos se marcan en cada flujo y se cuentan en la [matriz de completitud](../use-case-model.md#5-matriz-de-completitud).
+- **Estado:** aceptado (Responsable, 2026-11-26). Implementación: los escenarios originales están implementados; los ampliados tienen la marca de su flujo (`[estado: …]`).
+- **Verificación:** escenarios implementados verificados con pruebas automáticas en desarrollo (Linux); validación en Windows pendiente de la campaña integral (T42 parcial, [registro](../../project-management/t42-results.md)).
 - **Diseño:** [Parte 2, §4.1](../../design/02-flows-persistence-and-operations.md#41-comandos)
 
 ## Breve descripción
@@ -23,17 +24,17 @@ El User consulta todos los datos de un job; si es una playlist, también el resu
 
 ## Flujos alternativos
 
-- **A1. Hijo de una playlist** (paso 3): añade la playlist padre, su título y el índice de la entrada.
-- **A2. Job fallido** (paso 3): añade la failure reason y su mensaje. **Parcial:** indicar si reintentar puede servir y qué acción lo resuelve está propuesto (SUP-U05).
-- **A3. Playlist** (paso 3): añade el número de hijos por estado.
-- **A4. Job aplazado** (propuesto, UC-11 y UC-14): añade el sitio, la condición externa, la hora de continuación si la hay y el número de aplazamientos seguidos, o que la cola está en pausa.
-- **A5. Salida para otros programas** (paso 3; propuesto, prioridad media): `show ID --json`, como UC-08 A5.
-- **A6. Resultados del job** (paso 3; propuesto, D-15): añade la lista de resultados registrados (tipo, ruta y si existe); el detalle y la administración están en UC-25.
+- **A1. Hijo de una playlist** `[estado: implementado]` (paso 3): añade la playlist padre, su título y el índice de la entrada.
+- **A2. Job fallido** `[estado: parcial]` (paso 3): añade la failure reason y su mensaje. **Parcial:** indicar si reintentar puede servir y qué acción lo resuelve está aceptado sin implementar (SUP-U05).
+- **A3. Playlist** `[estado: implementado]` (paso 3): añade el número de hijos por estado.
+- **A4. Job aplazado** `[estado: ausente]` (UC-11 y UC-14): añade el sitio, la condición externa, la hora de continuación si la hay y el número de aplazamientos seguidos, o que la cola está en pausa.
+- **A5. Salida para otros programas** `[estado: ausente]` (paso 3; prioridad media): `show ID --json`, como UC-08 A5.
+- **A6. Resultados del job** `[estado: ausente]` (paso 3; D-15): añade la lista de resultados registrados (tipo, ruta y si existe); el detalle y la administración están en UC-25.
 
 ## Excepciones
 
-- **E1. Job inexistente:** código `2`.
-- **E2. Base de datos ocupada al abrirla o migrarla:** `the queue is busy`, código `1`.
+- **E1. Job inexistente:** `[estado: implementado]` código `2`.
+- **E2. Base de datos ocupada al abrirla o migrarla:** `[estado: implementado]` `the queue is busy`, código `1`.
 
 ## Postcondiciones
 
@@ -42,7 +43,7 @@ El User consulta todos los datos de un job; si es una playlist, también el resu
 ## Reglas, requisitos y restricciones asociados
 
 - **Reglas:** BR-22.
-- **Requisitos suplementarios:** SUP-U01, SUP-U05 (propuesto), SUP-C04.
+- **Requisitos suplementarios:** SUP-U01, SUP-U05 (sin implementar), SUP-C04.
 - **Restricciones:** solo lectura.
 - **Dependencias:** UC-01.
 

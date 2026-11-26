@@ -4,7 +4,8 @@
 - **Actor principal:** User
 - **Disparador:** el User quiere saber qué hay en la cola y cómo va.
 - **Significativo para la arquitectura:** no
-- **Estado:** aprobado; implementado. Los escenarios propuestos, condicionados, divergentes y defectuosos se marcan en cada flujo y se cuentan en la [matriz de completitud](../use-case-model.md#5-matriz-de-completitud).
+- **Estado:** aceptado (Responsable, 2026-11-26). Implementación: los escenarios originales están implementados; los ampliados tienen la marca de su flujo (`[estado: …]`).
+- **Verificación:** escenarios implementados verificados con pruebas automáticas en desarrollo (Linux); validación en Windows pendiente de la campaña integral (T42 parcial, [registro](../../project-management/t42-results.md)).
 - **Diseño:** [Parte 2, §4.1](../../design/02-flows-persistence-and-operations.md#41-comandos)
 
 ## Breve descripción
@@ -23,18 +24,18 @@ El User consulta los jobs de la cola, opcionalmente filtrados por estado o por p
 
 ## Flujos alternativos
 
-- **A1. Ningún job coincide** (paso 3): escribe `No jobs`; código `0`.
-- **A2. `--parent`** (paso 2): solo los hijos directos de esa expansión.
-- **A3. `run` escribe a la vez en otra terminal** (paso 2): la lectura funciona (SQLite en modo WAL) y refleja el último estado confirmado.
-- **A4. Jobs aplazados o cola en pausa** (propuesto, UC-11 y UC-14): la línea de un job aplazado añade la condición externa y, si la hay, la hora de continuación, por ejemplo `(deferred: site restriction until 00:47)`. Si la cola está en pausa o una condición afecta a toda la cola, la lista empieza con una línea que lo dice.
-- **A5. Salida para otros programas** (paso 3; propuesto, prioridad media): `list --json` escribe un documento JSON con los mismos campos, en lugar de la tabla, para scripts y automatizaciones. Origen: `history list --format json` de YTDownload-2026.
-- **A6. Buscar por texto** (paso 2; propuesto, prioridad baja): `list --search TEXTO` muestra solo los jobs cuyo título o URL contienen el texto. Origen: la búsqueda del historial de YTDownload-2026 y de Seal.
+- **A1. Ningún job coincide** `[estado: implementado]` (paso 3): escribe `No jobs`; código `0`.
+- **A2. `--parent`** `[estado: implementado]` (paso 2): solo los hijos directos de esa expansión.
+- **A3. `run` escribe a la vez en otra terminal** `[estado: implementado]` (paso 2): la lectura funciona (SQLite en modo WAL) y refleja el último estado confirmado.
+- **A4. Jobs aplazados o cola en pausa** `[estado: ausente]` (UC-11 y UC-14): la línea de un job aplazado añade la condición externa y, si la hay, la hora de continuación, por ejemplo `(deferred: site restriction until 00:47)`. Si la cola está en pausa o una condición afecta a toda la cola, la lista empieza con una línea que lo dice.
+- **A5. Salida para otros programas** `[estado: ausente]` (paso 3; prioridad media): `list --json` escribe un documento JSON con los mismos campos, en lugar de la tabla, para scripts y automatizaciones. Origen: `history list --format json` de YTDownload-2026.
+- **A6. Buscar por texto** `[estado: ausente]` (paso 2; prioridad baja): `list --search TEXTO` muestra solo los jobs cuyo título o URL contienen el texto. Origen: la búsqueda del historial de YTDownload-2026 y de Seal.
 
 ## Excepciones
 
-- **E1. Estado no válido:** argparse lo rechaza; código `2`.
-- **E2. `--parent` de un job inexistente:** código `2`.
-- **E3. Base de datos ocupada al abrirla o migrarla:** `the queue is busy`, código `1`.
+- **E1. Estado no válido:** `[estado: implementado]` argparse lo rechaza; código `2`.
+- **E2. `--parent` de un job inexistente:** `[estado: implementado]` código `2`.
+- **E3. Base de datos ocupada al abrirla o migrarla:** `[estado: implementado]` `the queue is busy`, código `1`.
 
 ## Postcondiciones
 

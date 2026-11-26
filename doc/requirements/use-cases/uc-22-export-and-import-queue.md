@@ -7,7 +7,8 @@
 - **Relación:** UC-02 A5 (encolar URLs de un archivo) es el caso mínimo de la importación; UC-23 resuelve otra necesidad: restaurar la misma instalación.
 - **Prioridad:** media
 - **Significativo para la arquitectura:** sí: formato de intercambio versionado e identidad de los jobs importados
-- **Estado:** propuesto; no implementado.
+- **Estado:** aceptado (Responsable, 2026-11-26). Implementación: ausente. Condiciones técnicas: D-16 y D-21.
+- **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
 - **Origen:**
   - **Seal:** exportar e importar el historial y las listas de URLs.
   - **Revisión de exclusiones:** la exclusión «la cola no es un historial» no se sostiene: los jobs terminados ya forman un historial que `list` muestra ([análisis, §12](../requirements-analysis.md#12-reconciliación-de-exclusiones)).
@@ -32,18 +33,18 @@
 
 ## Flujos alternativos
 
-- **A1. Solo URLs:** `export --urls` y `enqueue --from-file` (UC-02 A5).
-- **A2. Historial terminado:** `import --as-history` registra los jobs terminados como referencia de solo lectura, sin propiedad sobre sus archivos ([BR-36](../business-rules.md)).
-- **A3. Duplicados:** una entrada con la misma identidad que un job activo (BR-32) se omite y se informa.
-- **A4. Rutas distintas en el destino:** las carpetas de descarga se toman de la configuración de destino, salvo `--keep-paths`; una ruta inexistente se informa sin crear nada.
-- **A5. Documento de una versión anterior del formato:** se convierte si la versión está soportada; si no, E2.
-- **A6. `run` en ejecución:** la importación funciona igual que `enqueue` (SQLite en modo WAL).
+- **A1. Solo URLs:** `[estado: ausente]` `export --urls` y `enqueue --from-file` (UC-02 A5).
+- **A2. Historial terminado:** `[estado: ausente]` `import --as-history` registra los jobs terminados como referencia de solo lectura, sin propiedad sobre sus archivos ([BR-36](../business-rules.md)).
+- **A3. Duplicados:** `[estado: ausente]` una entrada con la misma identidad que un job activo (BR-32) se omite y se informa.
+- **A4. Rutas distintas en el destino:** `[estado: ausente]` las carpetas de descarga se toman de la configuración de destino, salvo `--keep-paths`; una ruta inexistente se informa sin crear nada.
+- **A5. Documento de una versión anterior del formato:** `[estado: ausente]` se convierte si la versión está soportada; si no, E2.
+- **A6. `run` en ejecución:** `[estado: ausente]` la importación funciona igual que `enqueue` (SQLite en modo WAL).
 
 ## Excepciones
 
-- **E1. Documento inválido o incompleto:** no se crea ningún job; el sistema nombra la entrada y el campo; código `2`.
-- **E2. Versión del formato no soportada:** código `2`.
-- **E3. Base de datos ocupada:** como UC-02 A3; nada se importa.
+- **E1. Documento inválido o incompleto:** `[estado: ausente]` no se crea ningún job; el sistema nombra la entrada y el campo; código `2`.
+- **E2. Versión del formato no soportada:** `[estado: ausente]` código `2`.
+- **E3. Base de datos ocupada:** `[estado: ausente]` como UC-02 A3; nada se importa.
 
 ## Garantías
 

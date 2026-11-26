@@ -1,7 +1,7 @@
 # Análisis de requisitos: continuidad, condiciones externas y referencias
 
 - **Fase RUP:** Elaboración (consolidación del modelo de requisitos tras la campaña T42)
-- **Versión:** 3.3 (2026-11-26; reconciliación de exclusiones, §12, y contratos transversales, §13). 3.2 (2026-11-26; condiciones de almacenamiento separadas en UC-17 y análisis del acceso con proxy y cookies). 3.1 (añade YTDownload-2026 y VoiceBlueprintPro). 3.0 (2026-11-26). La versión 2.0 se titulaba «funcionamiento sin vigilancia y validación sin esperas»; esta integra el análisis de los proyectos de referencia en el modelo canónico y deja abiertas las decisiones.
+- **Versión:** 4.0 (2026-11-26; alcance de 26 casos de uso aceptado por el Responsable; resolución de D-1 a D-21, §9; contratos, §13.11 a §13.19; impacto en la arquitectura, §14). 3.3: reconciliación de exclusiones y contratos transversales. 3.2 (2026-11-26; condiciones de almacenamiento separadas en UC-17 y análisis del acceso con proxy y cookies). 3.1 (añade YTDownload-2026 y VoiceBlueprintPro). 3.0 (2026-11-26). La versión 2.0 se titulaba «funcionamiento sin vigilancia y validación sin esperas»; esta integra el análisis de los proyectos de referencia en el modelo canónico y deja abiertas las decisiones.
 - **Responsabilidad:** razonamiento y evidencia del modelo de requisitos. Los requisitos están en sus artefactos: [modelo de casos de uso](use-case-model.md), [reglas de negocio](business-rules.md), [especificación complementaria](supplementary-specification.md), [catálogo de condiciones de fallo](failure-conditions.md) y [modelo de validación](../process/validation-use-case-model.md).
 - **Técnicas (BABOK v3):** ver §5.2.
 
@@ -403,212 +403,289 @@ Ninguna decisión está tomada (D-1, D-7). Esta sección separa las necesidades 
 | Comprobables | Cada caso de uso tiene criterios de aceptación y escenarios de prueba; cada requisito suplementario, un criterio |
 | Priorizados | §8.2 |
 
-## 9. Decisiones pendientes
+## 9. Decisiones
 
-Ninguna está aprobada (D-1 a D-20). Sus relaciones están en §13.10. La recomendación es la del analista; decide el Responsable.
+**Disposición del Responsable (2026-11-26, instrucción 2.2.0):**
+- se aceptan los 26 casos de uso;
+- se aprueban las resoluciones funcionales de D-1 a D-20.
 
-### D-1. Cookies o cuenta del sitio
+Cada decisión separa la resolución funcional (qué debe hacer el producto, ya aprobado) de la cualificación técnica (cómo, con qué evidencia).
 
-- **Contexto y necesidad:** un contenido que pide una cuenta, o una restricción del sitio que persiste, solo se resuelven con una sesión iniciada.
-- **Alternativas:** (a) sin cookies; (b) `cookies.txt` explícito y efímero (V); (c) cookies del navegador (`--cookies-from-browser`); (d) cookies solo cuando el error lo pide (K: modos WhenNeeded, Ask, Always, Never). Análisis por dimensiones en §7.4: yt-dlp reescribe `cookiefile` al cerrar, lo que obliga a una copia por job, y no descifra las cookies recientes de Chrome y Edge en Windows.
-- **Evidencia:** la wiki de yt-dlp avisa de que la cuenta puede ser bloqueada; ADR-0004 dejó sin verificar las cookies de Chrome en Windows; V y B las borran tras cada uso; D recomienda una cuenta técnica separada y la misma IP para la sesión y la descarga.
-- **A favor de (b):** acceso legítimo controlado por el User, sin leer el navegador. **En contra:** el User debe exportarlas; riesgo para su cuenta.
-- **Restricciones y riesgos:** BR-12; R-27 (fuga de credenciales); SUP-SEC01 y SUP-SEC03.
-- **Impacto:** funcional, UC-02 y UC-11 E2; arquitectónico, credenciales en la configuración y SUP-SEC01.
-- **Recomendación:** (a) mientras la restricción no se repita con el ritmo de BR-02; si se adoptan, (b).
+**Estados técnicos:**
+- **Cualificada:** evidencia suficiente para la solución.
+- **Recomendada con evidencia:** hay una alternativa preferida y la evidencia que la apoya, con alguna limitación.
+- **Condicionada:** depende de otra decisión o de una condición externa.
+- **Pendiente de medición.**
+- **Pendiente de Windows:** solo se demuestra en la plataforma objetivo.
+- **Pendiente por evidencia insuficiente.**
+- **Pendiente de decisión excepcional del Responsable.**
 
-### D-2. Política de continuidad ante una condición externa
+**Fuentes de la evidencia:**
+- los experimentos de cualificación ([resultados](../notes/experiments/requirements-qualification.md));
+- la inspección del código de yt-dlp 2026.11.23 y del producto en `7dc9842`;
+- las referencias del §5.1.
 
-- **Contexto y necesidad:** tras aplazar los jobs afectados (UC-11), algo debe decidir cuándo continuar.
-- **Alternativas:** (a) esperar y comprobar dentro de `run`; (b) terminar de forma ordenada cuando solo queden jobs aplazados, y continuar en el siguiente `run`; (c) continuidad selectiva y después (b); (d) solo informar y esperar una acción del User.
-- **Evidencia:** ninguna referencia espera; yt-dlp estima la restricción en «hasta una hora»; la campaña T42 muestra que sin aplazamiento se pierden todos los jobs.
-- **A favor de (c):** no se pierden jobs, no hay peticiones en vano y `run` no queda colgado. **En contra:** el User debe volver a ejecutar `run`; una interfaz gráfica futura preferiría (a).
-- **Restricciones y riesgos:** BR-03; R-21 (YouTube prolonga la restricción).
-- **Impacto:** funcional, UC-11 pasos 5 y 6; arquitectónico, ADR-0031 (plazos persistentes solo con (a)).
-- **Recomendación:** (c).
+La relación entre decisiones está en el §13.10.
 
-### D-3. Ritmo de peticiones por defecto para YouTube
+### 9.1 Resolución
 
-- **Alternativas:** (a) el preajuste `-t sleep`; (b) sin ritmo por defecto; (c) un ritmo menor.
-- **Evidencia:** el preajuste de yt-dlp; en la campaña, 93 extracciones en 73 min llevaron a una restricción.
-- **A favor de (a):** valor documentado por yt-dlp. **En contra:** 100 videos añaden unos 25 min.
-- **Impacto:** funcional, UC-11 A1 y UC-15; arquitectónico, planificación por sitio.
-- **Recomendación:** (a), configurable hasta 0.
+| Decisión | Resolución funcional (aprobada) | Alternativa técnica recomendada | Evidencia | Estado técnico | UC afectados | Condición pendiente |
+|---|---|---|---|---|---|---|
+| D-15 Resultados | Cero, uno o N resultados por job; lo pedido es obligatorio salvo que se marque opcional; completar exige todos los obligatorios | Job con N resultados registrados (tipo, obligatoriedad, estado, ruta, reclamación y evidencia de publicación); `output_path` se conserva como resultado principal por compatibilidad | Inspección de `Job`, `JobCompleted`, `output_claims` y de la migración 0003 (§13.1) | Recomendada con evidencia | 03, 05, 06, 07, 09, 10, 24, 25, 26 | Diseño del esquema en Analysis and Design |
+| D-16 Identidad | Separar la identidad del contenido de la del resultado pedido; las variantes son legítimas | Identidad de la petición = media key + especificación normalizada del resultado, con versión del algoritmo de identidad; «ya descargado» como `SKIPPED` informativo | Inspección de `has_active_download` y de la migración 0002 (§13.2) | Recomendada con evidencia | 02, 03, 18, 22, 23, 24 | La equivalencia de selectores solo es sintáctica |
+| D-18 Transformaciones | Las transformaciones ligadas a la obtención, sin editor general | Postprocessors de yt-dlp y ffmpeg incluido (§13.3, §13.4) | Inspección de yt-dlp; configuración de la build | Recomendada con evidencia; recodificar a H.264 o HEVC, **pendiente de decisión excepcional** (R-29) | 02, 03, 15 | `ffmpeg -encoders` en Windows; patentes |
+| D-19 Perfiles | Las preferencias que determinan el resultado se fijan al encolar | Copiar en el job las opciones de resultado; referenciar el acceso por nombre y resolverlo al enviar | Las download options ya se fijan al encolar (UC-02; pruebas de `enqueue`) | **Cualificada** | 02, 18, 19, 20 | — |
+| D-9 Recuperación | Recuperación local primero | Evidencia por resultado: registro, reclamación con owner token, publicación y comprobación estructural con ffprobe frente a lo esperado registrado antes de publicar | ADR-0030; recorrido de las fronteras de interrupción (§13.11) | Recomendada con evidencia | 06, 07, 23, 26 | Registrar la expectativa (duración, streams) antes de publicar |
+| D-11 Purga y archivos | Registros y archivos separados; borrar es explícito y autorizado | Nivel de evidencia por operación (§13.12); registrar tamaño, fecha y, opcionalmente, hash al publicar | ADR-0030; YTDownload-2026 como antiejemplo | Recomendada con evidencia | 10, 25 | Coste del hash: pendiente de medición |
+| D-5 Almacenamiento preventivo | Comprobación adaptativa, sin un límite fijo | Estimar con `filesize` o `filesize_approx`, más el espacio reservado por los jobs activos de la unidad y la medición sobre el antecesor existente | yt-dlp suma `filesize_approx` de los formatos unidos y la estima por `tbr` × duración (`YoutubeDL.py`) | **Pendiente de medición** (factor de unión, margen) y **de Windows** (cuotas en `shutil.disk_usage`) | 01, 17 | SUP-P07 |
+| D-12 Fallos de almacenamiento | Clasificar por causa, alcance, temporalidad y recuperabilidad | Ampliar el clasificador existente con el recorrido de la cadena (BR-25), y usar el texto solo como último recurso | Experimento `cause_chain`: 3 de 5 caminos recuperan el `errno`; 2 solo tienen texto | Recomendada con evidencia; traducción de `winerror` **pendiente de Windows** | 03, 11, 17 | Prueba `windows` de los códigos |
+| D-1 Cookies | Archivo de cookies del User, perfiles, selección por job y por sitio, validación, renovación y caducidad | `cookiefile` de yt-dlp con una copia por job (yt-dlp reescribe el archivo al cerrar) en la carpeta de estado, restringida al usuario y limpiada al arrancar | `YoutubeDL.save_cookies`; VoiceStudio | Recomendada con evidencia; ACL en Windows **pendiente de Windows**; cookies del navegador **condicionada** | 02, 19 | Cifrado `v20` de Chrome y Edge |
+| D-7 Proxy | Modos sistema, directo y explícito | Sistema: sin `proxy`; directo: `proxy=""`; explícito: `proxy=URL`. Enmascarar las credenciales en el origen (logger y mensajes) | `YoutubeDL.proxies` (`__noproxy__`, `getproxies()`) | **Cualificada** (modos); enmascarado recomendado | 01, 19, 20, 16 | SOCKS con el gestor `requests`: sin comprobar |
+| D-2 Continuidad | Continuidad selectiva y política configurable cuando nada es elegible | Admisión en `run` por alcance (job, sitio, recurso, sistema); el aplazamiento deja el job `PENDING` con su condición; ningún estado nuevo; política `wait(límite)` o `stop` | `run_queue`, `get_next_pending`, `--keep-waiting` | Recomendada con evidencia; límites **pendientes de medición** | 03, 04, 11, 14, 17, 21 | Valores de espera |
+| D-3 Ritmo | Capacidades nativas de yt-dlp; sin un intervalo universal | Reintentos con los valores de la línea de comandos (corrige R-24); ritmo por sitio en la admisión de `run`; `sleep_interval_requests` dentro de la extracción | Experimento `retries`: 0 reintentos → `FAILED` a la primera; 10 → completa | **Cualificada** (R-24); valores de ritmo **pendientes de medición** | 03, 11, 15 | Ritmo por sitio |
+| D-4 Restricciones temporales | Política limitada, configurable y según la condición | Respetar `Retry-After`, leído del `HTTPError` en la cadena (yt-dlp no lo usa); un 403 no se considera temporal por defecto | No hay ninguna referencia a `Retry-After` en yt-dlp; `HTTPError.response` | Recomendada con evidencia; valores **pendientes de medición** | 03, 11 | Plazos |
+| D-6 Pausa | Pausa gradual e inmediata recuperable; reanudar, cancelar, detener y reintentar distintos | Job requests de cola en la bandeja existente; pausa inmediata con la interrupción existente (UC-05 A6); la intención de pausa persiste en SQLite | Bandeja de job requests; árbol de procesos (ADR-0029) | Recomendada con evidencia | 05, 14, 21 | Pausa en una base de datos restaurada (§13.13) |
+| D-13 Programación | Capacidad propia: inicio único, recurrencia, ventanas, recuperación tras reiniciar y ejecuciones omitidas | Programación guardada en el estado; `run` evalúa las ventanas (admisión); para arrancar sin `run` activo, una tarea propia del Programador de tareas (`schtasks.exe`, incluido en Windows); sin servicio residente | `run --keep-waiting`; Windows | Recomendada con evidencia; **pendiente de Windows** | 21 | Suspensión e hibernación |
+| D-20 Ancho de banda | Límite individual y global configurable | Global repartido por `run` al enviar cada job; límite por job dividido entre los fragmentos concurrentes | `ratelimit` se lee en cada bloque y por transferencia; los descargadores de fragmentos reciben una copia de los parámetros (`fragment.py`) | Recomendada con evidencia (inspección); agregado real **pendiente de medición** | 03, 21 | Medir N fragmentos frente al límite |
+| D-8 Dependencias | Administración controlada, verificable y reversible | Consultar y diagnosticar (UC-01); adoptar versiones cualificadas del repositorio (`uv.lock`); candidata en un entorno aislado; ningún cambio con jobs activos | ADR-0002, SUP-S01, procedimiento de actualización | Recomendada; candidata **condicionada** | 01, 27 | Procedencia de las candidatas |
+| D-10 Directos | Directos y programados dentro del alcance | Programado (`live_status == "is_upcoming"`, `release_timestamp`): la cola lo aplaza hasta su hora, sin `wait_for_video` en un worker. Activo: yt-dlp, con duración máxima configurable | `YoutubeDL.py` (`wait_for_video` espera dentro del proceso) | Recomendada con evidencia; recursos **pendientes de medición** | 03, 11, 14, 17, 21 | Reanudación de directos |
+| D-14 Avisos | Avisos configurables de los sucesos operativos | Registro de sucesos JSON (biblioteca estándar) y resumen; la notificación de Windows necesita una dependencia o PowerShell | La biblioteca estándar no tiene API de notificaciones | Registro **cualificado**; notificación de Windows **pendiente por evidencia insuficiente** | 20, 28 | Dependencia para las notificaciones |
+| D-17 Integración | Requisito transversal; CLI primero; lógica reutilizable sin `argparse` | Contrato JSON versionado y errores estructurados; API Python = los módulos de caso de uso de ADR-0017 cuando sean estables; modelo de confianza por interfaz (§13.7) | ADR-0001, ADR-0017; `job_queue/*` ya separados de `command_line` | Recomendada con evidencia | Todos | Esquemas del contrato |
+| D-21 Retención y privacidad (nueva) | Necesidad aprobada en la instrucción 2.2.0, §32 | Retención por clase de dato (§13.14): purga del historial configurable, rotación de logs vigente, exportaciones y respaldos sin secretos | `log_file.py`, UC-10, BR-34 | Recomendada; valores **pendientes de decisión excepcional** (plazos por defecto) | 10, 20, 22, 23 | Plazos de retención |
 
-### D-4. Plazo ante una restricción del sitio
+**Conteo:**
+- **Resoluciones funcionales:** 21 resueltas, 20 de ellas aprobadas por el Responsable; D-21 tiene una necesidad aprobada y sus valores, pendientes.
+- **Estado técnico:**
+  - cualificadas por completo: 2 (D-7 en los modos, D-19); cualificadas en parte: D-3 (R-24) y D-14 (registro);
+  - con alternativa recomendada: las 21;
+  - dependen de mediciones: 8 (D-2, D-3, D-4, D-5, D-10, D-11, D-20, D-21);
+  - dependen de Windows: 5 (D-1, D-5, D-12, D-13, D-18);
+  - necesitan evidencia adicional: 2 (D-14, D-7 con SOCKS);
+  - contradicciones: 1, resuelta (§13.16);
+  - requieren una decisión excepcional del Responsable: 2 (R-29 en D-18, plazos en D-21).
 
-- **Contexto:** solo aplica si D-2 elige esperar.
-- **Alternativas:** (a) plazo fijo; (b) plazo creciente con un máximo; (c) sin plazo: solo una acción del User.
-- **Evidencia:** insuficiente; ningún valor está respaldado (§3 del catálogo de reglas: parámetros pendientes).
-- **Recomendación:** decidir D-2 primero; el valor se fija con evidencia, no por estimación.
+### 9.2 Detalle por decisión
 
-### D-5. Comprobación preventiva del almacenamiento
+Para cada decisión: necesidad · resolución · flujos · reglas · requisitos · riesgos · alternativas · mecanismos existentes · evidencia · impacto · compatibilidad · criterios de aceptación · limitaciones.
 
-- **Contexto y necesidad:** evitar que un job empiece sin espacio para terminar, sin confiar en la comprobación como garantía (BR-28, UC-17).
-- **Alternativas:** (a) un espacio mínimo fijo para todos los jobs; (b) el tamaño estimado del formato elegido por un factor (parciales más la unión de ffmpeg), más un margen; (c) solo la reacción al error de escritura, sin comprobación previa.
-- **Evidencia:** yt-dlp da `filesize` o `filesize_approx` para muchos formatos, pero no para todos (los directos, algunos HLS); la unión puede necesitar unas 2 veces el contenido mientras ffmpeg escribe; varios workers pueden consumir la misma unidad a la vez; falta la medición (SUP-P07).
-- **A favor de (b):** se adapta a cada job, de un audio de pocos MiB a un video de varios GiB. **En contra:** sin tamaño conocido, cae en el margen. (a) es simple, pero un valor fijo (como el «1 GiB» de la versión 2.0) sobra para un audio y falta para un video largo.
-- **Restricciones:** la comprobación nunca sustituye a la reacción; varios jobs en curso en la misma unidad deben sumar su espacio reservado.
-- **Impacto:** funcional, UC-17 pasos 2 y 3, A1 y A2; arquitectónico, el tamaño estimado llega al proceso de `run` con `FormatSelected`.
-- **Recomendación:** (b) con (c) siempre activa; los valores, tras SUP-P07.
-
-### D-6. Comportamiento de la pausa
-
-- **Alternativas:** (a) dejar terminar los jobs en curso; (b) detenerlos; (c) las dos, con una opción.
-- **Evidencia:** `Ctrl+C` ya detiene sin perder nada (UC-05 A6).
-- **Recomendación:** (c): `pause` deja terminar y `pause --now` detiene.
-
-### D-7. Proxy
-
-- **Contexto y necesidad:** en algunas redes solo se sale por un proxy.
-- **Alternativas:** (a) solo el del sistema, como ya hace yt-dlp; (b) además, una clave `proxy` propia, global o por sitio; (c) además, informar en `diagnose`; (d) una opción para forzar conexión directa (`proxy: ""`). Análisis por dimensiones en §7.4.
-- **Evidencia:** yt-dlp usa `getproxies()` si no se configura; V lo toma del entorno y diagnostica sus fallos (SOCKS sin soporte, TLS interceptado).
-- **Restricciones y riesgos:** BR-12 (no como evasión); R-27 si lleva contraseña.
-- **Impacto:** funcional, UC-01 A11 y el catálogo, §2; arquitectónico, una clave de configuración.
-- **Recomendación:** (a) y (c); (b) solo si un User lo necesita.
-
-### D-8. Actualizar yt-dlp desde el programa
-
-- **Contexto y necesidad:** cuando un sitio cambia, el extractor falla hasta que se actualiza yt-dlp.
-- **Alternativas:** (a) solo el Mantenedor, con el procedimiento (ADR-0002); (b) el User instala una versión más reciente, con una forma de volver a la probada (V); (c) aviso de que hay una versión nueva, sin instalarla.
-- **Evidencia:** S, V y K actualizan o avisan; ADR-0002 fija la versión para que las pruebas de contrato sean válidas.
-- **A favor de (b):** el User no espera. **En contra:** sin pruebas de contrato para esa versión; reglas como BR-01 dependen de los textos de yt-dlp.
-- **Impacto:** funcional, un caso de uso nuevo; arquitectónico, contradice ADR-0002.
-- **Recomendación:** (a), con un tiempo de respuesta comprometido por el Mantenedor; reevaluar si R-20 ocurre.
-
-### D-9. Completar un job con evidencia local
-
-- **Contexto y necesidad:** UC-06 A4 depende del sitio (R-25).
-- **Alternativas:** (a) mantener A4; (b) completar si la reclamación coincide y `ffprobe` abre el archivo con la duración guardada; (c) además, comprobar el tamaño esperado.
-- **Evidencia:** T42, cola 5.7-r2; el owner token y las reclamaciones (ADR-0030) identifican el archivo propio.
-- **Restricciones:** nunca por un archivo no vacío; nunca un archivo ajeno (BR-17, BR-23).
-- **Impacto:** funcional, UC-06 A11; arquitectónico, guardar la duración y usar `ffprobe` en la recuperación.
-- **Recomendación:** (b).
-
-### D-10. Transmisiones en directo y programadas
-
-- **Alternativas:** (a) rechazarlas con un mensaje; (b) grabar hasta que terminen, con un límite de duración; (c) esperar al inicio (`wait_for_video`) con un límite.
-- **Evidencia:** hoy no hay regla (R-26); yt-dlp distingue `is_live` y `live_status`.
-- **Recomendación:** (a) hasta que un User las necesite.
-
-### D-11. Purgar y borrar los archivos propios
-
-- **Alternativas:** (a) `purge` nunca borra archivos (vigente); (b) una opción que borra solo los propios, con confirmación.
-- **Evidencia:** S y V borran el registro con su archivo; D muestra una vista previa y pide confirmación, pero borra la carpeta entera (con una playlist, todas sus entradas); las reclamaciones permiten saber cuáles son propios.
-- **Riesgo:** borrar un archivo que el User quería; se mitiga con la confirmación y BR-17.
-- **Recomendación:** (b), prioridad baja.
-
-### D-12. Tratamiento de cada condición de almacenamiento
-
-- **Contexto y necesidad:** las condiciones del [catálogo, §3.1](failure-conditions.md#31-condiciones) no se resuelven igual.
-- **Alternativas para cada grupo:**
-  - espacio y cuota: (a) aplazar los jobs de la unidad; (b) fallar el job;
-  - unidad ausente (extraíble o de red): (a) aplazar como el espacio; (b) fallar como la configuración;
-  - acceso denegado y carpeta inválida: (a) fallar con la acción; (b) aplazar;
-  - uso compartido persistente: (a) fallar tras los reintentos de yt-dlp; (b) aplazar.
-- **Evidencia:** VoiceStudio falla todas («reintentar no sirve»); el producto ya tiene el aplazamiento de UC-11; el acceso denegado y la configuración no cambian solos.
-- **Riesgos:** aplazar una condición que no cambia sola deja jobs esperando para nada; fallar una que se resuelve sola obliga a reintentar a mano (R-22).
-- **Impacto:** funcional, UC-17 A3 a A8; arquitectónico, la planificación de `run` lleva un estado por unidad.
-- **Recomendación:** espacio, cuota y unidad ausente: aplazar. Acceso denegado, carpeta inválida y uso compartido persistente: fallar con la acción.
-
-### D-13. Programación de la ejecución
-
-- **Contexto y necesidad:** UC-21, descargar en ventanas sin la presencia del User.
+**D-15. Resultados de un job.**
+- **Necesidad:** representar N resultados con obligatoriedad (§13.1).
+- **Flujos:** UC-03 A16 y A17, UC-05 A9, UC-06 A11 y A12, UC-07 A8, UC-09 A6, UC-24, UC-25 y UC-26.
+- **Reglas y requisitos:** BR-29 a BR-31, BR-38; SUP-P08.
+- **Riesgos:** R-30.
 - **Alternativas:**
-  - (a) ventanas propias de `run` (admisión, BR-37), con `run --keep-waiting`;
-  - (b) registrar una tarea en el Programador de tareas de Windows que arranca y detiene `run`;
-  - (c) las dos: (b) arranca `run` y (a) controla las ventanas.
-- **Evidencia:** el Programador de tareas arranca procesos pero no conoce la pausa, los aplazamientos ni la recuperación; `run --keep-waiting` ya existe.
-- **A favor de (c):** sobrevive a reinicios sin dejar `run` siempre abierto.
-- **En contra:** administrar una tarea del sistema.
-- **Riesgos:** permisos o políticas que impiden registrar tareas.
-- **Impacto:** funcional, UC-21; arquitectónico, estado de programación persistente.
-- **Recomendación:** (a) primero; (b) como A2 de UC-21.
+  - (a) jobs hijos por resultado: descartada, porque multiplica los jobs de una sola petición y complica la cancelación y la purga;
+  - (b) N resultados por job: recomendada;
+  - (c) principal más manifiesto: descartada, porque deja los complementarios sin reclamación.
+- **Mecanismos existentes:** reclamaciones (ADR-0030), owner token, `FinalPathRecorder`, carpeta de parciales.
+- **Impacto:**
+  - `Job` y `JobCompleted` llevan una colección de resultados;
+  - una migración nueva y progresiva añade el registro de resultados y conserva `output_path` como principal;
+  - la reclamación pasa a hacerse por resultado;
+  - las consultas, la purga, el respaldo y la verificación leen el registro.
+- **Compatibilidad:** un job anterior tiene un resultado principal, migrado desde `output_path`; las migraciones publicadas no se tocan.
+- **Criterios de aceptación:** BR-30; UC-03 A16 y A17; R-30 cerrado cuando todo archivo escrito tenga reclamación.
+- **Limitación:** no se eligen tablas ni eventos en esta etapa.
 
-### D-14. Mecanismo de los avisos
-
-- **Contexto y necesidad:** UC-28.
+**D-16. Identidad.**
+- **Necesidad:** §13.2.
+- **Reglas:** BR-13, que queda divergente respecto de la resolución, y BR-32.
+- **Flujos:** UC-03 A1 (divergente), UC-22 A3, UC-24 A5.
 - **Alternativas:**
-  - (a) notificaciones de Windows;
-  - (b) un archivo de sucesos JSON en la carpeta de estado;
-  - (c) las dos.
-  - Excluidas: correo, mensajería y ejecutar comandos.
-- **Evidencia:** Seal usa notificaciones del sistema; los job events ya existen.
-- **A favor de (c):** sirve a las personas y a los programas (SUP-I01).
-- **En contra:** una dependencia para las notificaciones de Windows.
-- **Impacto:** funcional, UC-28; arquitectónico, un consumidor de los job events.
-- **Recomendación:** (c), con (b) primero.
+  - (a) mantener BR-13: descartada por la resolución;
+  - (b) identidad por especificación: recomendada;
+  - (c) identidad por perfil: descartada, porque el nombre de un perfil no es una identidad (D-19).
+- **Mecanismos existentes:** `MediaKey`, el índice `unique_active_download_per_media` (migraciones 0001 a 0003) y `canonical_stem_path`, que ya normaliza rutas como NTFS.
+- **Impacto:** una migración nueva sustituye el índice por uno sobre la identidad de la petición. Los datos existentes reciben una identidad calculada de sus download options con la versión 1 del algoritmo.
+- **Criterios:**
+  - dos peticiones que solo difieren en opciones operativas (timeout, workers, reintentos, registro, progreso) son duplicadas;
+  - dos que difieren en calidad, contenedor, transformación, complementarios o destino son variantes;
+  - lo ya descargado se informa como `SKIPPED` con su ruta, nunca como `FAILED`.
+- **Limitación:** no se decide la equivalencia semántica entre dos selectores distintos sin conocer los formatos.
 
-### D-15. Representación de los resultados de un job
+**D-18. Transformaciones.**
+- **Necesidad:** resultados compatibles y transformados (§13.3, §13.4).
+- **Flujos:** UC-02 A7, A8, A10, A11 y A14; UC-03 A17 a A19; UC-15 A6.
+- **Requisitos y riesgos:** SUP-M01; R-29.
+- **Alternativas:** postprocessors de yt-dlp (recomendada) frente a llamadas propias a ffmpeg (descartada: duplica responsabilidades).
+- **Mecanismos de yt-dlp:**
+  - `FFmpegVideoRemuxer`, `FFmpegVideoConvertor`, `FFmpegExtractAudio`;
+  - `FFmpegSubtitlesConvertor`, `FFmpegEmbedSubtitle`, `FFmpegMetadata`, `EmbedThumbnail`;
+  - `SponsorBlock` con `ModifyChapters`, `FFmpegSplitChapters`;
+  - `download_ranges` con `force_keyframes_at_cuts`.
+- **Evidencia:** §13.4. Los cortes exactos recodifican (`force_keyframes` usa `stream_copy_opts(False)`).
+- **Contradicción resuelta:** eliminar segmentos es un resultado pedido; si SponsorBlock no responde, el multimedia se conserva y el postprocesamiento se repite (UC-03 A18).
+- **Criterios:**
+  - cada transformación produce el contenedor, los códecs o los segmentos pedidos según ffprobe;
+  - el original se conserva cuando se pide.
+- **Limitaciones:**
+  - la lista efectiva de codificadores se confirma con `ffmpeg -encoders` en Windows;
+  - recodificar a H.264 o HEVC con `libopenh264` o `libkvazaar` requiere la decisión del Responsable sobre patentes (R-29); VP9 y AV1 no tienen esa condición.
 
-- **Contexto y necesidad:** §13.1, N resultados por job, obligatorios y opcionales.
+**D-19. Perfiles.**
+- **Necesidad:** §13.5.
+- **Evidencia:** las download options ya se copian en el job al encolar (UC-02, postcondición; pruebas de `enqueue`), así que el contrato está demostrado.
+- **Separación:**
+  - **resultado y postprocesamiento:** fijados en el job;
+  - **operativo y recursos** (workers, límites, reintentos, ritmo): se resuelven al ejecutar y no forman parte de la identidad;
+  - **acceso:** referencia por nombre, resuelta al enviar.
+- **Borrar un perfil referenciado:** los jobs conservan su copia y el nombre y la versión del perfil como traza (BR-33); su recuperación no depende del perfil.
+- **Criterios:** UC-18, criterio 1.
+
+**D-9. Recuperación local.**
+- **Necesidad:** R-25.
+- **Flujos:** UC-06 A4 (defecto), A11 y A12; UC-07 A8; UC-23 A2; UC-26.
+- **Regla:** BR-23.
+- **Evidencia:** fronteras de interrupción (§13.11). La carpeta de parciales está dentro de la carpeta de descargas, así que la publicación es un renombrado en la misma unidad, atómico en NTFS y en POSIX.
 - **Alternativas:**
-  - (a) mantener un archivo por job y crear jobs hijos por resultado (un job por capítulo o por subtítulo);
-  - (b) un job con N resultados registrados, cada uno con tipo, obligatoriedad, ruta y reclamación;
-  - (c) un archivo principal por job y un manifiesto de complementarios.
-- **Evidencia:** las referencias guardan rutas en un diccionario por descarga (YTDownload-2026) o no las registran; ADR-0030 protege un nombre por job; la expansión de playlists ya usa jobs hijos (ADR-0009).
-- **A favor de (b):** una sola petición, un solo estado y una cancelación coherente.
-- **En contra:** cambiar `JobCompleted`, `output_path` y las reclamaciones.
-- **A favor de (a):** reutiliza el modelo.
-- **En contra de (a):** multiplica jobs por un solo contenido y complica la cancelación y la purga.
-- **Restricciones:** BR-17 y BR-31; no implementar nada antes de decidir.
-- **Impacto:** arquitectónico alto (modelo, eventos, migraciones, reclamaciones).
-- **Recomendación:** (b), sin elegir aún tablas ni eventos.
+  - (a) volver a extraer (hoy): defectuosa;
+  - (b) evidencia local: recomendada;
+  - (c) volver a descargar siempre: descartada.
+- **Criterios de regresión de R-25:** con el sitio inaccesible (servidor local detenido), un job interrumpido tras publicar todos sus resultados termina `COMPLETED` sin peticiones; uno con un resultado truncado no.
+- **Limitación:** comprobar la integridad completa con decodificación es costoso; el nivel lo fija BR-38.
 
-### D-16. Identidad de las variantes y «ya descargado»
+**D-11. Purga y archivos.**
+- **Necesidad:** §13.12.
+- **Alternativas:** mismo nivel de evidencia para todas las operaciones (descartada) frente a un nivel por operación (recomendada).
+- **Criterios:** UC-25, criterios 1 a 3.
+- **Limitación:** sin hash, un archivo sustituido con el mismo tamaño y fecha no se detecta. El hash es opcional y su coste se mide.
 
-- **Contexto y necesidad:** §13.2.
+**D-5. Almacenamiento preventivo.**
+- **Necesidad:** §16 de la instrucción.
+- **Mecanismos existentes:**
+  - `shutil.disk_usage` sobre el antecesor existente (VoiceBlueprintPro);
+  - `filesize` y `filesize_approx` de yt-dlp, que suma los de los formatos unidos y estima por `tbr` × duración.
+- **Alternativa recomendada:** estimación por job, más el espacio comprometido por los jobs activos de la misma unidad, más un margen. Se reevalúa en cada envío y la reacción siempre está activa (UC-17).
+- **Limitaciones:**
+  - el factor de unión, el margen y la memoria quedan pendientes de medición (SUP-P07);
+  - si `shutil.disk_usage` refleja la cuota del usuario en Windows queda pendiente de Windows.
+
+**D-12. Fallos de almacenamiento.**
+- **Evidencia:** experimento `cause_chain`.
+- **Alternativa recomendada:** un solo clasificador, el existente, ampliado:
+  - prioridad: código estructurado en la cadena (`winerror`, después `errno`), luego el tipo de excepción, luego el texto;
+  - con protección contra ciclos.
+- **Criterios de regresión de R-28:** los cinco caminos del catálogo, §3.2, terminan con la condición de almacenamiento correcta; los tres con `errno` la identifican sin texto.
+- **Limitación:** las traducciones de `winerror` se confirman en Windows.
+
+**D-1. Cookies.**
+- **Necesidad:** §18 de la instrucción.
+- **Flujos:** UC-19, UC-02 A12.
+- **Requisitos:** SUP-SEC01, SUP-SEC03 y SUP-SEC04.
+- **Riesgos:** R-27.
 - **Alternativas:**
-  - (a) mantener BR-13;
-  - (b) BR-32: identidad por especificación del resultado, con «ya descargado» como `SKIPPED` informativo;
-  - (c) (b) más un reemplazo explícito.
-- **Evidencia:** hoy una variante legítima se omite y un contenido ya descargado falla con un mensaje confuso.
-- **Impacto:** migración del índice `unique_active_download_per_media`; detección de duplicados en la importación (UC-22).
-- **Recomendación:** (b); el reemplazo, por UC-25.
+  - (a) `cookiefile` con una copia por job: recomendada;
+  - (b) el original pasado directamente: descartada, porque yt-dlp lo reescribe;
+  - (c) `cookiesfrombrowser`: condicionada (`v20` en Chrome y Edge; base de datos bloqueada con el navegador abierto).
+- **Protección:**
+  - en POSIX, crear con `os.open` y modo 0600;
+  - en Windows el modo no tiene efecto: la copia hereda la ACL de la carpeta de estado bajo el perfil del usuario, que se verifica (pendiente de Windows);
+  - sin cifrado propio.
+- **Renovación autorizada:** el User reemplaza el archivo (UC-19 A4). Nunca se escribe el original.
+- **Criterios:** UC-19, criterios 1 a 4.
 
-### D-17. Canal de integración programática
+**D-7. Proxy.**
+- **Modos:** como en la tabla.
+- **Precedencia:** argumento por job, perfil de acceso, configuración, sistema.
+- **Enmascarado en el origen:** `YtDlpLogger` y los mensajes de error ocultan `usuario:contraseña@` antes de llegar al log, a la base de datos (`failure_message`), al JSON y al informe (SUP-SEC01).
+- **Credenciales inválidas:** `ProxyError`, clasificado `NETWORK`, con la indicación de revisar el proxy (catálogo, §2).
+- **Limitación:** el soporte de SOCKS en el gestor `requests` no está comprobado.
 
-- **Contexto y necesidad:** §13.7.
-- **Alternativas:**
-  - (a) solo la CLI con salida JSON y errores estructurados (SUP-I01);
-  - (b) además, una biblioteca Python pública;
-  - (c) además, un servidor local (API HTTP o MCP).
-- **Evidencia:** YTDownload-2026 ofrece CLI y MCP sobre la misma capa de aplicación; ADR-0001 exige un motor reutilizable.
-- **Riesgos:** (c) abre un puerto y amplía la superficie de seguridad.
-- **Impacto:** (a) es transversal y barato; (c) es un componente nuevo.
-- **Recomendación:** (a) ahora; (b) y (c) diferidos hasta una necesidad concreta.
+**D-2. Continuidad.**
+- **Evidencia:** la planificación ya está en el proceso de `run`. `--keep-waiting` ya espera jobs nuevos.
+- **Alternativa recomendada:**
+  - la admisión filtra los jobs afectados por una condición conocida;
+  - el aplazamiento se expresa con datos del job (condición y alcance), no con un estado nuevo;
+  - si nada es elegible, se aplica la política `when_blocked` (esperar con un límite o terminar de forma ordenada; valores pendientes).
+- **Intentos:** solo `retry` del User incrementa `attempt_count` (BR-15). Ni los reintentos internos de yt-dlp, ni un aplazamiento, ni una admisión denegada lo hacen.
+- **Estados operativos de la cola que no son equivalentes** (resumen de `run` y `list`):
+  - vacía;
+  - con jobs terminados;
+  - en pausa;
+  - con jobs programados;
+  - con jobs impedidos;
+  - con jobs que requieren intervención.
+- **Criterios:** UC-11, criterios 1 a 5.
 
-### D-18. Contenido transformado
+**D-3. Ritmo y R-24.**
+- **Alcance de cada parámetro** (inspección):
 
-- **Contexto y necesidad:** SponsorBlock, capítulos, secciones, remux, conversión de audio y recodificación (§13.3, §13.4).
-- **Alternativas:**
-  - (a) solo transformaciones sin recodificar (marcar, dividir, secciones en fotogramas clave, remux, conversión de audio);
-  - (b) además, quitar segmentos con cortes exactos y recodificar con los codificadores disponibles;
-  - (c) ninguna.
-- **Para el fallo del servicio de SponsorBlock:** fallar el job o completar sin quitar segmentos y avisar.
-- **Evidencia:** capacidades de yt-dlp; configuración de la build (§13.4).
-- **Riesgos:** R-29 (patentes); recodificar es lento y caro en CPU.
-- **Impacto:** identidad (D-16) y cardinalidad (D-15).
-- **Recomendación:** (a), con «completar y avisar» ante un fallo de SponsorBlock; (b) tras resolver R-29.
+  | Parámetro | Alcance |
+  |---|---|
+  | `sleep_interval`, `max_sleep_interval` | Antes de cada descarga de la instancia |
+  | `sleep_interval_requests` | Entre peticiones de una extracción |
+  | `ratelimit` | Por transferencia |
+  | `concurrent_fragment_downloads` | Hilos por descarga |
+  | `retries`, `fragment_retries`, `extractor_retries`, `file_access_retries` | Reintentos por tipo de operación |
+  | `retry_sleep_functions` | Espera entre reintentos |
+  | `socket_timeout` | Por conexión |
 
-### D-19. Momento de resolver las opciones de un perfil
+- **Regulación global:** ningún parámetro es global entre workers, así que el ritmo por sitio vive en la admisión de `run`.
+- **Criterios de regresión de R-24:**
+  - el experimento `retries`, convertido en prueba de contrato: con dos 503 seguidos, el job se completa;
+  - con más fallos que reintentos, falla `NETWORK` con «Giving up after».
 
-- **Contexto y necesidad:** UC-18, §13.5.
-- **Alternativas:** (a) copiar las opciones al encolar (BR-33); (b) resolverlas al ejecutar.
-- **Evidencia:** hoy las download options ya se fijan al encolar (UC-02).
-- **Impacto:** (b) cambia la recuperación y la reproducibilidad de un job.
-- **Recomendación:** (a); las referencias de acceso se resuelven al enviar el job (BR-33).
+**D-4. Restricciones temporales.**
+- **Clasificación:** §22.2 de la instrucción, incorporada al catálogo de condiciones, §2.
+- **Evidencia:** yt-dlp no lee `Retry-After`; el `HTTPError` de la cadena conserva la respuesta y sus cabeceras.
+- **Alternativa recomendada:** respetar `Retry-After` cuando exista y, si no, un plazo creciente con un límite.
+- **Limitación:** los valores no tienen evidencia; se medirán con la restricción real cuando ocurra (sin provocarla).
 
-### D-20. Límite global de ancho de banda
+**D-6. Pausa.**
+- **Reutilización:** bandeja de job requests (`PAUSE`, `RESUME`, `STOP`), interrupción y terminación del árbol de procesos (ADR-0013, ADR-0029).
+- **Persistencia:**
+  - la intención de pausa sobrevive a un cierre normal, un reinicio, una interrupción y el apagado;
+  - tras restaurar un respaldo (UC-23), `run` arranca informando del estado de pausa restaurado y no lo cambia por su cuenta.
+- **Diferencias:**
+  - la pausa conserva la intención y los jobs;
+  - la cancelación expresa que ya no se quiere el job;
+  - terminar el proceso (`Ctrl+C`) es una interrupción sin intención persistida.
 
-- **Contexto y necesidad:** §13.6.
-- **Alternativas:**
-  - (a) solo el límite por descarga;
-  - (b) un límite global repartido entre los workers activos, recalculado al enviar cada job;
-  - (c) un límite global fijo por worker (global ÷ `worker_count`).
-- **Evidencia:** yt-dlp limita por instancia, no entre procesos.
-- **Impacto:** (b) necesita que `run` pase el límite a cada worker.
-- **Recomendación:** (c) por simplicidad; (b) si (c) desperdicia ancho de banda con un solo job activo.
+**D-13. Programación.**
+- **Semántica:**
+  - hora local con zona;
+  - las ventanas pueden cruzar la medianoche;
+  - horario de verano según la hora local;
+  - con el equipo apagado o suspendido, una ventana abierta al arrancar se aprovecha y un inicio único omitido se informa y se ejecuta según `missed_start_policy` (pendiente);
+  - no se ejecuta dos veces la misma programación (identificador y última ejecución persistidos).
+- **Sin servicio residente.** La tarea del Programador de tareas solo arranca `run`.
+
+**D-20. Ancho de banda.**
+- **Alcance garantizable:**
+  - por job: `ratelimit` dividido entre los fragmentos concurrentes;
+  - global: el reparto al enviar cada job.
+- **Limitaciones:**
+  - un cambio durante una descarga activa solo afectaría a transferencias no fragmentadas y requiere comunicarlo al worker: se aplica al siguiente job;
+  - el postprocesamiento no consume red.
+
+**D-8. Dependencias.**
+- **Responsabilidades:**
+  - **User:** consultar versiones y adoptar las cualificadas;
+  - **Mantenedor:** cualificar con las pruebas de contrato (SUP-S01);
+  - **producto:** diagnosticar e impedir cambios con jobs activos;
+  - **procedimiento de desarrollo:** el de `yt-dlp-update-procedure.md`.
+- ADR-0002 sigue vigente; UC-27 no lo sustituye.
+
+**D-10. Directos.**
+- **Necesidades de recursos:** un programado no ocupa un worker; un activo tiene una duración máxima configurable y su espacio se reserva con D-5.
+- **Reanudación:** distinta de un archivo. Tras una interrupción, el directo continúa desde el momento actual (los fragmentos perdidos se informan) salvo con `live_from_start`, que depende del sitio.
+- **Criterios:** UC-03 E1, reescrito por esta resolución.
+
+**D-14. Avisos.**
+- **Preferencias:** en UC-20.
+- **Garantías:**
+  - un fallo al avisar no cambia la cola (UC-28 E1);
+  - el registro de sucesos no contiene secretos.
+
+**D-17. Integración.**
+- **Operaciones del §29.2:** todas tienen un caso de uso; el canal no crea casos de uso nuevos.
+- **Contrato:** JSON versionado por comando, códigos de error estables, sucesos (D-14) y sin secretos.
+- **Modelo de confianza:** §13.7.
+
+**D-21. Retención y privacidad.**
+- **Necesidad:** §32 de la instrucción. Se representa con UC-10 A6, UC-20, UC-22, UC-23, SUP-D01 y BR-34, sin un caso de uso nuevo.
+- **Alternativas:** retención indefinida (hoy), plazos configurables por clase, o modo sin historial.
+- **Recomendación:** plazos configurables por clase, con los valores por defecto que decida el Responsable.
 
 ## 10. Limitaciones del análisis
 
@@ -624,6 +701,8 @@ Ninguna está aprobada (D-1 a D-20). Sus relaciones están en §13.10. La recome
 - Los caminos de error del §3.2 del catálogo se reprodujeron provocando cada error en el punto del código de yt-dlp; no con un disco lleno real.
 
 ## 11. Trabajo propuesto
+
+La cobertura de las tareas candidatas respecto de los 26 casos de uso aceptados está en el §14.2.
 
 Las tareas T52 a T67 son **candidatas**, no un plan. La reconciliación del §12 añadió capacidades que afectan transversalmente a la identidad (D-16), a los resultados (D-15), a la configuración (D-19) y a las interfaces (D-17). La descomposición definitiva y su secuencia se harán después de resolver esas decisiones, en el plan de E3. No se crean tareas nuevas para UC-18 a UC-28.
 
@@ -650,7 +729,7 @@ Ninguna tarea empieza hasta que el Responsable apruebe las decisiones de las que
 
 ## 12. Reconciliación de exclusiones
 
-Revisión del 2026-11-26 (instrucción 2.1.0). Se localizaron las exclusiones de todos los artefactos:
+Revisión del 2026-11-26 (instrucción 2.1.0). **Situación posterior:** el Responsable aceptó el alcance de los 26 casos de uso y las resoluciones funcionales de D-1 a D-20 (instrucción 2.2.0). Donde esta sección dice «condicionado», hoy significa condición técnica de un escenario, no una exclusión del objetivo (§9). Se localizaron las exclusiones de todos los artefactos:
 - la visión (§6);
 - el modelo de casos de uso (§4.2);
 - este análisis (§4.1, §6.1 y §6.3);
@@ -816,6 +895,35 @@ Relación: UC-03 A16 y A17, UC-05 A9, UC-06 A11 y A12, UC-07 A8, UC-09 A6, UC-10
 
 Se conservan las garantías de R-14 y de ADR-0030: la identidad nunca da la propiedad de un archivo.
 
+**Identidades distintas** (conceptos; no implican cinco clases ni cinco tablas):
+
+| Identidad | Identifica | Hoy |
+|---|---|---|
+| Del contenido (media identity) | El contenido remoto | `MediaKey` (extractor + id) |
+| De la petición (request identity) | El resultado pedido | No existe: BR-13 usa la media key más «solo audio» |
+| Del job | El trabajo persistido | `job_id` + `created_at` (owner token) |
+| De cada resultado | Cada archivo producido | Solo `output_path` |
+| De la propiedad | La autoridad sobre un resultado | Reclamación con el owner token |
+
+**Efecto de cada opción en la identidad de la petición** (D-16):
+
+| Efecto | Opciones | ¿En la identidad? |
+|---|---|---|
+| Cambia el resultado esperado | Selector o preajuste (normalizado), solo audio, contenedor, conversión, códecs, pistas, idiomas, subtítulos, capítulos, secciones, segmentos, transformaciones, complementarios pedidos | Sí |
+| Cambia el destino | Carpeta de descargas y plantilla de salida (con la ruta normalizada como en ADR-0030) | Sí |
+| Cambia la operación | Descarga o solo información (UC-24) | Sí |
+| Cambia el acceso | Perfil de acceso, proxy | No. El resultado con acceso puede diferir (más calidad, contenido de miembros); el formato elegido se registra en el job (`selected_format_id`). Si el User quiere ambas variantes, las distingue por destino |
+| Condiciones de ejecución | Timeout, reintentos, workers, ritmo, límite de ancho de banda, fragmentos | No |
+| Observabilidad | Nivel de log, intervalo de progreso | No |
+
+**Equivalencias:**
+- **Normalización de rutas:** relativas y absolutas, mayúsculas en Windows y separadores (`realpath` + `normcase`).
+- **Preajustes:** se traducen a su selector antes de calcular la identidad, así que un perfil o un preajuste equivalentes coinciden.
+- **Orden y opciones desconocidas:** el orden no cuenta y las opciones desconocidas se rechazan al encolar.
+- **Versión del algoritmo:** la identidad lleva la versión con la que se calculó; un cambio de algoritmo no convierte en duplicados los jobs anteriores.
+- **Selectores:** se comparan por su texto normalizado; dos selectores distintos que acaban eligiendo el mismo formato no se detectan como duplicados.
+
+
 ### 13.3 SponsorBlock, capítulos y secciones
 
 Capacidades de yt-dlp 2026.11.23:
@@ -895,6 +1003,19 @@ aria2c sigue excluido como tecnología: no hay ninguna necesidad que yt-dlp no c
 
 No se crean casos de uso por canal: todos los canales usan los servicios de aplicación ya separados (`job_queue`, ADR-0001). La salida JSON propuesta en `list` y `show` es una parte del contrato, no el contrato completo.
 
+**Modelo de confianza por interfaz** (revisa la exclusión de «red privada bloqueada», fila 26 del §12.1):
+
+| Origen de la entrada | Confianza | Tratamiento |
+|---|---|---|
+| User local en la CLI | Alta | Se aceptan URLs locales y privadas (pruebas controladas, servidores propios) |
+| Aplicación local autorizada (CLI con JSON) | Alta, con los permisos del usuario | Igual que la CLI |
+| Datos importados (UC-22) y respaldos (UC-23) | Baja | Validación de esquema y versión, rutas dentro del destino, sin propiedad (SUP-SEC05) |
+| Automatizaciones (programación, UC-21) | Las de quien las configuró | Igual que la CLI |
+| Consumidores remotos futuros (API HTTP, MCP) | Baja | Solo en `127.0.0.1` y con URLs privadas restringidas por defecto; se decide al diseñar esa interfaz (D-17) |
+| Redirecciones del sitio | Las gestiona yt-dlp | Sin cambio |
+
+La fila 26 se mantiene excluida para la CLI y queda **condicionada** para las interfaces remotas futuras.
+
 ### 13.8 Defectos, divergencias, ampliaciones y riesgos
 
 | Elemento | Clasificación | Escenario afectado | Motivo |
@@ -923,6 +1044,69 @@ No se renumeró ningún caso de uso.
 
 ### 13.10 Relación entre decisiones
 
+```mermaid
+---
+config:
+  theme: base
+  darkMode: true
+  themeVariables:
+    background:         "#0f172a"
+    primaryColor:       "#1e293b"
+    primaryTextColor:   "#f1f5f9"
+    primaryBorderColor: "#94a3b8"
+    lineColor:          "#cbd5e1"
+    secondaryColor:     "#334155"
+    tertiaryColor:      "#1e3a8a"
+    noteBkgColor:       "#1e3a8a"
+    noteTextColor:      "#f1f5f9"
+---
+flowchart TD
+    ProfilesD19["D-19 Perfiles"] --> IdentityD16["D-16 Identidad"]
+    TransformsD18["D-18 Transformaciones"] --> IdentityD16
+    IdentityD16 --> ResultsD15["D-15 Resultados"]
+    TransformsD18 --> ResultsD15
+    ResultsD15 --> FilesD11["D-11 Propiedad y archivos"]
+    ResultsD15 --> RecoveryD9["D-9 Recuperación"]
+    ResultsD15 --> StorageD5["D-5 Almacenamiento"]
+    StorageD5 --> StorageFailuresD12["D-12 Fallos de almacenamiento"]
+    StorageFailuresD12 --> ContinuityD2["D-2 Continuidad"]
+    AccessD1D7["D-1 y D-7 Acceso"] --> ContinuityD2
+    AccessD1D7 --> ProfilesD19
+    PacingD3D4["D-3 y D-4 Ritmo y restricciones"] --> ContinuityD2
+    ContinuityD2 --> PauseD6["D-6 Pausa"]
+    PauseD6 --> ScheduleD13["D-13 Programación"]
+    BandwidthD20["D-20 Ancho de banda"] --> ContinuityD2
+    DependenciesD8["D-8 Dependencias"] --> ResultsD15
+    DependenciesD8 --> TransformsD18
+    LiveD10["D-10 Directos"] --> ScheduleD13
+    LiveD10 --> StorageD5
+    IntegrationD17["D-17 Integración"] --> PauseD6
+    ContinuityD2 --> NotificationsD14["D-14 Avisos"]
+    RecoveryD9 --> NotificationsD14
+    RetentionD21["D-21 Retención"] --> FilesD11
+    RecoveryD9 --> FilesD11
+
+    classDef default fill:#1e293b,stroke:#94a3b8,stroke-width:1px,color:#f1f5f9
+    classDef cluster fill:#1e3a8a,stroke:#94a3b8,stroke-width:1px,color:#f1f5f9
+    classDef focal fill:#1e3a8a,stroke:#60a5fa,color:#f1f5f9
+    class ResultsD15,IdentityD16 focal
+```
+
+Conciliado con los contratos reales; sobre el diagrama preliminar de la instrucción:
+- **Añadidos:**
+  - D-1 y D-7 → D-19: los perfiles referencian el acceso;
+  - D-8 → D-18: cambiar ffmpeg o yt-dlp cambia las transformaciones;
+  - D-10 → D-5: los directos reservan espacio;
+  - D-21 → D-11: la retención afecta a la propiedad;
+  - D-9 → D-11: reutilizar exige el mismo nivel de evidencia que mover.
+- **Ciclos:** ninguno. D-15 y D-16 son los nodos de los que dependen más decisiones y deben diseñarse primero.
+- **Condiciones compartidas que podrían contradecirse:**
+  - **D-2 y D-6:** una cola en pausa y con una condición externa a la vez; prevalece la intención del User.
+  - **D-13 y D-2:** una ventana que se cierra durante un aplazamiento; la ventana solo impide el envío.
+  - **D-18 y D-15:** un servicio auxiliar caído deja un resultado pedido sin hacer; se resuelve como condición externa (§13.16).
+
+**Interdependencias en texto** (para lectores sin Mermaid):
+
 | Decisiones | Relación |
 |---|---|
 | D-1, D-7, D-19 | Configuración y seguridad del acceso (UC-19, UC-18): referencias, copias por job, perfiles fijados al encolar |
@@ -933,6 +1117,269 @@ No se renumeró ningún caso de uso.
 | D-8, D-18 | Cambiar yt-dlp o ffmpeg cambia los contratos de extracción y postprocesamiento |
 | D-14, D-17 | Los avisos y el canal programático consumen los mismos sucesos |
 | D-3, D-20 | Ritmo de peticiones y ancho de banda global |
+
+### 13.11 Fronteras de interrupción y evidencia durable (D-9)
+
+| Interrupción | Evidencia durable que existe hoy | Reconciliación recomendada |
+|---|---|---|
+| Antes de iniciar la descarga | Job `RUNNING` en SQLite | Recuperar a `PENDING` (BR-19); vigente |
+| Durante la descarga o la escritura de parciales | `.part`, `.ytdl` en la carpeta de parciales | Reanudar con `continuedl` (UC-06); vigente |
+| Durante la unión o el postprocesamiento | Formatos separados en la carpeta de parciales; archivo de salida incompleto de ffmpeg | Repetir el postprocesamiento sin descargar; el incompleto nunca se publica (está en la carpeta de parciales) |
+| Durante la publicación (movimiento a la carpeta final) | Reclamación creada antes de descargar; archivo en la carpeta de parciales o ya movido | El movimiento es un renombrado en la misma unidad (la carpeta de parciales está dentro de la de descargas): o el archivo está entero en su ruta final, o sigue en parciales |
+| Tras publicar uno de N resultados | Reclamaciones y archivos publicados | Por resultado: publicado, propio y estructuralmente correcto se reutiliza; el resto se produce (UC-06 A12) |
+| Tras publicar todos, antes de emitir `JobCompleted` | Todos publicados; job `RUNNING` | Hoy: R-25. Recomendado: completar con la evidencia local (BR-23), sin peticiones |
+| Tras emitir `JobCompleted`, antes de guardarlo | Igual que la fila anterior (el evento viaja por una cola en memoria) | Igual |
+| Durante una transacción SQLite | El journal WAL deshace la transacción incompleta | Estado anterior coherente; continúa como alguna de las filas anteriores |
+| Durante una restauración (UC-23) | Estado anterior renombrado como copia | Volver al estado anterior; UC-23 E1 y E2 |
+
+**Evidencia que falta y que el diseño deberá añadir:**
+- la expectativa de cada resultado (tipo, streams y duración esperados), registrada antes de publicar;
+- la marca de publicado por resultado.
+
+Sin ellas, la evidencia local solo demuestra la propiedad, no la integridad (la propiedad no equivale a integridad).
+
+### 13.12 Nivel de evidencia por operación sobre un resultado (D-11)
+
+| Operación | Riesgo | Evidencia exigida |
+|---|---|---|
+| Consultar (UC-09, UC-25) | Ninguno | Registro del resultado; existencia en el disco, informada |
+| Reutilizar en recuperación o reintento (UC-06, UC-07) | Dar por bueno un archivo dañado o ajeno | Registro, reclamación con owner token y verificación estructural (BR-38) |
+| Verificar (UC-26) | Ninguno (solo lectura) | La verificación misma |
+| Mover (UC-25 A6) | Romper la protección | Lo anterior, más que no haya cambiado desde la publicación (tamaño y fecha; hash si se registró) y el movimiento conjunto del archivo y su reclamación |
+| Eliminar (UC-25 A1) | Pérdida de datos | Lo anterior, más vista previa y confirmación explícita; con `--force`, se borra aunque haya cambiado, solo si es propio |
+| Sobrescribir | Pérdida de datos | Nunca, salvo un reemplazo autorizado de un resultado propio (§13.2) |
+
+Un archivo no es propio por estar en la carpeta de descargas, coincidir con la plantilla, compartir el nombre base, tener una ruta registrada, tener el mismo tamaño o haber tenido una reclamación en el pasado.
+
+Si el User u otro programa sustituye un resultado tras completarse, el registro deja de coincidir:
+- consultar y verificar lo informan;
+- reutilizar, mover y eliminar lo rechazan, salvo con `--force` sobre uno propio.
+
+### 13.13 Ciclo de vida: estados, elegibilidad y condiciones
+
+Sin estados nuevos de job. Las demás dimensiones se representan con datos y políticas:
+
+| Dimensión | Representación |
+|---|---|
+| Estado del job | `JobStatus` vigente (§1.1 del vocabulario) |
+| Estado de ejecución | `RUNNING` y el worker asignado (vigente) |
+| Estado de un resultado (D-15) | No pedido, pedido obligatorio, pedido opcional, en proceso, publicado, fallido, ausente al consultar, no verificable |
+| Elegibilidad para el envío | Se calcula en la admisión de `run` a partir de la condición, la pausa, la ventana, el tiempo de publicación de un directo y los recursos. No se guarda como estado |
+| Intención del User | Job requests (cancelar, reintentar, pausar, continuar, detener); la pausa se guarda (D-6) |
+| Condición externa | Datos de la condición: tipo, alcance, desde cuándo y, si la hay, la hora de continuación (`Retry-After`) |
+| Resultado de verificación | Informe de UC-26; no cambia el estado del job |
+
+```mermaid
+---
+config:
+  theme: base
+  darkMode: true
+  themeVariables:
+    background:               "#0f172a"
+    primaryColor:             "#1e293b"
+    primaryTextColor:         "#f1f5f9"
+    primaryBorderColor:       "#94a3b8"
+    lineColor:                "#cbd5e1"
+    secondaryColor:           "#334155"
+    tertiaryColor:            "#1e3a8a"
+    noteBkgColor:             "#1e3a8a"
+    noteTextColor:            "#f1f5f9"
+    specialStateColor:        "#f1f5f9"
+    compositeBackground:      "#162032"
+    compositeTitleBackground: "#1e293b"
+---
+stateDiagram-v2
+    [*] --> PENDING : enqueue, import
+    PENDING --> RUNNING : admitted by run
+    PENDING --> PENDING : not eligible (condition, pause, window, upcoming live)
+    PENDING --> CANCELLED : cancel
+    RUNNING --> PENDING : deferred by an external condition, or interrupted and recovered
+    RUNNING --> CANCELLATION_REQUESTED : cancel
+    CANCELLATION_REQUESTED --> CANCELLED : worker stopped
+    RUNNING --> COMPLETED : all required results published
+    RUNNING --> FAILED : a required result failed
+    RUNNING --> SKIPPED : duplicate or already downloaded
+    FAILED --> PENDING : retry
+    CANCELLED --> PENDING : retry
+    COMPLETED --> [*] : purge
+    CANCELLED --> [*] : purge
+```
+
+Un job con N resultados, una condición externa y una cancelación a la vez:
+- la cancelación prevalece y conserva los resultados ya publicados (UC-05 A9);
+- la condición externa nunca convierte un job en `FAILED`;
+- `RUNNING → PENDING` por un aplazamiento no gasta intentos (BR-04).
+
+### 13.14 Privacidad y retención (D-21)
+
+| Dato | Obligatorio para operar | Retención recomendada | Protección | Efecto de borrarlo |
+|---|---|---|---|---|
+| Jobs activos | Sí | Hasta terminar | — | Pérdida de trabajo |
+| Historial (jobs terminados) | No | Configurable (UC-10 A6; plazo pendiente, D-21) | — | Se pierde la trazabilidad; los resultados siguen protegidos por sus reclamaciones mientras existan; purgar suelta las de jobs inexistentes |
+| Reclamaciones | Sí, mientras el job sea dueño | Mientras exista el job | — | Archivos sin protección frente a otros jobs |
+| Parciales | Sí, para reanudar | Hasta completar, cancelar o purgar | — | Descargar de nuevo |
+| Resultados | Del User | Del User (UC-25) | Propiedad | — |
+| Logs | No | Rotación vigente (5 MB × 3) | Sin secretos (SUP-SEC01) | Menos diagnóstico |
+| Caché de yt-dlp | No | Regenerable | — | Más peticiones |
+| Configuración y perfiles | Sí | Permanente | Sin secretos (BR-34) | Valores por defecto |
+| Credenciales | Del User | Fuera del producto; copias temporales solo durante el job (BR-35) | ACL o modo 0600 | — |
+| Respaldos y exportaciones | No | Del User | Sin secretos; se validan al usarlos (SUP-SEC05) | — |
+| Evidencia de validación | No | Del Mantenedor | Sin multimedia ni secretos (SUP-SEC02) | — |
+
+El «modo privado» (no conservar el registro de lo descargado) no equivale a la purga automática:
+- la purga borra registros, pero los logs y la caché conservan rastros;
+- un modo sin historial requiere además no registrar títulos ni URLs en el log.
+
+Queda como alternativa de D-21.
+
+### 13.15 Seguridad transversal
+
+| Riesgo | Requisito existente o nuevo |
+|---|---|
+| Escritura fuera del destino autorizado (título con `..`, plantilla manipulada en una importación) | SUP-SEC06: toda ruta final se resuelve dentro de la carpeta de descargas, como ya garantiza `canonical_stem_path` con `realpath` |
+| Colisiones, normalización y mayúsculas en Windows | ADR-0030 (`normcase`, `realpath`); vigente |
+| Archivo sustituido tras completar | §13.12 |
+| Enlaces simbólicos y uniones en la ruta | `realpath` y comprobación del volumen (`winerror` 448, catálogo §3) |
+| Secretos en excepciones, logs, JSON e informes | SUP-SEC01: se enmascaran en el origen (D-7) |
+| Datos importados y respaldos manipulados | SUP-SEC05: se validan contra el esquema y la versión antes de escribir nada; nunca conceden propiedad (BR-36) |
+| Credenciales abandonadas tras una interrupción | BR-35, SUP-SEC04 |
+| Avisos con información sensible | UC-28: sin secretos ni rutas completas de credenciales |
+
+### 13.16 Contradicciones resueltas con las resoluciones aprobadas
+
+| Contradicción | Resolución |
+|---|---|
+| BR-29 permitía completar un job de información con uno solo de los elementos pedidos | Todo lo pedido es obligatorio salvo marca explícita (BR-29 y BR-30, versión 3) |
+| BR-29 trataba los complementarios como opcionales por omisión | Igual |
+| UC-03 A18 completaba sin quitar segmentos si SponsorBlock fallaba | Es un resultado pedido: se conserva el multimedia y se repite el postprocesamiento |
+| BR-13 (vigente en el código) frente a la resolución de D-16 | BR-13 queda como comportamiento actual, **divergente**; UC-03 A1 se marca divergente |
+| BR-02 y BR-03 con 10–20 s y 60 minutos | Sin valores universales (D-3, D-4); parámetros pendientes |
+
+### 13.17 Configuración efectiva
+
+Precedencia vigente: argumentos, variables de entorno, `config.toml`, valores por defecto (SUP-F03). Los perfiles se insertan entre los argumentos y la configuración solo para las opciones de resultado:
+
+| Clase | Origen | Cuándo se resuelve | ¿Forma parte de la identidad? |
+|---|---|---|---|
+| Resultado y postprocesamiento | Argumentos, perfil, configuración, valores por defecto | Al encolar (fijado en el job) | Sí |
+| Destino | Igual | Al encolar | Sí |
+| Acceso | Perfil de acceso por nombre | Al enviar el job | No (§13.2) |
+| Operativa y recursos | Argumentos de `run`, variables de entorno, configuración | En cada `run` y en cada envío | No |
+| Secretos | Archivos del User o almacén de credenciales | En cada uso | No |
+| Estado operativo | Base de datos | Persistido | No |
+
+**Validación:**
+- al encolar: sintaxis, combinaciones y existencia de los perfiles;
+- al enviar: el acceso existe y no ha caducado, el destino es utilizable (UC-17), y el codificador pedido está disponible.
+
+Una opción válida al encolar puede dejar de serlo si cambia el entorno. Entonces el job falla con un motivo de configuración, sin aplazarse.
+
+### 13.18 Respaldo, restauración e intercambio
+
+**Responsabilidades:** se resuelven con D-9, D-11, D-15, D-16 y D-21, sin una decisión nueva.
+
+**Alcance del respaldo (UC-23):**
+- **Incluye:**
+  - la base de datos, con su WAL integrado por la API de copia de seguridad;
+  - las job requests pendientes y las reclamaciones con sus owner tokens;
+  - la configuración y los perfiles;
+  - las versiones del esquema y del programa.
+- **No incluye:** parciales, resultados ni secretos.
+
+**Evidencia:** el experimento `sqlite_backup` (5 copias íntegras y coherentes con escrituras concurrentes). Que SQLite esté íntegro no basta: las reclamaciones viven fuera de la base de datos. Por eso, al restaurar, la conciliación de UC-06 trata como ausente todo resultado cuya reclamación o archivo no coincida.
+
+| Restauración | Comportamiento |
+|---|---|
+| Misma instalación | UC-23 A1 y A2 |
+| Instalación vacía u otra máquina | Rutas distintas: los resultados que no existen se informan (UC-06 A9); nunca se reclama un archivo existente que no tenga reclamación propia |
+| Versión antigua | Migraciones progresivas; ids reutilizados protegidos por el owner token (UC-06 A8) |
+| Sobre una instalación con jobs | Se rechaza; para combinar está la importación (UC-22) |
+| Interrumpida | El estado anterior sigue renombrado como copia: se vuelve a él |
+
+**Intercambio (UC-22):**
+- URLs, preferencias, perfiles, jobs, historial y relaciones de playlist;
+- identidad de la petición para los duplicados;
+- reconciliación de rutas (A4);
+- formato versionado sin secretos (SUP-I02);
+- los resultados solo como información, sin propiedad.
+
+### 13.19 Recursos y métodos de evaluación
+
+| Recurso | Requisito | Medible en Linux | Requiere Windows |
+|---|---|---|---|
+| Memoria del proceso principal y de los workers | SUP-P04 | Sí (referencia: unos 38 MB por proceso) | El presupuesto se fija en Windows |
+| Espacio por job (unión, N resultados, recodificación) | SUP-P07, SUP-P08 | Sí, con medios locales de tamaño conocido | Confirmación |
+| CPU de la recodificación y de la verificación con decodificación | SUP-M01, BR-38 | Sí | Codificadores por hardware |
+| Ancho de banda agregado con N fragmentos | SUP-P06, SUP-P09, D-20 | Sí, con el servidor local y un límite | — |
+| SQLite y WAL con colas largas | SUP-P08 | Sí | — |
+| Directos de larga duración | D-10 | Parcial (HLS local sin final) | — |
+| Suspensión del sistema | SUP-R08 | No | Sí |
+| Reciclado de workers en operación prolongada | SUP-P02, `max_jobs_per_worker` | Sí | Confirmación |
+
+Ningún valor se fija sin medición.
+
+## 14. Impacto en la arquitectura (insumo para Analysis and Design)
+
+| Componente (ADR-0017) | Contrato actual | Necesidad | Clasificación |
+|---|---|---|---|
+| `jobs` | `Job` con `output_path`; `DownloadOptions`; `MediaKey`; `JobStatus` | N resultados (D-15), identidad de la petición (D-16), condición de aplazamiento (D-2) | Generalizar un contrato |
+| `job_storage` | Tabla `jobs`; índices `unique_active_download_per_media` y `unique_output_path`; migraciones 0001 a 0004 | Registro de resultados, identidad de la petición, estado de pausa y programación | Migraciones nuevas y progresivas; las publicadas no cambian |
+| `job_queue` | `RunQueue`, admisión simple, job requests | Admisión por condición, ventana, pausa y directo programado; política `when_blocked`; ritmo por sitio | Ampliar una responsabilidad |
+| `media_extraction` | Parámetros de yt-dlp, clasificador, reclamaciones, `FinalPathRecorder` | Reintentos (R-24), cadena de causas (R-28), postprocessors de D-18, una reclamación por resultado, copias de cookies, proxy, `Retry-After`, evidencia local (R-25) | Ampliar y generalizar; corregir defectos |
+| `workers` | Pool de procesos, terminación de árboles (ADR-0029) | Pausa inmediata con el mecanismo existente; directos | Ya satisfecho en su mayoría |
+| `diagnostics` | `diagnose` | Destino, proxy, dependencias, informe (UC-16), versiones (UC-27) | Ampliar |
+| `configuration` | Precedencia SUP-F03 | Perfiles, acceso, avisos, ventanas, retención; `config show` con el origen | Ampliar |
+| `command_line` | `argparse` y presentación | Comandos nuevos; JSON versionado; errores estructurados | Ampliar; la lógica queda en `job_queue` |
+| `ffmpeg_discovery` | Verificación de ffmpeg y ffprobe | Codificadores disponibles (D-18), ffprobe para la verificación | Ampliar |
+
+**Invariantes que deben preservarse:**
+- solo el proceso de `run` cambia el estado (SUP-C04);
+- los workers solo publican job events;
+- ningún archivo ajeno se toca (ADR-0030, R-14);
+- el owner token protege de ids reutilizados;
+- el progreso no va a la base de datos (SUP-P03);
+- las reglas de la cola se prueban sin yt-dlp, sin SQLite y sin procesos (SUP-S04).
+
+**Eventos:** `JobCompleted` deberá llevar los resultados publicados. Hacen falta un evento de aplazamiento (ADR-0031) y uno de resultado publicado, o una forma equivalente. Su diseño corresponde a Analysis and Design.
+
+### 14.1 Revisión de los ADR
+
+| ADR | Situación |
+|---|---|
+| ADR-0001 (sin GUI) | Vigente; la nota de 2026-11-26 aclara que la GUI sigue diferida y que las necesidades se cubren con SUP-I01 |
+| ADR-0002 (yt-dlp fijado) | Vigente; UC-27 lo respeta |
+| ADR-0004 (Windows x64) | Vigente |
+| ADR-0007, ADR-0018 (licencias, build LGPL) | Vigentes; D-18 añade la cuestión de patentes (R-29), no de licencia |
+| ADR-0009 (expansión en jobs) | Vigente |
+| ADR-0010 (cola en SQLite) | Vigente; necesitará ampliarse con los resultados y la identidad (nueva decisión en Analysis and Design) |
+| ADR-0012 (sin `download_archive`) | Vigente para la tecnología; «ya descargado» se resuelve con D-16 |
+| ADR-0013, ADR-0029 (árbol de procesos) | Vigentes; los reutilizan la pausa inmediata y los directos |
+| ADR-0017 (API pública y dependencias) | Vigente; la API Python de D-17 se apoya en él |
+| ADR-0030 (reclamaciones) | Vigente en su principio; necesita ampliarse a una reclamación por resultado (nueva decisión que lo complemente, sin cambiar su significado) |
+| ADR-0031 (aplazar ante condiciones externas, propuesta) | Debe revisarse con D-2, D-3, D-4 y D-12: sus valores fijos (60 min, 10–20 s) quedan sustituidos por los parámetros pendientes |
+| Nuevas decisiones de diseño previstas | Modelo de resultados (D-15 y D-16), admisión y política de continuidad (D-2, D-6, D-13, D-20), acceso y secretos (D-1, D-7), contrato programático (D-17). Cuatro decisiones de diseño, no veinte ADR |
+
+### 14.2 Cobertura de las tareas candidatas
+
+| Tarea | Cobertura respecto de los 26 casos de uso | Situación |
+|---|---|---|
+| T52 aplazar y reconocer condiciones | UC-11, UC-17 | Depende de D-2 y D-12; se consolida con T67 |
+| T53 continuidad y admisión | UC-11, UC-14, UC-21 | Ampliar: la admisión es común a las ventanas, la pausa y los directos |
+| T54 reintentos de yt-dlp | UC-03 A15 (R-24) | Aplicable sin dependencias: corrige una divergencia |
+| T55 evidencia local | UC-06 A4, A11 y A12 (R-25) | Depende de D-15 (registro de la expectativa) |
+| T56 `list`, `show` y `diagnose` | UC-01, UC-08, UC-09 | Se superpone con SUP-I01; consolidar |
+| T57 suspensión | SUP-R08 | Aplicable |
+| T58 pausa y ancho de banda | UC-14, D-20 | Ampliar con el límite global |
+| T59 a T61 validación | VUC-04 a VUC-08, UC-16 | Aplicables |
+| T62 consulta y selección | UC-15, UC-02 A6 y UC-04 A8 | Aplicable |
+| T63 indicación de reintento | SUP-U05 | Aplicable |
+| T64 informe | UC-16 | Aplicable |
+| T65 directos y purgar con archivos | D-10, UC-10 A5 y UC-25 | Ampliar con D-10 y UC-25 |
+| T66 preajustes, JSON y búsqueda | UC-02 A9, UC-08, UC-09, SUP-I01 | Consolidar con T56 |
+| T67 almacenamiento | UC-17 (R-28) | Consolidar con T52 |
+| Sin tarea | UC-18 a UC-28, D-15, D-16, D-18 | Se descompondrán después de Analysis and Design, por responsabilidades comunes (modelo de resultados, admisión, acceso, contrato programático) |
+
+**Defectos que requieren un tratamiento explícito:** R-25 y R-28, y la divergencia R-24. Sus criterios de regresión están en D-9, D-12 y D-3.
 
 ## Fuentes
 

@@ -10,16 +10,18 @@ SCRIPT = Path(__file__).parents[1] / "scripts" / "check_requirements_model.py"
 
 USE_CASE = """# UC-01: Encolar
 
-- **Estado:** aprobado; implementado.
+- **Estado:** aceptado (Responsable). Implementación: parcial.
+- **Verificación:** pruebas automáticas en desarrollo.
 
 ## Flujos alternativos
 
-- **A1. Uno vigente:** con los valores por defecto.
-- **A2. Otro propuesto** (propuesto): según [BR-01](../business-rules.md).
+- **A1. Uno vigente:** `[estado: implementado]` con los valores por defecto.
+- **A2. Otro sin implementar** `[estado: ausente; condicionado]`:
+  según [BR-01](../business-rules.md).
 
 ## Excepciones
 
-- **E1. Uno defectuoso:** **Defecto (R-01):** falla mal.
+- **E1. Uno defectuoso:** `[estado: defecto]` **Defecto (R-01):** falla mal.
 
 ## Criterios de aceptación
 
@@ -104,8 +106,8 @@ def test_the_generated_matrix_counts_flows_by_state(repository: Path) -> None:
     model = (repository / "doc/requirements/use-case-model.md").read_text("utf-8")
 
     assert (
-        "| UC-01 | aprobado | 2 | 1 | 1 | 0 | 1 | 0 | 1 | 0 | 0 | 1 | 0 | 1 | Sí |"
-        in model
+        "| UC-01 | aceptado | 2 | 1 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 0 | 1 "
+        "| prueba en desarrollo | Sí |" in model
     )
 
 
@@ -150,7 +152,7 @@ def test_an_outdated_matrix_fails_until_it_is_regenerated(repository: Path) -> N
     use_case = repository / "doc/requirements/use-cases/uc-01-enqueue.md"
     use_case.write_text(
         USE_CASE.replace(
-            "## Excepciones", "- **A3. Nuevo** (propuesto).\n\n## Excepciones"
+            "## Excepciones", "- **A3. Nuevo** `[estado: ausente]`.\n\n## Excepciones"
         ),
         encoding="utf-8",
     )
@@ -168,17 +170,42 @@ def test_an_outdated_matrix_fails_until_it_is_regenerated(repository: Path) -> N
 @pytest.mark.parametrize(
     ("text", "state"),
     [
-        ("con los valores por defecto", "implementado"),
-        ("**Defecto (R-28):** falla", "defecto"),
-        ("**Divergencia hoy:** 0 reintentos", "divergente"),
-        ("(**sin cualificar**, D-10)", "sin cualificar"),
-        ("(condicionado a D-1)", "condicionado"),
-        ("**Limitación:** la identidad", "parcial"),
-        ("(propuesto, prioridad baja)", "propuesto"),
+        (
+            " `[estado: implementado]` con los valores por defecto",
+            ("implementado", False),
+        ),
+        (" `[estado: defecto]` **Defecto (R-28):** falla", ("defecto", False)),
+        (" `[estado: ausente; condicionado]` (D-1)", ("ausente", True)),
+        (" `[estado: sin cualificar]`", ("sin cualificar", False)),
     ],
 )
-def test_flow_state_follows_its_marks(text: str, state: str) -> None:
+def test_flow_state_comes_only_from_the_explicit_mark(
+    text: str, state: tuple[str, bool]
+) -> None:
     assert load_script().flow_state(text) == state
+
+
+@pytest.mark.parametrize(
+    "text",
+    [" (propuesto) sin marca", " **Defecto (R-28):** sin marca", " `[estado: quizá]`"],
+)
+def test_text_without_a_valid_mark_is_not_classified(text: str) -> None:
+    assert load_script().flow_state(text) is None
+
+
+def test_a_flow_without_a_mark_fails(repository: Path) -> None:
+    use_case = repository / "doc/requirements/use-cases/uc-01-enqueue.md"
+    use_case.write_text(
+        USE_CASE.replace(
+            "## Excepciones", "- **A3. Sin marca** (propuesto).\n\n## Excepciones"
+        ),
+        encoding="utf-8",
+    )
+
+    result = check(repository)
+
+    assert result.returncode == 1
+    assert "A3 has no valid [estado: ...] mark" in result.stdout
 
 
 @pytest.mark.parametrize(

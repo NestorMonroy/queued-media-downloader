@@ -1,7 +1,7 @@
 # Catálogo de condiciones de fallo
 
 - **Fase RUP:** Elaboración (consolidación de requisitos)
-- **Versión:** 1.2 (2026-11-26; separa las condiciones de almacenamiento y documenta la cadena de causas)
+- **Versión:** 1.3 (2026-11-26; `Retry-After`, autenticación y directos según las resoluciones aprobadas). 1.2: separa las condiciones de almacenamiento y documenta la cadena de causas
 - **Responsabilidad:** autoridad única sobre qué condiciones impiden o interrumpen una descarga, a qué alcanzan y qué garantiza el producto ante cada una. Los casos de uso enlazan aquí en lugar de repetirlo: UC-03 A2, UC-06, UC-11, UC-15 E2 y UC-17.
 - **Técnicas (BABOK v3):** 10.40 Root Cause Analysis, 10.44 State Modelling, 10.16 Decision Modelling, 10.1 Acceptance and Evaluation Criteria
 - **Mecanismos actuales:**
@@ -17,7 +17,7 @@
 | **Alcance** | Job: solo ese job. Sitio: los jobs del mismo sitio. Unidad: los que escriben en esa unidad. Cola: todos. Instalación: nada puede ejecutarse |
 | **Temporalidad** | Transitoria: desaparece sola. Persistente: necesita una acción. Definitiva: no se arregla reintentando |
 | **Hoy** | Comportamiento comprobado en el código vigente (`main`) y su `FailureReason`. "Sin cualificar" indica que nadie ha decidido el comportamiento |
-| **Garantía** | Lo que el producto debe asegurar; es el criterio de aceptación. *(P)* indica que es propuesta y no está implementada |
+| **Garantía** | Lo que el producto debe asegurar; es el criterio de aceptación. *(P)* indica que pertenece al alcance aceptado y no está implementada |
 
 El motivo del job lo asigna `failure_classifier` con la causa más interna de la excepción de yt-dlp. Se comprobó con excepciones reales de yt-dlp 2026.11.23:
 - un `HTTPError` 403, 429 o 503 es `NETWORK`, y uno 404 o 410 es `UNAVAILABLE`;
@@ -36,7 +36,7 @@ El motivo del job lo asigna `failure_classifier` con la causa más interna de la
 | Contenido privado, con restricción de edad o solo para miembros | `ExtractorError` esperado ("This video is only available for registered users", entre otros) | Job · persistente (necesita una cuenta) | `FAILED` `UNAVAILABLE` | Igual; no es una restricción del sitio (BR-01). Sin cuentas mientras D-1 siga abierta |
 | Restricción geográfica | `GeoRestrictedError` | Job · persistente | `FAILED` `GEO_RESTRICTED` | Igual. Sin evasión: el proxy solo se acepta como conectividad legítima (D-7) |
 | Formato guardado ya no disponible al reanudar | `ExtractorError` con "Requested format is not available" | Job · recuperable | Un reintento con el selector original (UC-06 A1) | Igual |
-| Transmisión en directo o programada | `is_live`, `live_status` | Job · un worker ocupado sin final previsible | **Sin cualificar**: no hay una regla para los directos (riesgo R-26) | Decisión D-10: rechazarla con un mensaje, grabar hasta que termine con un límite, o esperar al inicio (`wait_for_video`) |
+| Transmisión en directo o programada | `is_live`, `live_status`, `release_timestamp` | Job · un worker ocupado sin final previsible | **Sin regla**: el worker descarga mientras dure (R-26) | D-10, BR-24: la programada se aplaza sin ocupar un worker; la activa, con una duración máxima; la interrumpida continúa desde el momento actual |
 | Resolución de los retos JavaScript de YouTube | Falta deno, o yt-dlp-ejs falla | Sitio · persistente | yt-dlp avisa de que pueden faltar formatos; `diagnose` falla con `CHALLENGE_SOLVER_NOT_FOUND` (T42-D3) | Igual; la actualización de yt-dlp-ejs sigue SUP-S01 |
 
 ## 2. Red y acceso al sitio
@@ -44,8 +44,9 @@ El motivo del job lo asigna `failure_classifier` con la causa más interna de la
 | Condición | Causa y detección | Alcance · temporalidad | Hoy | Garantía e información al User |
 |---|---|---|---|---|
 | Restricción del sitio: antibots, captcha o límite de peticiones | Texto de yt-dlp ([BR-01](business-rules.md)) | Sitio · transitoria (hasta una hora, según yt-dlp) | `FAILED` `UNAVAILABLE`; los jobs siguientes del sitio también fallan (T42, paso 5.7) | *(P)* UC-11 A1: aplazar sin gastar intentos, no insistir y continuidad selectiva |
-| HTTP 429 | `HTTPError` 429 | Sitio · transitoria | `FAILED` `NETWORK` | *(P)* Tratarlo como restricción del sitio (BR-01) |
-| HTTP 403 del servidor de video | `HTTPError` 403 tras una extracción correcta | Job o sitio · incierta: firma caducada, cliente sin PO Token (R-20) | `FAILED` `NETWORK` | *(P)* Un motivo que no sugiera reintentar sin más. Sin cambiar de cliente: la alternativa de VoiceStudio exige PO Token en `android` |
+| HTTP 429, o 503 con `Retry-After` | `HTTPError` en la cadena; cabecera `Retry-After` en `HTTPError.response` (yt-dlp no la usa) | Sitio · transitoria, con el plazo informado | `FAILED` `NETWORK` | *(P)* BR-41: sin peticiones al sitio antes del plazo; después, BR-03 |
+| Inicio de sesión requerido o sesión caducada | Texto de yt-dlp («Sign in», «login required») sin las firmas de BR-01; con un perfil de acceso, después de usarlo | Job o sitio · persistente hasta renovar las credenciales | `FAILED` `UNAVAILABLE` | *(P)* UC-19 A6: se informa la renovación necesaria; no se repiten peticiones ni se prueban otras credenciales (BR-41) |
+| HTTP 403 del servidor de video | `HTTPError` 403 tras una extracción correcta | Job o sitio · incierta: firma caducada, cliente sin PO Token (R-20) | `FAILED` `NETWORK` | *(P)* Un motivo que no sugiera reintentar sin más; un 403 no se trata como restricción temporal salvo que BR-01 la reconozca (BR-41, D-4). Sin cambiar de cliente: la alternativa de VoiceStudio exige PO Token en `android` |
 | HTTP 5xx | `HTTPError` 5xx | Sitio · transitoria | **Divergencia**: 0 reintentos, `FAILED` `NETWORK` | Los reintentos de yt-dlp, con la paridad de BR-07 *(P, SUP-R11)* |
 | Timeout o conexión cortada con un host | `TransportError`, `TimeoutError` | Job · transitoria | **Divergencia**: 0 reintentos (T42-D7: un timeout falló a la primera) | Igual que la fila anterior |
 | Agotamiento de los reintentos del downloader | `DownloadError` con "[download] Got error" | Job · transitoria | `FAILED` `NETWORK` (T42-D7 corregido) | Igual |

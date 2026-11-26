@@ -7,7 +7,8 @@
 - **Relación:** UC-01 ya muestra versiones y verifica ffmpeg y deno; este caso de uso añade el cambio controlado. Sustituye al candidato «Actualizar yt-dlp».
 - **Prioridad:** media
 - **Significativo para la arquitectura:** sí; contradice en parte ADR-0002 si D-8 admite versiones no cualificadas
-- **Estado:** condicionado a D-8; no implementado.
+- **Estado:** aceptado (Responsable, 2026-11-26). Implementación: ausente (`diagnose` informa de las versiones). Condición técnica: D-8; la versión candidata no cualificada (A2) queda condicionada.
+- **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
 - **Origen:**
   - **VoiceStudio:** capa de yt-dlp actualizada desde PyPI y «Restore tested version».
   - **Seal:** canales de actualización.
@@ -37,16 +38,16 @@ Las capacidades se reparten entre tres responsables:
 
 ## Flujos alternativos
 
-- **A1. Pasar a una versión cualificada publicada:** equivale a actualizar el programa (`git pull`, `uv sync`); el sistema indica la orden exacta.
-- **A2. Versión candidata no cualificada** (D-8): `dependencies try yt-dlp==X` instala la versión en un entorno separado del cualificado, la usa solo con `--candidate` y la marca en el log, en `diagnose` y en el informe (UC-16).
-- **A3. Volver a la cualificada:** `dependencies restore` descarta la candidata.
-- **A4. ffmpeg propio:** `ffmpeg_path` (UC-01 A4), con el aviso de versión no validada.
-- **A5. Dependencia incompatible:** una combinación conocida como incompatible (por ejemplo, un yt-dlp-ejs que no corresponde a yt-dlp) se informa como fallo de `diagnose`.
+- **A1. Pasar a una versión cualificada publicada:** `[estado: ausente]` equivale a actualizar el programa (`git pull`, `uv sync`); el sistema indica la orden exacta.
+- **A2. Versión candidata no cualificada** `[estado: ausente; condicionado]` (D-8): `dependencies try yt-dlp==X` instala la versión en un entorno separado del cualificado, la usa solo con `--candidate` y la marca en el log, en `diagnose` y en el informe (UC-16).
+- **A3. Volver a la cualificada:** `[estado: ausente]` `dependencies restore` descarta la candidata.
+- **A4. ffmpeg propio:** `[estado: ausente]` `ffmpeg_path` (UC-01 A4), con el aviso de versión no validada.
+- **A5. Dependencia incompatible:** `[estado: ausente]` una combinación conocida como incompatible (por ejemplo, un yt-dlp-ejs que no corresponde a yt-dlp) se informa como fallo de `diagnose`.
 
 ## Excepciones
 
-- **E1. Sin conexión al consultar versiones publicadas:** se informa; lo local se muestra igual.
-- **E2. Instalación de una candidata fallida:** la cualificada sigue intacta.
+- **E1. Sin conexión al consultar versiones publicadas:** `[estado: ausente]` se informa; lo local se muestra igual.
+- **E2. Instalación de una candidata fallida:** `[estado: ausente]` la cualificada sigue intacta.
 
 ## Garantías
 

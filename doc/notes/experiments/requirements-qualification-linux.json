@@ -1,0 +1,98 @@
+{
+  "yt_dlp": "2026.11.23",
+  "python": "3.13.18",
+  "platform": "Linux 6.18.44-fc-v880 x86_64",
+  "retries": {
+    "failed_download_requests": 2,
+    "product_parameters": {
+      "completed": false,
+      "failure_reason": "NETWORK",
+      "requests": 2
+    },
+    "with_retries_10": {
+      "completed": true,
+      "requests": 4
+    }
+  },
+  "sqlite_backup": {
+    "copies": [
+      {
+        "integrity": "ok",
+        "rows": 200,
+        "counter": 200
+      },
+      {
+        "integrity": "ok",
+        "rows": 207,
+        "counter": 207
+      },
+      {
+        "integrity": "ok",
+        "rows": 212,
+        "counter": 212
+      },
+      {
+        "integrity": "ok",
+        "rows": 218,
+        "counter": 218
+      },
+      {
+        "integrity": "ok",
+        "rows": 224,
+        "counter": 224
+      }
+    ],
+    "all_consistent": true,
+    "writes_during_experiment": 230
+  },
+  "cause_chain": {
+    "write_data": {
+      "current_reason": "FILESYSTEM",
+      "codes_in_chain": [
+        {
+          "type": "OSError",
+          "errno": 28,
+          "winerror": null
+        }
+      ],
+      "needs_text": false,
+      "text": "ERROR: unable to write data: [Errno 28] No space left on device"
+    },
+    "create_directory": {
+      "current_reason": "FILESYSTEM",
+      "codes_in_chain": [
+        {
+          "type": "OSError",
+          "errno": 28,
+          "winerror": null
+        }
+      ],
+      "needs_text": false,
+      "text": "ERROR: Unable to create directory: [Errno 28] No space left on device"
+    },
+    "file_access_exhausted": {
+      "current_reason": "UNKNOWN",
+      "codes_in_chain": [],
+      "needs_text": true,
+      "text": "ERROR: Unable to rename file: [Errno 28] No space left on device"
+    },
+    "process_info": {
+      "current_reason": "UNKNOWN",
+      "codes_in_chain": [
+        {
+          "type": "OSError",
+          "errno": 28,
+          "winerror": null
+        }
+      ],
+      "needs_text": false,
+      "text": "ERROR: Unable to download video: [Errno 28] No space left on device"
+    },
+    "ffmpeg": {
+      "current_reason": "POSTPROCESSING",
+      "codes_in_chain": [],
+      "needs_text": true,
+      "text": "ERROR: Error writing trailer: No space left on device"
+    }
+  }
+}

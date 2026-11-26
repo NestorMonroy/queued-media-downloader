@@ -7,7 +7,8 @@
 - **Relación:** UC-01 valida la configuración al verificar el entorno (A6); UC-18 guarda los perfiles en ella; UC-19 guarda las referencias de acceso, nunca los secretos.
 - **Prioridad:** media
 - **Significativo para la arquitectura:** no; reutiliza `configuration` y la precedencia existente (SUP-F03)
-- **Estado:** propuesto; parcial: la carga con precedencia y la validación existen (UC-01 A6), pero no la consulta, la modificación ni el traslado.
+- **Estado:** aceptado (Responsable, 2026-11-26). Implementación: parcial (la carga con precedencia y la validación existen; la consulta, la modificación y el traslado no).
+- **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
 - **Origen:**
   - **Seal y YTDownload-2026:** pantallas de ajustes.
   - **Kannagi:** `config.yaml` y preajustes.
@@ -35,18 +36,18 @@ Se distinguen cuatro tipos de información:
 
 ## Flujos alternativos
 
-- **A1. Modificar:** `config set CLAVE VALOR` valida el valor y lo escribe en `config.toml`, conservando los comentarios del archivo. Si una variable de entorno lo sustituye, el sistema avisa de que el cambio no tendrá efecto.
-- **A2. Quitar y restablecer:** `config unset CLAVE` vuelve al valor por defecto de esa clave; `config reset` crea una copia de `config.toml` y lo deja vacío, con confirmación.
-- **A3. Validar:** `config check` informa de cada clave inválida y de las combinaciones incompatibles (por ejemplo, un perfil predeterminado inexistente).
-- **A4. Salida para otros programas:** `--json`, como UC-08 A5.
-- **A5. Exportar e importar:** `config export ARCHIVO` incluye los perfiles (UC-18) y las referencias de acceso sin secretos. `config import` valida antes de escribir, muestra las diferencias y pide confirmación.
-- **A6. Cambio durante `run`:** `run` lee la configuración al arrancar. Un cambio se aplica en el siguiente `run`, y el sistema lo avisa.
-- **A7. Preferencias de red** (propuesto, prioridad baja): `force_ipv4` para redes con IPv6 roto (`source_address` de yt-dlp). Cambiar el agente de usuario queda excluido: no resuelve una necesidad del User y puede servir para evadir controles (BR-12).
+- **A1. Modificar:** `[estado: ausente]` `config set CLAVE VALOR` valida el valor y lo escribe en `config.toml`, conservando los comentarios del archivo. Si una variable de entorno lo sustituye, el sistema avisa de que el cambio no tendrá efecto.
+- **A2. Quitar y restablecer:** `[estado: ausente]` `config unset CLAVE` vuelve al valor por defecto de esa clave; `config reset` crea una copia de `config.toml` y lo deja vacío, con confirmación.
+- **A3. Validar:** `[estado: ausente]` `config check` informa de cada clave inválida y de las combinaciones incompatibles (por ejemplo, un perfil predeterminado inexistente).
+- **A4. Salida para otros programas:** `[estado: ausente]` `--json`, como UC-08 A5.
+- **A5. Exportar e importar:** `[estado: ausente]` `config export ARCHIVO` incluye los perfiles (UC-18) y las referencias de acceso sin secretos. `config import` valida antes de escribir, muestra las diferencias y pide confirmación.
+- **A6. Cambio durante `run`:** `[estado: ausente]` `run` lee la configuración al arrancar. Un cambio se aplica en el siguiente `run`, y el sistema lo avisa.
+- **A7. Preferencias de red** `[estado: ausente]` (prioridad baja): `force_ipv4` para redes con IPv6 roto (`source_address` de yt-dlp). Cambiar el agente de usuario queda excluido: no resuelve una necesidad del User y puede servir para evadir controles (BR-12).
 
 ## Excepciones
 
-- **E1. Valor o clave inválidos:** el sistema nombra la clave y el valor, no escribe nada y termina con código `2`.
-- **E2. `config.toml` ilegible:** `config show` lo informa con la causa y muestra el resto.
+- **E1. Valor o clave inválidos:** `[estado: ausente]` el sistema nombra la clave y el valor, no escribe nada y termina con código `2`.
+- **E2. `config.toml` ilegible:** `[estado: ausente]` `config show` lo informa con la causa y muestra el resto.
 
 ## Garantías
 

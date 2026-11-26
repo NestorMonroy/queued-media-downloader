@@ -2,12 +2,13 @@
 
 - **Objetivo:** la cola descarga solo cuando el User lo permite (más tarde, en ciertas horas, de forma recurrente) sin que él tenga que estar presente para iniciarla ni detenerla, y el User puede consultar y cambiar esa programación.
 - **Actor principal:** User
-- **Actor secundario:** Temporizador (el reloj del sistema o un programador externo, según D-13)
+- **Actor secundario:** Temporizador (el reloj del sistema; para arrancar sin `run` activo, el Programador de tareas de Windows, D-13)
 - **Disparador:** el User quiere descargar de noche, fuera del horario de trabajo o cuando la conexión es más barata o está libre.
 - **Relación:** usa el control de ejecución de UC-14 (pausa, continuación, detención) y la admisión de `run`. Convive con los aplazamientos de UC-11 y UC-17: una ventana cerrada no aplaza un job, solo impide enviarlo.
 - **Prioridad:** media
-- **Significativo para la arquitectura:** depende de D-13
-- **Estado:** propuesto; no implementado. Decisión D-13 pendiente.
+- **Significativo para la arquitectura:** sí; la programación es una capacidad del producto (D-13, resuelta funcionalmente)
+- **Estado:** aceptado (Responsable, 2026-11-26). Implementación: ausente. Condición técnica: D-13.
+- **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
 - **Origen:** revisión de la exclusión «lo cubre el Programador de tareas de Windows»: esa herramienta puede arrancar `run`, pero no ofrece ventanas de descarga ni las combina con la pausa, los aplazamientos y la recuperación de la cola ([análisis, §12](../requirements-analysis.md#12-reconciliación-de-exclusiones)).
 
 ## Breve descripción
@@ -28,20 +29,20 @@ Una programación es una ventana de descarga (días y horas) o un inicio único.
 
 ## Flujos alternativos
 
-- **A1. Inicio único:** `schedule once 2026-12-01T02:00`. `run --keep-waiting` empieza a enviar jobs a esa hora.
-- **A2. Arranque por un programador externo** (si D-13 lo elige): `schedule install` registra una tarea en el Programador de tareas de Windows que ejecuta `run` en la ventana. El sistema solo crea, consulta y borra su propia tarea.
-- **A3. Consultar:** `schedule show` muestra la programación vigente y la siguiente apertura.
-- **A4. Modificar o cancelar:** `schedule set` o `schedule clear`. `run`, si está en marcha, lo aplica en su siguiente ciclo.
-- **A5. Ejecutar ahora:** `run --ignore-schedule` envía jobs fuera de la ventana para esa ejecución.
-- **A6. Detener al cerrar la ventana:** con `--stop-at-window-end`, los jobs en curso se detienen como una interrupción (UC-05 A6) y continúan en la siguiente ventana.
-- **A7. Reinicio del equipo:** la programación sigue vigente. Si un programador externo arranca `run`, se recupera la cola (UC-06).
-- **A8. Cambio de hora (horario de verano):** la ventana usa la hora local vigente en cada momento.
-- **A9. Conexión de uso medido** (propuesto, prioridad baja): con `respect_metered_connection`, `run` no envía jobs mientras Windows marque la conexión como de uso medido, igual que una ventana cerrada (BR-37). Origen: Seal (no descargar con datos móviles); la exclusión «propia de Android» no se sostiene porque Windows también tiene conexiones de uso medido.
+- **A1. Inicio único:** `[estado: ausente]` `schedule once 2026-12-01T02:00`. `run --keep-waiting` empieza a enviar jobs a esa hora.
+- **A2. Arranque por un programador externo** `[estado: ausente]` (D-13: solo para arrancar sin `run` activo; no hay servicio residente): `schedule install` registra una tarea en el Programador de tareas de Windows que ejecuta `run` en la ventana. El sistema solo crea, consulta y borra su propia tarea.
+- **A3. Consultar:** `[estado: ausente]` `schedule show` muestra la programación vigente y la siguiente apertura.
+- **A4. Modificar o cancelar:** `[estado: ausente]` `schedule set` o `schedule clear`. `run`, si está en marcha, lo aplica en su siguiente ciclo.
+- **A5. Ejecutar ahora:** `[estado: ausente]` `run --ignore-schedule` envía jobs fuera de la ventana para esa ejecución.
+- **A6. Detener al cerrar la ventana:** `[estado: ausente]` con `--stop-at-window-end`, los jobs en curso se detienen como una interrupción (UC-05 A6) y continúan en la siguiente ventana.
+- **A7. Reinicio del equipo:** `[estado: ausente]` la programación sigue vigente. Si un programador externo arranca `run`, se recupera la cola (UC-06).
+- **A8. Cambio de hora (horario de verano):** `[estado: ausente]` la ventana usa la hora local vigente en cada momento.
+- **A9. Conexión de uso medido** `[estado: ausente]` (prioridad baja): con `respect_metered_connection`, `run` no envía jobs mientras Windows marque la conexión como de uso medido, igual que una ventana cerrada (BR-37). Origen: Seal (no descargar con datos móviles); la exclusión «propia de Android» no se sostiene porque Windows también tiene conexiones de uso medido.
 
 ## Excepciones
 
-- **E1. Ventana inválida** (formato, fin igual al inicio): código `2`.
-- **E2. No se puede registrar la tarea externa** (permisos, política del equipo): se informa de la causa; la programación interna sigue vigente.
+- **E1. Ventana inválida** `[estado: ausente]` (formato, fin igual al inicio): código `2`.
+- **E2. No se puede registrar la tarea externa** `[estado: ausente]` (permisos, política del equipo): se informa de la causa; la programación interna sigue vigente.
 
 ## Garantías
 

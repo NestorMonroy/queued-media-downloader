@@ -6,7 +6,8 @@
 - **Disparador:** algo no funciona y el User quiere reportarlo.
 - **Prioridad:** baja
 - **Significativo para la arquitectura:** no (reutiliza `diagnose` y el log)
-- **Estado:** propuesto; **no implementado**.
+- **Estado:** aceptado (Responsable, 2026-11-26). Implementación: ausente (`diagnose` de UC-01 sí existe).
+- **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
 - **Origen:**
   - **VoiceStudio:** "Save diagnostic bundle" (`backend/core/diagnostic_bundle.py`: autodiagnóstico, diario de errores clasificados, final del log, todo limpiado de datos sensibles).
   - **Seal:** "copy error report" y la pantalla de fallos.
@@ -43,12 +44,12 @@ Todo pasa por una limpieza de datos sensibles. La evidencia de validación (VUC-
 
 ## Flujos alternativos
 
-- **A1. La base de datos no se puede abrir:** el informe lo registra con la causa y sigue con lo demás.
-- **A2. No hay log:** el informe lo indica.
+- **A1. La base de datos no se puede abrir:** `[estado: ausente]` el informe lo registra con la causa y sigue con lo demás.
+- **A2. No hay log:** `[estado: ausente]` el informe lo indica.
 
 ## Excepciones
 
-- **E1. No se puede escribir en la carpeta de estado:** se informa con la carpeta y la causa; código `1`.
+- **E1. No se puede escribir en la carpeta de estado:** `[estado: ausente]` se informa con la carpeta y la causa; código `1`.
 
 ## Garantías
 

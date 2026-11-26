@@ -6,7 +6,8 @@
 - **Disparador:** el User tiene una URL y no sabe qué formato pedir, si es una playlist o cuánto ocupa.
 - **Prioridad:** media
 - **Significativo para la arquitectura:** no (reutiliza la extracción de `media_extraction`; es el único comando de consulta que accede a la red)
-- **Estado:** propuesto; **no implementado**.
+- **Estado:** aceptado (Responsable, 2026-11-26). Implementación: ausente.
+- **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
 - **Origen:**
   - **Seal:** obtiene la información y elige el formato antes de descargar (`DownloaderV2.fetchInfo`, `ui/page/downloadv2/configure/FormatPage.kt`, `PlaylistSelectionPage.kt`).
   - **Kannagi:** el botón Analyze (`--dump-json` en `Wrappers/DLP.cs`; listas de formatos, subtítulos y capítulos en `ViewModels/Main.cs`).
@@ -33,18 +34,18 @@
 
 ## Flujos alternativos
 
-- **A1. La URL es una playlist o un canal** (paso 3): extracción plana, la misma de UC-04. Muestra el título y el número de entradas si el sitio lo declara, y como mucho las primeras `N` entradas, sin resolverlas (ADR-0009).
-- **A2. Enlace a un video dentro de una lista** (paso 3): muestra el video y avisa de que `--playlist` encolaría la lista entera (ADR-0027).
-- **A3. `--format SELECTOR`** (paso 4): muestra qué formatos elegiría ese selector, sin descargar.
-- **A4. Subtítulos disponibles** (paso 4): lista sus idiomas, si se aprueba la opción de subtítulos (UC-02 A7).
-- **A5. Buscar antes de conocer la URL** (paso 1; propuesto): `inspect --search "TEXTO" [--limit N]` usa la búsqueda que ofrece el extractor de yt-dlp (`ytsearchN:` en YouTube) y muestra los resultados con su URL; `enqueue` usa después esa URL. No hay buscadores propios ni interfaz gráfica. Origen: VoiceStudio (galería), yt-dlp (`ytsearch`); la exclusión «búsqueda fuera del dominio» confundía la búsqueda de voces de VoiceStudio con la necesidad de encontrar un contenido para descargarlo.
-- **A6. Capítulos y segmentos** (paso 4; propuesto): muestra los capítulos del contenido y, si se pide, los segmentos conocidos de SponsorBlock, para elegir UC-02 A10 y A11.
+- **A1. La URL es una playlist o un canal** `[estado: ausente]` (paso 3): extracción plana, la misma de UC-04. Muestra el título y el número de entradas si el sitio lo declara, y como mucho las primeras `N` entradas, sin resolverlas (ADR-0009).
+- **A2. Enlace a un video dentro de una lista** `[estado: ausente]` (paso 3): muestra el video y avisa de que `--playlist` encolaría la lista entera (ADR-0027).
+- **A3. `--format SELECTOR`** `[estado: ausente]` (paso 4): muestra qué formatos elegiría ese selector, sin descargar.
+- **A4. Subtítulos disponibles** `[estado: ausente]` (paso 4): lista sus idiomas, si se aprueba la opción de subtítulos (UC-02 A7).
+- **A5. Buscar antes de conocer la URL** `[estado: ausente]` (paso 1): `inspect --search "TEXTO" [--limit N]` usa la búsqueda que ofrece el extractor de yt-dlp (`ytsearchN:` en YouTube) y muestra los resultados con su URL; `enqueue` usa después esa URL. No hay buscadores propios ni interfaz gráfica. Origen: VoiceStudio (galería), yt-dlp (`ytsearch`); la exclusión «búsqueda fuera del dominio» confundía la búsqueda de voces de VoiceStudio con la necesidad de encontrar un contenido para descargarlo.
+- **A6. Capítulos y segmentos** `[estado: ausente]` (paso 4): muestra los capítulos del contenido y, si se pide, los segmentos conocidos de SponsorBlock, para elegir UC-02 A10 y A11.
 
 ## Excepciones
 
-- **E1. URL no válida:** como UC-02 A1; código `2`.
-- **E2. Fallo de extracción:** se informa con el motivo y su indicación de qué hacer ([catálogo de condiciones de fallo](../failure-conditions.md)); código `1`.
-- **E3. Restricción del sitio o corte de conectividad:** se informa como en UC-11, pero no hay jobs que aplazar; código `1`.
+- **E1. URL no válida:** `[estado: ausente]` como UC-02 A1; código `2`.
+- **E2. Fallo de extracción:** `[estado: ausente]` se informa con el motivo y su indicación de qué hacer ([catálogo de condiciones de fallo](../failure-conditions.md)); código `1`.
+- **E3. Restricción del sitio o corte de conectividad:** `[estado: ausente]` se informa como en UC-11, pero no hay jobs que aplazar; código `1`.
 
 ## Garantías
 

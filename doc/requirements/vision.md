@@ -2,7 +2,7 @@
 
 - **Proyecto:** queued-media-downloader
 - **Fase RUP:** Inicio
-- **Versión:** 1.1 (2026-11-26; alcance revisado en la reconciliación de exclusiones). 1.0: 2026-11-23, borrador para revisión
+- **Versión:** 1.2 (2026-11-26; **alcance de 26 casos de uso aceptado por el Responsable**). 1.1: alcance revisado en la reconciliación de exclusiones. 1.0: 2026-11-23, borrador para revisión
 
 ---
 
@@ -35,7 +35,7 @@
 
 ## 4. Capacidades del producto
 
-Formulación del alcance: **administrar de manera persistente, configurable, segura, recuperable y eficiente la obtención de contenidos multimedia y de su información complementaria, mediante una cola de trabajos que admite operaciones individuales, por lotes y desatendidas.** La formulación orienta el análisis; no aprueba por sí sola ninguna capacidad. El estado de cada caso de uso está en el [modelo](use-case-model.md#4-casos-de-uso).
+Formulación del alcance: **administrar de manera persistente, configurable, segura, recuperable y eficiente la obtención de contenidos multimedia y de su información complementaria, mediante una cola de trabajos que admite operaciones individuales, por lotes y desatendidas.** El Responsable aceptó el alcance de los 26 casos de uso de la tabla (2026-11-26). La aceptación no implica que estén implementados: el estado de cada uno está en el [modelo](use-case-model.md#4-casos-de-uso), y las soluciones técnicas, en el [análisis, §9](requirements-analysis.md#9-decisiones).
 
 | Necesidad | Casos de uso |
 |---|---|
@@ -45,13 +45,13 @@ Formulación del alcance: **administrar de manera persistente, configurable, seg
 | Administración de resultados | UC-25 (consultar, localizar y eliminar resultados propios) |
 | Recuperación e integridad | UC-06 (recuperar y reanudar), UC-26 (verificar resultados), UC-23 (respaldar y restaurar) |
 | Configuración | UC-20 (configuración), UC-18 (perfiles de descarga) |
-| Operación desatendida | UC-11 (sitio y conectividad), UC-17 (almacenamiento), UC-14 (pausa, continuación y detención), UC-21 (programación), UC-28 (avisos) |
-| Acceso autorizado | UC-19 (perfiles de acceso; condicionado a D-1 y D-7) |
+| Operación desatendida | UC-11 (sitio y conectividad), UC-17 (almacenamiento), UC-14 (pausa, continuación y detención), UC-21 (programación), UC-28 (avisos); directos y programados (UC-03 E1) |
+| Acceso autorizado | UC-19 (perfiles de acceso: archivos de cookies del User, proxy en modo sistema, directo o explícito) |
 | Administración de recursos | SUP-P01 a SUP-P09 (workers, ancho de banda, fragmentos, memoria, espacio) |
 | Automatización e interoperabilidad | SUP-I01 (salida estructurada de todos los comandos; mecanismo adicional según D-17) |
 | Diagnóstico | UC-01 (instalar y verificar), UC-16 (informe de diagnóstico) |
 | Portabilidad de la información | UC-22 (exportar e importar), UC-23 (respaldo), UC-20 A5 (configuración) |
-| Dependencias | UC-01 y UC-27 (condicionado a D-8) |
+| Dependencias | UC-01 y UC-27 (administración controlada y reversible) |
 
 ## 5. Restricciones
 
@@ -77,6 +77,8 @@ Cada exclusión está cualificada en el [análisis, §12](requirements-analysis.
 - `--download-archive` (BR-32, ADR-0012).
 
 **Interfaces diferidas:** interfaz gráfica ([ADR-0001](../notes/adr-0001-project-scope.md)) y temas visuales; servidor MCP o API HTTP (D-17). El motor ya expone sus operaciones para que se reutilicen sin duplicar la lógica.
+
+**Condiciones técnicas pendientes** (no excluyen el objetivo): recodificar a H.264 o HEVC (patentes, R-29); leer las cookies del navegador (UC-19 A10); probar versiones no cualificadas de yt-dlp (UC-27 A2).
 
 **Decisiones de soporte y distribución:** otras plataformas, incluido Windows ARM64 (SUP-C06); publicación en PyPI (SUP-C07).
 

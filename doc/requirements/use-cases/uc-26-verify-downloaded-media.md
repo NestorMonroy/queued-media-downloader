@@ -6,7 +6,8 @@
 - **Relación:** comparte el mecanismo con la verificación al completar (UC-03, BR-30) y en la recuperación (UC-06 A11, BR-23). UC-25 usa su resultado antes de borrar. La validación de la campaña usa el mismo mecanismo y no lo duplica.
 - **Prioridad:** media
 - **Significativo para la arquitectura:** no; reutiliza ffprobe, ya incluido
-- **Estado:** propuesto; no implementado. Depende de D-9 y D-15.
+- **Estado:** aceptado (Responsable, 2026-11-26). Implementación: ausente. Condiciones técnicas: D-9 y D-15.
+- **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
 - **Origen:**
   - **FFmpeg:** ffprobe (streams, duración, contenedor).
   - **Producto:** la propiedad por reclamaciones; la evidencia de T42 (cola 5.7-r2) y R-25.
@@ -38,15 +39,15 @@ El método depende del tipo de resultado: un subtítulo o un `info.json` se comp
 
 ## Flujos alternativos
 
-- **A1. Toda la cola o una playlist:** `verify --all` o `verify --parent ID`, con un resumen.
-- **A2. Sin duración guardada** (jobs de versiones anteriores): solo existencia, propiedad, legibilidad y streams.
-- **A3. Resultado opcional ausente:** se informa como aviso, no como fallo (BR-30).
-- **A4. Salida para otros programas:** `--json`.
+- **A1. Toda la cola o una playlist:** `[estado: ausente]` `verify --all` o `verify --parent ID`, con un resumen.
+- **A2. Sin duración guardada** `[estado: ausente]` (jobs de versiones anteriores): solo existencia, propiedad, legibilidad y streams.
+- **A3. Resultado opcional ausente:** `[estado: ausente]` se informa como aviso, no como fallo, si su ausencia quedó registrada al completar el job (BR-30).
+- **A4. Salida para otros programas:** `[estado: ausente]` `--json`.
 
 ## Excepciones
 
-- **E1. ffprobe ausente o roto:** como UC-01 A5; no se verifica nada; código `2`.
-- **E2. Job sin resultados registrados** (expansiones, jobs no completados): se informa.
+- **E1. ffprobe ausente o roto:** `[estado: ausente]` como UC-01 A5; no se verifica nada; código `2`.
+- **E2. Job sin resultados registrados** `[estado: ausente]` (expansiones, jobs no completados): se informa.
 
 ## Garantías
 

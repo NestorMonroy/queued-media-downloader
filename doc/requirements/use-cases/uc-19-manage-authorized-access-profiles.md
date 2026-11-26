@@ -9,7 +9,8 @@
 - **Relación:** UC-02 A12 y UC-18 lo referencian; UC-01 A11 lo diagnostica; UC-03 lo usa al descargar.
 - **Prioridad:** media
 - **Significativo para la arquitectura:** sí: ciclo de vida de credenciales, aislamiento por worker y limpieza tras un cierre
-- **Estado:** condicionado a D-1 (cookies) y D-7 (proxy); no implementado.
+- **Estado:** aceptado (Responsable, 2026-11-26). Implementación: ausente. Condiciones técnicas: D-1 y D-7; la lectura de cookies del navegador (A10) queda condicionada.
+- **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
 - **Origen:**
   - análisis del acceso, [§7.4](../requirements-analysis.md#74-acceso-proxy-y-cookies-en-una-cola-persistente);
   - VoiceStudio y VoiceBlueprintPro: `cookies.txt` efímero;
@@ -36,22 +37,22 @@ Un perfil de acceso tiene un nombre, los sitios a los que se aplica y una refere
 
 ## Flujos alternativos
 
-- **A1. Proxy:** `access add NOMBRE --proxy URL [--credential NOMBRE_EN_EL_ALMACÉN]`. La URL se guarda sin contraseña; la contraseña se lee del almacén de credenciales de Windows al usarla.
-- **A2. Consultar:** `access list` y `access show NOMBRE` muestran el nombre, los sitios, el tipo, la ruta y la fecha de la última validación, nunca el secreto.
-- **A3. Validar:** `access check NOMBRE` comprueba el archivo y su caducidad declarada, sin peticiones al sitio. Las cookies caducadas se informan.
-- **A4. Actualizar:** el User reemplaza el archivo o cambia la ruta. Los jobs pendientes usan la versión vigente al enviarse: el job guarda el nombre del perfil, no las cookies.
-- **A5. Eliminar:** `access delete NOMBRE`. Los jobs pendientes que lo usan fallan al enviarse con un mensaje que lo nombra, sin aplazarse.
-- **A6. Sesión caducada al descargar:** el sitio vuelve a pedir que se inicie sesión. El job falla `UNAVAILABLE` con la indicación de renovar el archivo; no se reintenta con otras credenciales.
-- **A7. Varios workers del mismo sitio:** cada job tiene su propia copia. yt-dlp reescribe su copia al cerrar sin afectar a las demás ni al original.
-- **A8. Cierre inesperado:** las copias temporales que queden se borran al arrancar `run` (UC-06), antes de enviar ningún job.
-- **A9. Cancelación:** como el paso 5.
-- **A10. Cookies del navegador** (solo si D-1 lo aprueba): el perfil indica el navegador y el perfil del navegador. El sistema informa de las limitaciones conocidas en Windows.
+- **A1. Proxy:** `[estado: ausente]` `access add NOMBRE --proxy URL [--credential NOMBRE_EN_EL_ALMACÉN]`. La URL se guarda sin contraseña; la contraseña se lee del almacén de credenciales de Windows al usarla.
+- **A2. Consultar:** `[estado: ausente]` `access list` y `access show NOMBRE` muestran el nombre, los sitios, el tipo, la ruta y la fecha de la última validación, nunca el secreto.
+- **A3. Validar:** `[estado: ausente]` `access check NOMBRE` comprueba el archivo y su caducidad declarada, sin peticiones al sitio. Las cookies caducadas se informan.
+- **A4. Actualizar:** `[estado: ausente]` el User reemplaza el archivo o cambia la ruta. Los jobs pendientes usan la versión vigente al enviarse: el job guarda el nombre del perfil, no las cookies.
+- **A5. Eliminar:** `[estado: ausente]` `access delete NOMBRE`. Los jobs pendientes que lo usan fallan al enviarse con un mensaje que lo nombra, sin aplazarse.
+- **A6. Sesión caducada al descargar:** `[estado: ausente]` el sitio vuelve a pedir que se inicie sesión. El job falla `UNAVAILABLE` con la indicación de renovar el archivo; no se reintenta con otras credenciales.
+- **A7. Varios workers del mismo sitio:** `[estado: ausente]` cada job tiene su propia copia. yt-dlp reescribe su copia al cerrar sin afectar a las demás ni al original.
+- **A8. Cierre inesperado:** `[estado: ausente]` las copias temporales que queden se borran al arrancar `run` (UC-06), antes de enviar ningún job.
+- **A9. Cancelación:** `[estado: ausente]` como el paso 5.
+- **A10. Cookies del navegador** `[estado: ausente; condicionado]` (condición técnica de D-1: las cookies `v20` de Chrome y Edge no se descifran en Windows; requiere evidencia en Windows): el perfil indica el navegador y el perfil del navegador. El sistema informa de las limitaciones conocidas en Windows.
 
 ## Excepciones
 
-- **E1. Archivo inexistente, ilegible o en un formato no válido:** no se guarda; código `2`.
-- **E2. Contenido para el que el User no tiene autorización:** el sitio lo rechaza aunque haya cookies. El job falla con `UNAVAILABLE`; el sistema nunca intenta otro mecanismo.
-- **E3. No se puede crear la copia temporal restringida:** el job falla `FILESYSTEM` sin pasar las cookies a yt-dlp.
+- **E1. Archivo inexistente, ilegible o en un formato no válido:** `[estado: ausente]` no se guarda; código `2`.
+- **E2. Contenido para el que el User no tiene autorización:** `[estado: ausente]` el sitio lo rechaza aunque haya cookies. El job falla con `UNAVAILABLE`; el sistema nunca intenta otro mecanismo.
+- **E3. No se puede crear la copia temporal restringida:** `[estado: ausente]` el job falla `FILESYSTEM` sin pasar las cookies a yt-dlp.
 
 ## Garantías
 

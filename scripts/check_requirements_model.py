@@ -9,7 +9,8 @@ Comprobaciones (todas con stop-on-error en el código de salida):
 2. Identificadores: cada UC-NN, BR-NN, SUP-XNN, D-NN y R-NN citado en doc/
    existe en su artefacto canónico (una especificación o el modelo para los
    casos de uso retirados, el catálogo de reglas, la especificación
-   complementaria, el análisis y la lista de riesgos). Las decisiones son D-N
+   complementaria, el análisis (encabezado «### D-N.» o fila «| D-N» de su tabla de
+   resolución) y la lista de riesgos). Las decisiones son D-N
    sin cero inicial: D-0N identifica los hallazgos de la auditoría previa a la
    aceptación, que no son decisiones.
 3. Matriz de completitud: la tabla entre los marcadores
@@ -17,13 +18,16 @@ Comprobaciones (todas con stop-on-error en el código de salida):
    doc/requirements/use-case-model.md coincide con la que se calcula a partir
    de las especificaciones. Con --write, la reescribe.
 
-Estado de un flujo (alternativo o de excepción), por este orden de marcas en
-su texto: «**Defecto», «**Divergencia» (en negrita, para no confundirlas con
-«valores por defecto»), «sin cualificar» o «pendiente de
-cualificación», «condicionado», «**parcial:**» o «**limitación:**»,
-«propuesto»; sin marca, implementado. En un caso de uso cuyo campo Estado no
-empieza por «aprobado», todos sus flujos tienen el estado del caso de uso,
-según la primera palabra del campo (propuesto o condicionado).
+Estado de un flujo (alternativo o de excepción): la marca explícita
+`[estado: IMPLEMENTACIÓN]` o `[estado: IMPLEMENTACIÓN; condicionado]` justo después
+de su título en negrita. IMPLEMENTACIÓN es implementado, parcial, defecto,
+divergente, ausente o sin cualificar; «condicionado» indica que el flujo tiene una
+condición técnica pendiente. Un flujo sin marca, o con un valor desconocido, es un
+error: el estado nunca se deduce del texto libre.
+
+Definición de un caso de uso: la primera palabra de su campo Estado (aceptado,
+retirado...). Verificación: «prueba en desarrollo» si su campo Verificación
+menciona pruebas automáticas; si no, «sin evidencia».
 
 Uso, desde la raíz del repositorio:
 
@@ -57,14 +61,14 @@ FLOW_STATES = (
     "parcial",
     "defecto",
     "divergente",
-    "propuesto",
-    "condicionado",
+    "ausente",
     "sin cualificar",
 )
+FLOW_STATE = re.compile(r"^\s*`\[estado: ([a-z ]+?)(; condicionado)?\]`")
 LINK = re.compile(r"\]\(([^)\s]+)\)")
 HEADING = re.compile(r"^#{1,6} (.+)$", re.MULTILINE)
 CODE_BLOCK = re.compile(r"```.*?```", re.DOTALL)
-FLOW = re.compile(r"^- \*\*([AE])\d+\.(.*)$", re.MULTILINE)
+FLOW = re.compile(r"^- \*\*([AE]\d+)\.[^\n]*?\*\*(.*)$", re.MULTILINE)
 REFERENCES = {
     "UC": re.compile(r"\bUC-(\d{2})\b"),
     "BR": re.compile(r"(?<![A-Z])BR-(\d{2})\b"),
@@ -83,6 +87,9 @@ class UseCaseCounts:
     alternatives: int = 0
     exceptions: int = 0
     states: Counter[str] = field(default_factory=Counter)
+    conditioned: int = 0
+    verification: str = "sin evidencia"
+    problems: list[str] = field(default_factory=list)
     rules: int = 0
     supplementary: int = 0
     criteria: int = 0
@@ -162,7 +169,7 @@ def defined_identifiers(root: Path) -> dict[str, set[str]]:
         ),
         "D": set(
             re.findall(
-                r"^### D-(\d{1,2})\.",
+                r"^(?:### |\| )D-(\d{1,2})\b",
                 (root / ANALYSIS).read_text("utf-8"),
                 re.MULTILINE,
             )
@@ -197,22 +204,12 @@ def section(text: str, title: str) -> str:
     return match.group(1) if match else ""
 
 
-def flow_state(text: str) -> str:
-    """Estado de un flujo según las marcas de su texto."""
-    lowered = text.lower()
-    if "**defecto" in lowered:
-        return "defecto"
-    if "**divergencia" in lowered:
-        return "divergente"
-    if "sin cualificar" in lowered or "pendiente de cualificación" in lowered:
-        return "sin cualificar"
-    if "condicionado" in lowered:
-        return "condicionado"
-    if "**parcial:**" in lowered or "**limitación:**" in lowered:
-        return "parcial"
-    if "propuesto" in lowered:
-        return "propuesto"
-    return "implementado"
+def flow_state(text: str) -> tuple[str, bool] | None:
+    """Estado de implementación y condición técnica según la marca explícita."""
+    match = FLOW_STATE.match(text)
+    if match is None or match.group(1) not in FLOW_STATES:
+        return None
+    return match.group(1), match.group(2) is not None
 
 
 def use_case_counts(path: Path) -> UseCaseCounts:
@@ -224,14 +221,23 @@ def use_case_counts(path: Path) -> UseCaseCounts:
         raise ValueError(f"{path}: missing title or Estado field")
     definition = status.group(1).strip().lower().split()[0]
     counts = UseCaseCounts(identifier=identifier.group(1), definition=definition)
+    verification = re.search(r"^- \*\*Verificación:\*\* ([^\n]+)", text, re.MULTILINE)
+    if verification and "pruebas automáticas" in verification.group(1):
+        counts.verification = "prueba en desarrollo"
     flows = FLOW.findall(section(text, "Flujos alternativos")) + FLOW.findall(
         section(text, "Excepciones")
     )
-    counts.alternatives = sum(1 for kind, _ in flows if kind == "A")
-    counts.exceptions = sum(1 for kind, _ in flows if kind == "E")
-    for _, body in flows:
-        state = flow_state(body) if definition == "aprobado" else definition
-        counts.states[state] += 1
+    counts.alternatives = sum(1 for flow, _ in flows if flow.startswith("A"))
+    counts.exceptions = sum(1 for flow, _ in flows if flow.startswith("E"))
+    for flow, body in flows:
+        state = flow_state(body)
+        if state is None:
+            counts.problems.append(
+                f"{path.name}: {flow} has no valid [estado: ...] mark"
+            )
+            continue
+        counts.states[state[0]] += 1
+        counts.conditioned += state[1]
     counts.rules = len(set(REFERENCES["BR"].findall(text)))
     counts.supplementary = len(set(REFERENCES["SUP"].findall(text)))
     counts.criteria = len(
@@ -241,18 +247,24 @@ def use_case_counts(path: Path) -> UseCaseCounts:
     return counts
 
 
-def completeness_matrix(root: Path) -> str:
-    """Tabla Markdown de la matriz de completitud."""
-    rows = [
+def use_case_rows(root: Path) -> list[UseCaseCounts]:
+    """Conteos de todas las especificaciones de casos de uso."""
+    return [
         use_case_counts(path)
         for path in sorted((root / USE_CASE_DIRECTORY).glob("uc-*.md"))
     ]
+
+
+def completeness_matrix(root: Path) -> str:
+    """Tabla Markdown de la matriz de completitud."""
+    rows = use_case_rows(root)
     header = (
         "| UC | Definición | Alternativos | Excepciones | "
         + " | ".join(state.capitalize() for state in FLOW_STATES)
-        + " | Reglas | Suplementarios | Criterios | Necesita Windows |"
+        + " | Condicionados | Reglas | Suplementarios | Criterios | Verificación"
+        + " | Necesita Windows |"
     )
-    separator = "|" + "---|" * (8 + len(FLOW_STATES))
+    separator = "|" + "---|" * (10 + len(FLOW_STATES))
     lines = [header, separator]
     for row in rows:
         cells = [
@@ -261,9 +273,11 @@ def completeness_matrix(root: Path) -> str:
             str(row.alternatives),
             str(row.exceptions),
             *(str(row.states[state]) for state in FLOW_STATES),
+            str(row.conditioned),
             str(row.rules),
             str(row.supplementary),
             str(row.criteria),
+            row.verification,
             "Sí" if row.needs_windows else "No",
         ]
         lines.append("| " + " | ".join(cells) + " |")
@@ -273,9 +287,11 @@ def completeness_matrix(root: Path) -> str:
         f"**{sum(row.alternatives for row in rows)}**",
         f"**{sum(row.exceptions for row in rows)}**",
         *(f"**{sum(row.states[state] for row in rows)}**" for state in FLOW_STATES),
+        f"**{sum(row.conditioned for row in rows)}**",
         "—",
         "—",
         f"**{sum(row.criteria for row in rows)}**",
+        f"**{sum(row.verification != 'sin evidencia' for row in rows)} con prueba**",
         f"**{sum(row.needs_windows for row in rows)} de {len(rows)}**",
     ]
     lines.append("| " + " | ".join(totals) + " |")
@@ -310,6 +326,7 @@ def main() -> int:
     root = arguments.root.resolve()
     own_links, third_party_links = link_problems(root)
     problems = [
+        *(problem for row in use_case_rows(root) for problem in row.problems),
         *own_links,
         *identifier_problems(root),
         *matrix_problems(root, write=arguments.write),

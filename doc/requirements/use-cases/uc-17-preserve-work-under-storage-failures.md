@@ -9,7 +9,8 @@
 - **Relación:** extiende UC-03 (pasos 4 a 11) y UC-04 (paso 2). Comparte con UC-11 el aplazamiento sin gastar intentos ([BR-04](../business-rules.md)) y la política de continuidad (D-2). UC-01 A10 hace la misma comprobación preventiva en `diagnose`.
 - **Prioridad:** media
 - **Significativo para la arquitectura:** sí: control de admisión por unidad e identificación de la condición en toda la cadena de causas
-- **Estado:** propuesto; **no implementado**. Hoy cada condición termina el job como `FAILED` con `FILESYSTEM`, `UNKNOWN` o `POSTPROCESSING` ([catálogo de condiciones, §3.2](../failure-conditions.md#32-cómo-llega-la-información-la-cadena-de-causas)). Decisiones D-5 y D-12 pendientes.
+- **Estado:** aceptado (Responsable, 2026-11-26). Implementación: ausente; hoy cada condición termina el job `FAILED` (catálogo de condiciones, §3.2). Condiciones técnicas: D-5 y D-12.
+- **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
 - **Origen:**
   - la evidencia de la cadena de causas de yt-dlp 2026.11.23 (catálogo, §3.2);
   - VoiceStudio y VoiceBlueprintPro: disco lleno por `errno` y `winerror` en toda la cadena, comprobación previa del destino, espacio de una carpeta que aún no existe, volumen no confiable;
@@ -39,26 +40,26 @@ Antes de enviar un job, el sistema comprueba que su destino existe o se puede cr
 ## Flujos alternativos
 
 **Preventivos** (paso 2):
-- **A1. Espacio libre insuficiente para el tamaño estimado:** el sistema no envía el job ni los demás jobs de esa unidad mientras dure la condición ([BR-09](../business-rules.md)), sigue con los de otras unidades e informa una vez por unidad con el espacio libre y el estimado. El job sigue `PENDING`, sin gastar un intento.
-- **A2. Tamaño desconocido:** yt-dlp no siempre da `filesize` ni `filesize_approx`. El sistema solo exige el margen configurado y confía en la reacción (A4).
-- **A3. La carpeta no existe y no se puede crear, o no admite escritura:** el sistema distingue la causa:
+- **A1. Espacio libre insuficiente para el tamaño estimado:** `[estado: ausente]` el sistema no envía el job ni los demás jobs de esa unidad mientras dure la condición ([BR-09](../business-rules.md)), sigue con los de otras unidades e informa una vez por unidad con el espacio libre y el estimado. El job sigue `PENDING`, sin gastar un intento.
+- **A2. Tamaño desconocido:** `[estado: ausente]` yt-dlp no siempre da `filesize` ni `filesize_approx`. El sistema solo exige el margen configurado y confía en la reacción (A4).
+- **A3. La carpeta no existe y no se puede crear, o no admite escritura:** `[estado: ausente]` el sistema distingue la causa:
   - **configuración:** la carpeta configurada es inválida. Se informa de la clave (`download_directory`, `state_directory`), y los jobs no se envían hasta que se corrija y se ejecute `run` de nuevo;
   - **unidad ausente:** la unidad extraíble o de red no está. Se aplazan los jobs de esa unidad (D-12);
   - **permisos o restricciones:** ACL, solo lectura, acceso controlado a carpetas, volumen no confiable. Se informa de la carpeta y de la restricción.
 
 **Reactivos** (paso 4); la comprobación del paso 2 pasó, pero la condición apareció después:
-- **A4. Espacio insuficiente durante la descarga o la unión** (`ENOSPC`, `winerror` 112 o 39, texto de ffmpeg): el job se aplaza sin gastar un intento y conserva sus parciales ([BR-04](../business-rules.md)). Se dejan de enviar los jobs de esa unidad, como A1. Los videos y audios ya descargados para una unión se conservan; al continuar, solo se repite la unión.
-- **A5. Cuota excedida** (`EDQUOT`, `winerror` 1295): como A4, con un mensaje que dice que es la cuota del usuario.
-- **A6. Uso compartido o bloqueo** (`winerror` 32 o 33): yt-dlp reintenta (`file_access_retries`, [BR-26](../business-rules.md)). Si persiste, el job falla `FILESYSTEM` con un mensaje que nombra el archivo y sugiere cerrarlo o excluir la carpeta del antivirus o de la sincronización.
-- **A7. Acceso denegado** (`winerror` 5 o `EACCES` sin 32 ni 33): el job falla `FILESYSTEM` sin aplazarse. El mensaje nombra la ruta y la operación (crear la carpeta, abrir el parcial, mover el archivo final) y dice que reintentar sin cambiar nada no sirve.
-- **A8. La unidad desaparece a mitad del job** (extraíble retirada, recurso de red caído): como A3 con la unidad ausente.
-- **A9. La condición desaparece:** se libera espacio, se amplía la cuota o vuelve la unidad. Los jobs aplazados continúan desde sus parciales, en la misma ejecución o en otra, según la política de continuidad (D-2).
-- **A10. La condición no se puede identificar:** yt-dlp perdió la causa y el texto no coincide con ninguna condición conocida. El job falla con el mensaje original y el motivo más cercano (`FILESYSTEM` o `UNKNOWN`); el log guarda la cadena completa para el informe de diagnóstico (UC-16).
+- **A4. Espacio insuficiente durante la descarga o la unión** `[estado: ausente]` (`ENOSPC`, `winerror` 112 o 39, texto de ffmpeg): el job se aplaza sin gastar un intento y conserva sus parciales ([BR-04](../business-rules.md)). Se dejan de enviar los jobs de esa unidad, como A1. Los videos y audios ya descargados para una unión se conservan; al continuar, solo se repite la unión.
+- **A5. Cuota excedida** `[estado: ausente]` (`EDQUOT`, `winerror` 1295): como A4, con un mensaje que dice que es la cuota del usuario.
+- **A6. Uso compartido o bloqueo** `[estado: ausente]` (`winerror` 32 o 33): yt-dlp reintenta (`file_access_retries`, [BR-26](../business-rules.md)). Si persiste, el job falla `FILESYSTEM` con un mensaje que nombra el archivo y sugiere cerrarlo o excluir la carpeta del antivirus o de la sincronización.
+- **A7. Acceso denegado** `[estado: ausente]` (`winerror` 5 o `EACCES` sin 32 ni 33): el job falla `FILESYSTEM` sin aplazarse. El mensaje nombra la ruta y la operación (crear la carpeta, abrir el parcial, mover el archivo final) y dice que reintentar sin cambiar nada no sirve.
+- **A8. La unidad desaparece a mitad del job** `[estado: ausente]` (extraíble retirada, recurso de red caído): como A3 con la unidad ausente.
+- **A9. La condición desaparece:** `[estado: ausente]` se libera espacio, se amplía la cuota o vuelve la unidad. Los jobs aplazados continúan desde sus parciales, en la misma ejecución o en otra, según la política de continuidad (D-2).
+- **A10. La condición no se puede identificar:** `[estado: ausente]` yt-dlp perdió la causa y el texto no coincide con ninguna condición conocida. El job falla con el mensaje original y el motivo más cercano (`FILESYSTEM` o `UNKNOWN`); el log guarda la cadena completa para el informe de diagnóstico (UC-16).
 
 ## Excepciones
 
-- **E1. Se llena la unidad del estado** (base de datos o log): `run` no puede guardar ni el aplazamiento. Termina con código `1` y nombra la unidad; los jobs quedan `RUNNING` y se recuperan en el siguiente `run` (UC-06).
-- **E2. Todas las unidades de destino tienen una condición que aplaza:** se aplica la política de continuidad (D-2), como en UC-11 paso 5.
+- **E1. Se llena la unidad del estado** `[estado: ausente]` (base de datos o log): `run` no puede guardar ni el aplazamiento. Termina con código `1` y nombra la unidad; los jobs quedan `RUNNING` y se recuperan en el siguiente `run` (UC-06).
+- **E2. Todas las unidades de destino tienen una condición que aplaza:** `[estado: ausente]` se aplica la política de continuidad (D-2), como en UC-11 paso 5.
 
 ## Garantías
 

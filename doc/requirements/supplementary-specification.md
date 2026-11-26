@@ -1,10 +1,10 @@
 # Especificación complementaria
 
 - **Fase RUP:** Inicio
-- **Versión:** 2.1 (2026-11-26; reconciliación de exclusiones: interoperabilidad, compatibilidad multimedia, portabilidad, credenciales y respaldo). 2.0: consolidación del modelo de requisitos
+- **Versión:** 3.0 (2026-11-26; alcance aceptado; seguridad de entradas y rutas, retención, contrato programático). 2.1 (2026-11-26; reconciliación de exclusiones: interoperabilidad, compatibilidad multimedia, portabilidad, credenciales y respaldo). 2.0: consolidación del modelo de requisitos
 - **Técnica (BABOK v3):** 10.30 Non-Functional Requirements Analysis
 
-Cada requisito tiene un criterio verificable. Los marcados **Propuesto** no están implementados; los que dependen de una medición que falta lo indican como **pendiente** en lugar de inventar un valor.
+Cada requisito tiene un criterio verificable. El alcance está aceptado por el Responsable (2026-11-26). **Aceptado, sin implementar** indica que el requisito forma parte del producto y todavía no existe en el código. Los que dependen de una medición que falta lo indican como **pendiente**, con el método de cualificación, en lugar de inventar un valor.
 
 Requisitos que no pertenecen a un caso de uso concreto, organizados según FURPS+. Cada requisito tiene un identificador para trazarlo en pruebas e iteraciones.
 
@@ -25,8 +25,8 @@ Requisitos que no pertenecen a un caso de uso concreto, organizados según FURPS
 | SUP-U01 | Todo mensaje de error indica la acción concreta para corregirlo (por ejemplo, `git lfs pull`, o la clave de configuración no válida) |
 | SUP-U02 | El progreso se muestra como máximo cada `progress_interval_seconds` |
 | SUP-U03 | La instalación completa se describe en el README en no más de cuatro comandos |
-| SUP-U04 | **Propuesto** (UC-11, UC-14): toda espera o pausa de `run` se anuncia con su motivo, su alcance y la hora local estimada de continuación, y el aviso se repite mientras dura ([BR-11](business-rules.md)). Criterio: en una prueba con un reloj falso, el aviso aparece al empezar la espera y una vez por intervalo |
-| SUP-U05 | **Propuesto:** el mensaje de cada fallo indica si reintentar puede servir y qué acción lo resuelve ([catálogo de condiciones de fallo](failure-conditions.md)). Criterio: cada `FailureReason` tiene una indicación, comprobada por una prueba que recorre la enumeración |
+| SUP-U04 | **Aceptado, sin implementar** (UC-11, UC-14): toda espera o pausa de `run` se anuncia con su motivo, su alcance y la hora local estimada de continuación, y el aviso se repite mientras dura ([BR-11](business-rules.md)). Criterio: en una prueba con un reloj falso, el aviso aparece al empezar la espera y una vez por intervalo |
+| SUP-U05 | **Aceptado, sin implementar:** el mensaje de cada fallo indica si reintentar puede servir y qué acción lo resuelve ([catálogo de condiciones de fallo](failure-conditions.md)). Criterio: cada `FailureReason` tiene una indicación, comprobada por una prueba que recorre la enumeración |
 
 ## Fiabilidad
 
@@ -37,13 +37,13 @@ Requisitos que no pertenecen a un caso de uso concreto, organizados según FURPS
 | SUP-R03 | El fallo de un job no detiene el resto de la cola | [ADR-0008](../notes/adr-0008-process-based-worker-pool.md) |
 | SUP-R04 | Un worker que muere de forma inesperada se detecta y se reemplaza; su job queda `FAILED` con `WORKER_CRASHED` | [Parte 2, §3.2](../design/02-flows-persistence-and-operations.md#32-ciclo-de-vida-del-worker) |
 | SUP-R05 | Un mismo contenido no se descarga dos veces mientras haya un job activo para su media key | [ADR-0012](../notes/adr-0012-no-download-archive-no-database-triggers.md) |
-| SUP-R06 | **Propuesto:** un corte de conectividad no marca ningún job `FAILED` ni gasta intentos. Criterio: UC-11, criterio 1 | [UC-11](use-cases/uc-11-preserve-jobs-under-external-conditions.md) A2, [ADR-0031](../notes/adr-0031-site-waits-and-network-waits.md) |
-| SUP-R07 | **Propuesto:** una restricción del sitio no marca ningún job `FAILED` ni gasta intentos, y el sitio no recibe más peticiones que las que permite [BR-03](business-rules.md); sin PO Tokens ni evasión. Criterio: UC-11, criterios 1 a 3 | [UC-11](use-cases/uc-11-preserve-jobs-under-external-conditions.md) A1, [ADR-0031](../notes/adr-0031-site-waits-and-network-waits.md) |
-| SUP-R08 | **Propuesto** (prioridad media): mientras hay jobs en curso, `run` impide que Windows suspenda el equipo, sin impedir que se apague la pantalla; al terminar o detenerse, deja de impedirlo. Criterio: `powercfg /requests` muestra la petición durante `run` y no después (Windows) | [Análisis](requirements-analysis.md), §4.2 |
-| SUP-R09 | **Propuesto:** el almacenamiento insuficiente (espacio o cuota) no marca ningún job `FAILED` ni gasta intentos, también cuando aparece tras una comprobación previa correcta; el sistema nunca borra archivos para liberar espacio; las demás condiciones de almacenamiento fallan con la ruta y la acción. Criterio: UC-17, criterios 1 a 5, con una unidad pequeña | [UC-17](use-cases/uc-17-preserve-work-under-storage-failures.md) |
-| SUP-R10 | **Propuesto:** un job interrumpido entre el final de la descarga y el registro de `JobCompleted` se completa sin consultar al sitio cuando la evidencia local basta ([BR-23](business-rules.md)), y nunca se completa por la sola existencia de un archivo no vacío ni se apropia de un archivo ajeno. Criterio: UC-06 A11 | [UC-06](use-cases/uc-06-recover-and-resume-queue.md), decisión D-9 |
-| SUP-R12 | **Propuesto:** un respaldo hecho con `run` activo es coherente y pasa la comprobación de integridad de SQLite (UC-23) | UC-23 |
-| SUP-R11 | **Propuesto; hoy hay una divergencia:** los fallos transitorios de una descarga se reintentan como en la línea de comandos de yt-dlp ([BR-07](business-rules.md)). Hoy la librería recibe 0 reintentos HTTP y 0 de fragmentos porque no se pasan los parámetros (R-24). Criterio: una prueba de contrato con un servidor local que falla una vez y luego responde | [Análisis](requirements-analysis.md), §7 |
+| SUP-R06 | **Aceptado, sin implementar:** un corte de conectividad no marca ningún job `FAILED` ni gasta intentos. Criterio: UC-11, criterio 1 | [UC-11](use-cases/uc-11-preserve-jobs-under-external-conditions.md) A2, [ADR-0031](../notes/adr-0031-site-waits-and-network-waits.md) |
+| SUP-R07 | **Aceptado, sin implementar:** una restricción del sitio no marca ningún job `FAILED` ni gasta intentos, y el sitio no recibe más peticiones que las que permite [BR-03](business-rules.md); sin PO Tokens ni evasión. Criterio: UC-11, criterios 1 a 3 | [UC-11](use-cases/uc-11-preserve-jobs-under-external-conditions.md) A1, [ADR-0031](../notes/adr-0031-site-waits-and-network-waits.md) |
+| SUP-R08 | **Aceptado, sin implementar** (prioridad media): mientras hay jobs en curso, `run` impide que Windows suspenda el equipo, sin impedir que se apague la pantalla; al terminar o detenerse, deja de impedirlo. Criterio: `powercfg /requests` muestra la petición durante `run` y no después (Windows) | [Análisis](requirements-analysis.md), §4.2 |
+| SUP-R09 | **Aceptado, sin implementar:** el almacenamiento insuficiente (espacio o cuota) no marca ningún job `FAILED` ni gasta intentos, también cuando aparece tras una comprobación previa correcta; el sistema nunca borra archivos para liberar espacio; las demás condiciones de almacenamiento fallan con la ruta y la acción. Criterio: UC-17, criterios 1 a 5, con una unidad pequeña | [UC-17](use-cases/uc-17-preserve-work-under-storage-failures.md) |
+| SUP-R10 | **Aceptado, sin implementar:** un job interrumpido entre el final de la descarga y el registro de `JobCompleted` se completa sin consultar al sitio cuando la evidencia local basta ([BR-23](business-rules.md)), y nunca se completa por la sola existencia de un archivo no vacío ni se apropia de un archivo ajeno. Criterio: UC-06 A11 | [UC-06](use-cases/uc-06-recover-and-resume-queue.md), decisión D-9 |
+| SUP-R12 | **Aceptado, sin implementar:** un respaldo hecho con `run` activo es coherente y pasa la comprobación de integridad de SQLite (UC-23) | UC-23 |
+| SUP-R11 | **Aceptado; hoy divergente (R-24):** los fallos transitorios de una descarga se reintentan como en la línea de comandos de yt-dlp ([BR-07](business-rules.md)). Hoy la librería recibe 0 reintentos HTTP y 0 de fragmentos porque no se pasan los parámetros (R-24). Criterio: una prueba de contrato con un servidor local que falla una vez y luego responde | [Análisis](requirements-analysis.md), §7 |
 
 ## Rendimiento y recursos
 
@@ -52,11 +52,11 @@ Requisitos que no pertenecen a un caso de uso concreto, organizados según FURPS
 | SUP-P01 | Concurrencia por defecto: 1 worker; configurable | [ADR-0008](../notes/adr-0008-process-based-worker-pool.md) |
 | SUP-P02 | La memoria de un worker no crece con el número de entradas de una playlist | [ADR-0009](../notes/adr-0009-playlist-expansion-into-jobs.md) |
 | SUP-P03 | El progreso de las descargas no se escribe en la base de datos | [Parte 1, §5](../design/01-architecture.md#5-job-events) |
-| SUP-P05 | **Propuesto:** ritmo de peticiones por sitio ([BR-02](business-rules.md)); para YouTube, los valores del preajuste `-t sleep` de yt-dlp; configurable hasta 0 (decisión D-3). Criterio: con un reloj falso, dos jobs de YouTube no empiezan con menos separación que la configurada | [UC-11](use-cases/uc-11-preserve-jobs-under-external-conditions.md), [análisis](requirements-analysis.md) |
-| SUP-P06 | **Propuesto:** límite opcional de ancho de banda por descarga (`rate_limit`, sin límite por defecto), con el parámetro `ratelimit` de yt-dlp; un límite global entre workers es la decisión D-20. Criterio: el parámetro llega a yt-dlp | [Análisis](requirements-analysis.md), §6.1 |
+| SUP-P05 | **Aceptado, sin implementar:** ritmo de peticiones por sitio ([BR-02](business-rules.md)); para YouTube, los valores del preajuste `-t sleep` de yt-dlp; configurable hasta 0 (decisión D-3). Criterio: con un reloj falso, dos jobs de YouTube no empiezan con menos separación que la configurada | [UC-11](use-cases/uc-11-preserve-jobs-under-external-conditions.md), [análisis](requirements-analysis.md) |
+| SUP-P06 | **Aceptado, sin implementar:** límite opcional de ancho de banda por descarga (`rate_limit`, sin límite por defecto), con el parámetro `ratelimit` de yt-dlp; un límite global entre workers es la decisión D-20. Criterio: el parámetro llega a yt-dlp | [Análisis](requirements-analysis.md), §6.1 |
 | SUP-P07 | **Pendiente de medición:** espacio en disco que necesita un job además del archivo final (parciales y unión de ffmpeg). Sin este dato no se pueden fijar `storage_margin_mib` ni `storage_estimate_factor` (BR-28) | Medición en la campaña |
 | SUP-P08 | **Pendiente de medición:** con N resultados por job (capítulos, secciones, complementarios) y con colas de larga duración, el espacio y la memoria por job dependen del número de resultados. SUP-P04 y SUP-P07 se miden también con un job de capítulos y con una playlist larga | Análisis, §13.1 |
-| SUP-P09 | **Propuesto:** el número de fragmentos concurrentes por descarga es configurable (`concurrent_fragments`, 1 por omisión) y se usa con el valor de yt-dlp, sin un descargador propio. Criterio: el parámetro llega a yt-dlp; la concurrencia total es `worker_count` × `concurrent_fragments` | yt-dlp `concurrent_fragment_downloads`; Seal; [análisis, §12](requirements-analysis.md#12-reconciliación-de-exclusiones) |
+| SUP-P09 | **Aceptado, sin implementar:** el número de fragmentos concurrentes por descarga es configurable (`concurrent_fragments`, 1 por omisión) y se usa con el valor de yt-dlp, sin un descargador propio. Criterio: el parámetro llega a yt-dlp; la concurrencia total es `worker_count` × `concurrent_fragments` | yt-dlp `concurrent_fragment_downloads`; Seal; [análisis, §12](requirements-analysis.md#12-reconciliación-de-exclusiones) |
 | SUP-P04 | **Pendiente de medición.** Presupuesto de memoria (proceso principal + 1 worker, sin contar ffmpeg ni deno): **pendiente**: se fija con la medición en Windows de la campaña T42 (paso 13; trasladada desde E1). Referencia de la medición en Linux: ~38 MB por proceso con yt-dlp cargado | Medición del análisis (`scripts/measure_footprint.py`, espacio de trabajo `yt-dlp-gui-clone`) |
 
 ## Mantenibilidad
@@ -72,10 +72,12 @@ Requisitos que no pertenecen a un caso de uso concreto, organizados según FURPS
 
 | ID | Requisito | Origen |
 |---|---|---|
-| SUP-SEC01 | **Propuesto** (condicionado a D-1 y D-7): ningún valor de una credencial configurada (cookies, contraseña de un proxy) aparece en el log, en `diagnose`, en un informe (UC-16) ni en la evidencia de validación. Criterio: prueba con valores trampa que busca el valor en cada salida | VoiceStudio (limpieza del informe de diagnóstico); [análisis](requirements-analysis.md), §6 |
-| SUP-SEC02 | **Propuesto:** el informe de diagnóstico y la evidencia nunca incluyen archivos multimedia | UC-16; campaña T42 (el empaquetado manual sin videos) |
-| SUP-SEC04 | **Propuesto** (condicionado a D-1 y D-7): ninguna copia temporal de credenciales sobrevive al job que la usó ni a un arranque de `run` (BR-35). Criterio: prueba con un cierre a mitad del job | UC-19 |
-| SUP-SEC03 | **Propuesto** (condicionado a D-1 y D-7): un archivo que guarde credenciales (cookies, proxy con contraseña) se crea ya restringido al usuario actual, sin un intervalo en que otros puedan leerlo. Criterio: prueba que crea el archivo y comprueba sus permisos (en Windows, su ACL) | VoiceBlueprintPro (`core/user_env.py`, creación con permisos 0600) |
+| SUP-SEC01 | **Aceptado, sin implementar:** ningún valor de una credencial configurada (cookies, contraseña de un proxy, también dentro de la URL del proxy) aparece en el log, la base de datos (`failure_message`), `diagnose`, la salida JSON, un aviso, un informe (UC-16), una exportación, un respaldo ni la evidencia de validación. El enmascarado se hace en el origen, antes de que el dato llegue a una autoridad de registro o persistencia (D-7), no solo al presentarlo. Criterio: prueba con valores trampa que busca el valor en cada salida | VoiceStudio (limpieza del informe de diagnóstico); [análisis](requirements-analysis.md), §6 |
+| SUP-SEC02 | **Aceptado, sin implementar:** el informe de diagnóstico y la evidencia nunca incluyen archivos multimedia | UC-16; campaña T42 (el empaquetado manual sin videos) |
+| SUP-SEC04 | **Aceptado, sin implementar** (condicionado a D-1 y D-7): ninguna copia temporal de credenciales sobrevive al job que la usó ni a un arranque de `run` (BR-35). Criterio: prueba con un cierre a mitad del job | UC-19 |
+| SUP-SEC05 | **Aceptado, sin implementar:** los documentos importados (UC-22) y los respaldos (UC-23) se tratan como entrada no confiable: se validan su esquema, su versión y sus rutas antes de escribir nada, y nunca conceden la propiedad de un archivo (BR-36). Criterio: pruebas con documentos y respaldos manipulados (rutas fuera del destino, versiones desconocidas, campos de más) | §13.15 del análisis |
+| SUP-SEC06 | **Aceptado; vigente en parte:** toda ruta final se resuelve dentro de la carpeta de descargas configurada, sin escribir fuera aunque el título o la plantilla contengan `..` o enlaces. Hoy `canonical_stem_path` normaliza la ruta (ADR-0030), pero no hay una prueba de escritura fuera del destino. Criterio: prueba con títulos y plantillas maliciosos | §13.15 del análisis |
+| SUP-SEC03 | **Aceptado, sin implementar** (condicionado a D-1 y D-7): un archivo que guarde credenciales (cookies, proxy con contraseña) se crea ya restringido al usuario actual, sin un intervalo en que otros puedan leerlo. Criterio: prueba que crea el archivo y comprueba sus permisos (en Windows, su ACL) | VoiceBlueprintPro (`core/user_env.py`, creación con permisos 0600) |
 
 ## Observabilidad
 
@@ -83,28 +85,36 @@ Requisitos que no pertenecen a un caso de uso concreto, organizados según FURPS
 |---|---|---|
 | SUP-O01 | El log se escribe en la carpeta de estado y rota (5 MB, 3 copias). **Vigente** | `command_line/log_file.py` |
 | SUP-O02 | `diagnose` comprueba ffmpeg, ffprobe, yt-dlp, deno y la base de datos, y termina con código distinto de `0` si algo falla. **Vigente** | UC-01 |
-| SUP-O03 | **Propuesto:** el diagnóstico operativo (UC-16) y la evidencia de validación (VUC-07) comparten el mismo mecanismo de recogida y de limpieza | [Análisis](requirements-analysis.md), §6 |
+| SUP-O03 | **Aceptado, sin implementar:** el diagnóstico operativo (UC-16) y la evidencia de validación (VUC-07) comparten el mismo mecanismo de recogida y de limpieza | [Análisis](requirements-analysis.md), §6 |
 
 ## Validación y reproducibilidad
 
 | ID | Requisito | Origen |
 |---|---|---|
 | SUP-V01 | **Parcial** (hoy, las de los jobs y la cola; faltan las condiciones externas): toda condición de [failure-conditions.md](failure-conditions.md) que no dependa de un sitio real se prueba con pytest, fixtures y el servidor local, en cualquier sistema | [Modelo de validación](../process/validation-use-case-model.md) |
-| SUP-V02 | **Propuesto:** quien ejecuta una prueba no emite su veredicto ([VBR-04](business-rules.md)) | VoiceStudio (arnés de sondeo) |
-| SUP-V03 | **Propuesto:** cada mensaje real de un sitio que el producto reconoce tiene una prueba de regresión con el texto literal, incluidas sus variantes tipográficas | VoiceStudio; BR-01 |
+| SUP-V02 | **Aceptado, sin implementar:** quien ejecuta una prueba no emite su veredicto ([VBR-04](business-rules.md)) | VoiceStudio (arnés de sondeo) |
+| SUP-V03 | **Aceptado, sin implementar:** cada mensaje real de un sitio que el producto reconoce tiene una prueba de regresión con el texto literal, incluidas sus variantes tipográficas | VoiceStudio; BR-01 |
 
 ## Interoperabilidad
 
 | ID | Requisito | Origen |
 |---|---|---|
-| SUP-I01 | **Propuesto:** otros programas pueden usar todas las operaciones del producto sin interpretar texto pensado para personas. Cada comando de consulta tiene una salida JSON (`--json`), y cada comando informa los errores con un código estable, el mensaje y la acción. Los códigos de salida siguen SUP-F02. El contrato está versionado y documentado. El mecanismo adicional (API, MCP, biblioteca) es la decisión D-17. Criterio: una prueba de contrato por comando valida su JSON contra el esquema publicado | [Análisis, §12](requirements-analysis.md#12-reconciliación-de-exclusiones); YTDownload-2026 (CLI y MCP sobre una misma capa de aplicación) |
-| SUP-I02 | **Propuesto:** el formato de intercambio de UC-22 es JSON con su versión, documentado; una versión anterior soportada se convierte al importar; nunca contiene secretos (BR-34). Criterio: pruebas de ida y vuelta por versión | UC-22 |
+| SUP-I01 | **Aceptado, sin implementar:** otros programas pueden usar todas las operaciones del producto (encolar; consultar jobs, resultados y progreso; cancelar, reintentar, controlar la ejecución; perfiles, configuración, programación, diagnóstico, verificación, importación y exportación) sin interpretar texto pensado para personas. La salida JSON es un contrato de datos con su esquema, no una tabla de consola convertida. Cada comando de consulta tiene una salida JSON (`--json`), y cada comando informa los errores con un código estable, el mensaje y la acción. Los códigos de salida siguen SUP-F02. El contrato está versionado y documentado. El mecanismo adicional (API, MCP, biblioteca) es la decisión D-17. Criterio: una prueba de contrato por comando valida su JSON contra el esquema publicado | [Análisis, §12](requirements-analysis.md#12-reconciliación-de-exclusiones); YTDownload-2026 (CLI y MCP sobre una misma capa de aplicación) |
+| SUP-I02 | **Aceptado, sin implementar:** el formato de intercambio de UC-22 es JSON con su versión, documentado; una versión anterior soportada se convierte al importar; nunca contiene secretos (BR-34). Criterio: pruebas de ida y vuelta por versión | UC-22 |
+
+| SUP-I03 | **Aceptado, sin implementar:** la confianza en las entradas depende de la interfaz (§13.7 del análisis). La CLI acepta URLs locales y privadas; un documento importado se valida (SUP-SEC05); una interfaz remota futura restringe las URLs privadas por defecto. Criterio: pruebas por origen de la entrada | D-17 |
+
+## Retención y privacidad
+
+| ID | Requisito | Origen |
+|---|---|---|
+| SUP-D01 | **Aceptado, sin implementar:** cada clase de dato (historial, logs, caché, parciales, configuración, credenciales, respaldos, exportaciones, evidencia) tiene una retención definida y documentada (§13.14 del análisis). La del historial es configurable (UC-10 A6). Ninguna limpieza borra resultados ni reclamaciones de jobs existentes. Plazos por defecto: **pendientes de decisión** (D-21). Criterio: prueba por clase con un reloj falso | D-21 |
 
 ## Compatibilidad multimedia
 
 | ID | Requisito | Origen |
 |---|---|---|
-| SUP-M01 | **Condicionado a D-18:** el User obtiene un resultado reproducible en sus dispositivos, por este orden de preferencia: elegir formatos compatibles del sitio (selector o preajuste), unir o cambiar el contenedor sin recodificar, convertir el audio y, solo si se pide, recodificar el video con un codificador presente en la build incluida. Criterio: con el codificador disponible, el resultado tiene el códec pedido según ffprobe; sin él, `enqueue` lo rechaza | [Análisis, §13.4](requirements-analysis.md#134-recodificación-y-compatibilidad) |
+| SUP-M01 | **Aceptado; recodificar a H.264 o HEVC condicionado a la decisión sobre patentes (R-29, D-18):** el User obtiene un resultado reproducible en sus dispositivos, por este orden de preferencia: elegir formatos compatibles del sitio (selector o preajuste), unir o cambiar el contenedor sin recodificar, convertir el audio y, solo si se pide, recodificar el video con un codificador presente en la build incluida. Criterio: con el codificador disponible, el resultado tiene el códec pedido según ffprobe; sin él, `enqueue` lo rechaza | [Análisis, §13.4](requirements-analysis.md#134-recodificación-y-compatibilidad) |
 
 ## Portabilidad y distribución
 

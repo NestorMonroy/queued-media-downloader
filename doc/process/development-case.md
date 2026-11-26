@@ -117,6 +117,7 @@ Todos funcionan desde un clon del repositorio, sin herramientas externas al proy
 | `scripts/check_commit_message.py` | Convenciones de los mensajes de commit | Reutilizable, cualquier sistema |
 | `scripts/windows/validation_campaign.ps1` | Ejecuciones de la validación en Windows identificadas por commit, colas aisladas y evidencia | Reutilizable, Windows |
 | `scripts/experiments/process_tree_termination.py` | Experimento de terminación de árboles de procesos (T33, ADR-0029), que la validación repite en Windows | Experimento; sus resultados históricos están en `doc/notes/experiments/` |
+| `scripts/experiments/requirements_qualification.py` | Experimentos de cualificación de decisiones de requisitos (reintentos de yt-dlp, copia de SQLite, cadena de causas) | Experimento; resultados en `doc/notes/experiments/requirements-qualification.md` |
 
 ### Mensajes de commit
 
