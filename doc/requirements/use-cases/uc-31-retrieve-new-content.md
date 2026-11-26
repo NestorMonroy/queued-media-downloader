@@ -5,7 +5,7 @@
 - **Disparador:** el User pide consultar sus suscripciones, o llega la hora de una consulta programada.
 - **Prioridad:** media.
 - **Significativo para la arquitectura:** sí: crea jobs desde un proceso no interactivo con procedencia propia y comparte la admisión con la cola.
-- **Estado:** candidato (propuesta de la instrucción 2.5.0, pendiente de aprobación del Responsable). Implementación: ausente.
+- **Estado:** aceptado (Responsable, instrucción 2.6.0; propuesto en la 2.5.0). Implementación: ausente. La aceptación no autoriza implementar.
 - **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
 - **Origen:** NewPipe (`NotificationWorker` con intervalo y red configurables que avisa de contenido nuevo de los canales elegidos), GreenTuber (`VideoNotifWorker`), YTDLnis (`ObserveSourceWorker`: solo lo nuevo, reintentar lo que falta, enlaces ignorados y procesados, fin tras N ejecuciones) y VidBee (descarga automática o revisión manual, filtros por palabras clave, solo el último); evidencia y nivel en el [análisis de requisitos, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
 - **Independencia:** UC-21 programa cuándo se ejecutan jobs que ya existen; aquí se descubre contenido que todavía no es un job y se decide si se crea. UC-15 inspecciona una URL que el User ya tiene.

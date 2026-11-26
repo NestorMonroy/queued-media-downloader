@@ -5,7 +5,7 @@
 - **Disparador:** el User pide comprobar actualizaciones, o la comprobación periódica activada detecta una versión nueva.
 - **Prioridad:** media.
 - **Significativo para la arquitectura:** sí: depende del canal de distribución y encadena la migración del esquema y la recuperación (SUP-C10).
-- **Estado:** candidato (propuesta de la instrucción 2.5.0, pendiente de aprobación del Responsable). Implementación: ausente.
+- **Estado:** aceptado (Responsable, instrucción 2.6.0; propuesto en la 2.5.0). Implementación: ausente. La aceptación no autoriza implementar.
 - **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
 - **Origen:** NewPipe (`NewVersionWorker`: comprueba un JSON publicado solo si la instalación es la del canal propio, avisa y abre la página del paquete; no instala), Open Video Downloader (`updater_check`, `updater_download`, `updater_install`), YTDLnis (`UpdateCheckWorker`), VidBee (`:upgrade` de su CLI en `d483045`: consulta el registro, guarda el resultado 30 días y no instala) y GreenTuber (aviso de actualización); evidencia y nivel en el [análisis de requisitos, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
 - **Independencia:** UC-27 cambia las dependencias multimedia (yt-dlp, yt-dlp-ejs, deno, ffmpeg) dentro de la misma versión del producto. Aquí cambia el producto (motor, interfaces, contratos públicos y esquema), con migración y vuelta atrás propias.

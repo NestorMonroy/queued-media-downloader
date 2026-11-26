@@ -1,6 +1,6 @@
 # Diseño — Parte 3: arquitectura objetivo, contratos públicos y evolución multiplataforma
 
-- **Estado:** Analysis and Design cerrado (instrucciones 2.3.0 y 2.4.0; la 2.4.0 añade la cualificación de la arquitectura de ejecución, §16; la 2.5.0, la reconciliación con el descubrimiento funcional, §17, y los candidatos UC-29 a UC-32 en §12 y §13). Es diseño, no implementación: ningún componente marcado *propuesto* existe en el código.
+- **Estado:** Analysis and Design cerrado (instrucciones 2.3.0 y 2.4.0; la 2.4.0 añade la cualificación de la arquitectura de ejecución, §16; la 2.5.0, la reconciliación con el descubrimiento funcional, §17, y los candidatos UC-29 a UC-32 en §12 y §13; la 2.6.0 acepta esos candidatos y añade el procesamiento, los resultados derivados y la frontera comercial, §18). Es diseño, no implementación: ningún componente marcado *propuesto* existe en el código.
 - **Fecha:** 2026-11-26
 - **Base:**
   - [Parte 1](01-architecture.md): arquitectura vigente;
@@ -957,7 +957,7 @@ Ningún componente se clasifica **Replace**: no hay ninguna incompatibilidad dem
 
 ## 12. Realización de los 26 casos de uso
 
-La tabla incluye también los casos de uso candidatos UC-29 a UC-32, con el estado de diseño «Candidato»: están pendientes de aprobación y su reconciliación está en §17.
+La tabla incluye UC-29 a UC-32, aceptados en la instrucción 2.6.0 (reconciliación en §17), y los candidatos UC-33 a UC-41 con el estado de diseño «Candidato» y la unidad Roadmap (diseño en §18).
 
 Columnas:
 - **Componentes actuales:** los que ya realizan parte del caso.
@@ -996,10 +996,19 @@ Los datos, eventos, errores y pruebas de cada caso están en su especificación 
 | UC-26 | Verificar los outputs | `ffmpeg_discovery` | Verificación con ffprobe (§10.4) | Multimedia | Evidencia | ffprobe con archivos de prueba | U5 | Condicionado |
 | UC-27 | Administrar las dependencias | `diagnostics` | Procedimiento cualificado (D-8), capacidades | Distribución (§7.2) | Ninguna | Entorno aislado | U12 | Condicionado |
 | UC-28 | Recibir avisos | — | Canal de observación (§5.3), entrega (§8.6) | Avisos | Preferencias | Pruebas del canal; entrega sin permiso | U10 | Definido |
-| UC-29 | Modificar la petición de jobs pendientes | `queue_store`, `run_queue` | Comando `modify` con resultado por job; suceso de modificación; recálculo de identidad (§17.2) | No | Sucesos del job | Pruebas de identidad conservada, duplicado y carrera con el envío | U13 | Candidato |
-| UC-30 | Registrar fuentes y su contenido conocido | — | Consultas y comandos de suscripción; documento de intercambio versionado | No | Suscripciones y contenido conocido (nuevas, sin esquema) | Pruebas con fuentes simuladas | U14 | Candidato |
-| UC-31 | Descubrir contenido nuevo y crear jobs con procedencia | `media_extraction` (listado sin descarga) | Procedencia en la creación de jobs; suceso de consulta | Programación (como UC-21) | Contenido conocido, consultas | Consultas sucesivas con fuente simulada | U14 | Candidato |
-| UC-32 | Comprobar y aplicar versiones del producto por canal | `diagnostics` | Identidad del canal de la instalación; consulta de versión | Canal de distribución | Ninguna nueva (migraciones existentes) | Canal simulado; migración desde la versión anterior | U16 | Candidato |
+| UC-29 | Modificar la petición de jobs no terminados | `queue_store`, `run_queue` | Comando `modify` con resultado por job; suceso de modificación; recálculo de identidad (§17.2); compatibilidad de parciales y reclamaciones (BR-47) | No | Sucesos del job | Pruebas de identidad conservada, duplicado, parciales incompatibles y carrera con el envío | U13 | Definido |
+| UC-30 | Registrar fuentes y su contenido conocido | — | Consultas y comandos de suscripción; documento de intercambio versionado | No | Suscripciones y contenido conocido (nuevas, sin esquema) | Pruebas con fuentes simuladas | U14 | Definido |
+| UC-31 | Descubrir contenido nuevo y crear jobs con procedencia | `media_extraction` (listado sin descarga) | Procedencia en la creación de jobs; suceso de consulta | Programación (como UC-21) | Contenido conocido, consultas | Consultas sucesivas con fuente simulada | U14 | Definido |
+| UC-32 | Comprobar y aplicar versiones del producto por canal | `diagnostics` | Identidad del canal de la instalación; consulta de versión | Canal de distribución | Ninguna nueva (migraciones existentes) | Canal simulado; migración desde la versión anterior | U16 | Definido |
+| UC-33 | Transcribir un medio | — | Operación de procesamiento con resultado derivado (§18.2); motor aislado (§18.4) | Inferencia | Resultados derivados, etapas | Motor simulado sin modelos | Roadmap | Candidato |
+| UC-34 | Traducir una transcripción | — | Resultado derivado de otro; proveedor remoto con secreto (§18.8) | Inferencia, red | Resultados derivados | Motor y proveedor simulados | Roadmap | Candidato |
+| UC-35 | Resumir el contenido | — | Etapa previa de transcripción; modelo de lenguaje | Inferencia | Resultados derivados | Modelo simulado | Roadmap | Candidato |
+| UC-36 | Generar subtítulos | `output_claims` | Output con reclamación (ADR-0033) desde un resultado derivado | Almacenamiento | Outputs | Validación de formato | Roadmap | Candidato |
+| UC-37 | Generar voz | — | Síntesis por fragmentos con recuperación por fragmento (§18.3) | Inferencia, GPU | Resultados derivados, etapas | Motor simulado | Roadmap | Candidato |
+| UC-38 | Doblar un medio | `output_claims` | Composición de etapas con identidad por etapa (§18.3); varios outputs (D-15) | Inferencia, multimedia | Etapas, outputs | Canalización simulada con cierre a mitad | Roadmap | Candidato |
+| UC-39 | Administrar modelos | `partial_files` (reutilizable) | Descarga reanudable y verificada de modelos con los mecanismos de descarga e integridad (§18.6) | Almacenamiento, red | Modelos instalados | Descarga simulada con cortes | Roadmap | Candidato |
+| UC-40 | Administrar colecciones | — | Referencias ordenadas a outputs registrados | No | Colecciones | Ciclo de vida con outputs que desaparecen | Roadmap | Candidato |
+| UC-41 | Adquirir el modo sin anuncios | — | Adaptador comercial fuera del núcleo (§18.7, BR-54) | Canal de distribución | Derecho de uso (fuera del núcleo) | Adaptador de canal simulado | Roadmap | Candidato |
 <!-- uc-realization:end -->
 
 **Contratos compartidos.** Satisfacen a varios casos a la vez, y cada uno tiene una autoridad:
@@ -1061,10 +1070,19 @@ Esta matriz no autoriza implementar en Android ni en iOS.
 | UC-26 | Futura | Futura | Restringida | No demostrada | ffprobe como ejecutable en Android; iOS sin cualificar |
 | UC-27 | Futura | Futura | Restringida | Restringida | Políticas de tienda sobre código descargado |
 | UC-28 | Futura | Futura | Futura | Futura | Requiere permiso de notificaciones; el producto funciona sin él |
-| UC-29 | Futura | Futura | Futura | Futura | Candidato; mismo comando público en todas las interfaces |
-| UC-30 | Futura | Futura | Futura | Futura | Candidato |
-| UC-31 | Futura | Futura | Restringida | No demostrada | Candidato; en Android la consulta programada es inexacta (WorkManager); en iOS la ejecución en segundo plano no está demostrada (R-31) |
-| UC-32 | Futura | Futura | Restringida | Restringida | Candidato; en tiendas la instalación la hace la tienda (BR-51, R-35) |
+| UC-29 | Futura | Futura | Futura | Futura | Mismo comando público en todas las interfaces |
+| UC-30 | Futura | Futura | Futura | Futura | — |
+| UC-31 | Futura | Futura | Restringida | No demostrada | En Android la consulta programada es inexacta (WorkManager); en iOS la ejecución en segundo plano no está demostrada (R-31) |
+| UC-32 | Futura | Futura | Restringida | Restringida | En tiendas la instalación la hace la tienda (BR-51, R-35) |
+| UC-33 | Futura | Futura | No demostrada | No demostrada | Candidato; en móviles depende del motor y de la memoria (§18.9) |
+| UC-34 | Futura | Futura | No demostrada | No demostrada | Candidato; los proveedores remotos funcionan en todas |
+| UC-35 | Futura | Futura | No demostrada | No demostrada | Candidato |
+| UC-36 | Futura | Futura | Futura | Futura | Candidato |
+| UC-37 | Futura | Futura | No demostrada | No demostrada | Candidato |
+| UC-38 | Futura | Futura | No demostrada | No demostrada | Candidato |
+| UC-39 | Futura | Futura | Restringida | Restringida | Candidato; políticas de tienda sobre contenido descargado (R-35) |
+| UC-40 | Futura | Futura | Futura | Futura | Candidato |
+| UC-41 | No aplicable | No aplicable | Futura | Futura | Candidato; Windows no muestra anuncios |
 <!-- platform-applicability:end -->
 
 ---
@@ -1643,10 +1661,173 @@ Para las suscripciones (UC-30, UC-31), el contenido conocido se identifica con l
 
 ### 17.5 Clean Code y principios de nombres
 
-- **Una palabra por concepto:** la pausa de un job y la pausa de la cola se distinguen; «retener» y «guardar para más tarde» se descartaron por ser la misma idea que la pausa de un job ([vocabulario, §1.2](00-vocabulary.md#12-conceptos-propuestos-por-el-descubrimiento-funcional-instrucción-250)).
+- **Una palabra por concepto:** la pausa de un job y la pausa de la cola se distinguen; «retener» y «guardar para más tarde» se descartaron por ser la misma idea que la pausa de un job ([vocabulario, §1.2](00-vocabulary.md#12-conceptos-del-descubrimiento-funcional-instrucciones-250-y-260)).
 - **Los casos de uso guían la arquitectura:** cada contrato nuevo de §17.1 sale de un flujo con identificador.
 - **Los frameworks son plugins:** compartir, abrir, portapapeles y disparadores son adaptadores; el motor no conoce intents ni hojas de compartir.
 - **YAGNI:** no se crean esquemas para colecciones (sin requisito aprobado) ni para suscripciones antes de aprobar UC-30.
+
+## 18. Procesamiento, resultados derivados y frontera comercial (instrucción 2.6.0)
+
+Diseño de la orientación estratégica de la instrucción 2.6.0 ([análisis de requisitos, §16](../requirements/requirements-analysis.md#16-descubrimiento-260-ia-privacidad-y-modelo-comercial)). Es diseño de los candidatos UC-33 a UC-41 y de las reglas aprobadas BR-46 a BR-54; no autoriza implementar nada, no cambia dependencias fijadas y no crea migraciones. ADR-0032, ADR-0033 y ADR-0034 se conservan.
+
+### 18.1 Capacidades
+
+El diagrama agrupa por **capacidad**, no por paquete. Las capacidades de procesamiento y la comercial son futuras y se conectan al motor por los mismos contratos que las demás; ninguna flecha entra en el núcleo desde lo comercial.
+
+```mermaid
+---
+config:
+  theme: base
+  darkMode: true
+  themeVariables:
+    background:         "#0f172a"
+    primaryColor:       "#1e293b"
+    primaryTextColor:   "#f1f5f9"
+    primaryBorderColor: "#94a3b8"
+    lineColor:          "#cbd5e1"
+    secondaryColor:     "#334155"
+    tertiaryColor:      "#1e3a8a"
+    noteBkgColor:       "#1e3a8a"
+    noteTextColor:      "#f1f5f9"
+---
+flowchart TD
+    subgraph Interfaces["Interfaces"]
+        CommandLine["Windows CLI"]
+        DesktopGui["Windows GUI"]
+        MobileHosts["Android and iOS hosts"]
+    end
+    subgraph PublicContracts["Public contracts"]
+        Commands["Commands"]
+        Queries["Queries"]
+        Observation["Events and progress"]
+    end
+    subgraph Core["Engine core"]
+        Admission["Admission: eligibility, priority, resources"]
+        JobRegistry["Jobs and request identity"]
+        OutputRegistry["Outputs, claims and derived results"]
+        Recovery["Recovery and integrity"]
+    end
+    subgraph Execution["Execution mechanisms"]
+        MediaAcquisition["Media acquisition: yt-dlp, FFmpeg"]
+        Processing["Processing stages: transcription, translation, speech"]
+        ModelStore["Inference models"]
+    end
+    subgraph Commercial["Commercial boundary"]
+        Entitlements["Trial and entitlements"]
+        ChannelAdapters["Channel adapters"]
+    end
+    CommandLine --> Commands
+    DesktopGui --> Commands
+    MobileHosts --> Commands
+    Commands --> Admission
+    Queries --> JobRegistry
+    Admission --> JobRegistry
+    Admission --> MediaAcquisition
+    Admission --> Processing
+    Processing --> ModelStore
+    MediaAcquisition --> OutputRegistry
+    Processing --> OutputRegistry
+    OutputRegistry --> Recovery
+    JobRegistry --> Observation
+    MobileHosts --> Entitlements
+    DesktopGui --> Entitlements
+    Entitlements --> ChannelAdapters
+
+    classDef default fill:#1e293b,stroke:#94a3b8,stroke-width:1px,color:#f1f5f9
+    classDef cluster fill:#1e3a8a,stroke:#94a3b8,stroke-width:1px,color:#f1f5f9
+    classDef focal fill:#1e3a8a,stroke:#60a5fa,color:#f1f5f9
+    classDef optional fill:#1e293b,stroke:#475569,stroke-dasharray:4 3,color:#94a3b8
+    classDef security fill:#1a0a0a,stroke:#f87171,stroke-dasharray:4 4,color:#fca5a5
+    class Admission,OutputRegistry focal
+    class Processing,ModelStore,DesktopGui,MobileHosts optional
+    class Entitlements,ChannelAdapters security
+```
+
+Las interfaces consultan el derecho de uso solo para decidir qué mostrar (anuncios); el núcleo no lo consulta nunca ([BR-54](../requirements/business-rules.md)).
+
+### 18.2 Identidad de los resultados derivados
+
+Generalización de D-15, D-16 y ADR-0033 a operaciones que no son descargas ([BR-55](../requirements/business-rules.md), propuesta):
+
+| Concepto | Definición | Relación con lo existente |
+|---|---|---|
+| Operación | Lo que hace un job: obtener, expandir, transcribir, traducir, resumir, generar subtítulos, generar voz, doblar | `JobKind` hoy distingue `EXPANSION` y `DOWNLOAD` |
+| Entrada | Referencia a un output registrado, a un resultado derivado o a un archivo del User | Un archivo del User no se reclama: se lee |
+| Identidad del resultado derivado | Función de las identidades de las entradas, la operación, el modelo y su versión, y los parámetros que afectan al resultado | Igual que la identidad de la petición (D-16), con la versión del algoritmo |
+| Resultado intermedio | Resultado de una etapa con identidad propia (audio extraído, transcripción dentro de un doblaje) | Permite reutilizar y recuperar por etapa |
+| Varios outputs | Un job puede publicar varios (pista de voz, medio doblado, subtítulos) | D-15 |
+| Propiedad | Los outputs nuevos se reclaman; las entradas, los modelos y las cachés tienen dueño distinto y no se borran al purgar el job | ADR-0030, ADR-0033; R-14, R-25, R-30 |
+
+**Invariantes:** un resultado derivado nunca reemplaza su entrada; dos peticiones con la misma identidad son duplicadas aunque vengan de jobs distintos; cambiar una entrada invalida solo los resultados que dependen de ella.
+
+### 18.3 Composición de etapas y recuperación
+
+- Una operación compuesta (UC-38) es una secuencia de **etapas**; cada etapa produce un resultado intermedio con identidad y evidencia propias.
+- **Recuperación por etapa:** al reanudar, una etapa con evidencia verificada no se repite; dentro de una etapa por segmentos, los segmentos terminados tampoco (como `dub_resume.py` de VoiceStudio, pero con la evidencia local de D-9).
+- **Publicación al final:** lo publicado solo cambia cuando la operación termina; los intermedios viven en el directorio del job hasta entonces (patrón observado en VoiceStudio: escalonar en privado y promover al publicar).
+- **Sin diseñador genérico:** la secuencia de etapas la define cada operación; no hay un motor de flujos de trabajo configurable (§16.7 del análisis).
+
+### 18.4 Admisión, prioridad y recursos
+
+**Prioridad y elegibilidad ([BR-46](../requirements/business-rules.md)).** Orden de decisión: elegibilidad, recursos, prioridad, orden de la cola, identificador del job como desempate determinista. Alternativas para impedir el aplazamiento indefinido de los de menor prioridad, sin elegir una (la decisión es de Arquitectura al diseñar U13):
+
+| Alternativa | Efecto | Coste |
+|---|---|---|
+| Envejecimiento: la prioridad efectiva crece con la espera | Todo job acaba saliendo | La prioridad mostrada y la efectiva difieren |
+| Cuota por procedencia: cada N envíos, uno de la procedencia más antigua | Garantía simple | Parámetro adicional |
+| Sin mecanismo, con aviso de espera larga | Comportamiento predecible | El User resuelve a mano |
+
+**Dimensiones de admisión de recursos** (§112 de la instrucción): workers de descarga, conexiones y ancho de banda (D-20), espacio en disco (D-5), memoria del sistema, memoria de la GPU, ranuras de inferencia por dispositivo, red de uso medido (BR-28) y batería o energía en móviles. Cada operación declara qué dimensiones consume; la admisión no conoce motores concretos.
+
+**Pool de procesos (ADR-0008, ADR-0034):** sigue siendo el mecanismo de escritorio para la obtención multimedia. **No se impone a la IA:** una operación de inferencia puede usar un proceso aislado por motor (como `subprocess_asr_base.py`, que convierte un fallo nativo en un job fallido) o una ejecución en proceso con ranuras de dispositivo (como `gpu_gateway.py` o el `busy` de Edge0). La reutilización de un modelo cargado entre jobs es una **hipótesis**: se mide antes de diseñar un pool de modelos.
+
+**Avisos frente a rechazos:** VoiceStudio usa un aviso de memoria no bloqueante; Edge0 rechaza al cargar si el presupuesto no alcanza. Las dos políticas son válidas en contextos distintos; la admisión del producto debe poder expresar ambas por operación.
+
+### 18.5 Modelo y runtime
+
+| | Modelo | Runtime |
+|---|---|---|
+| Qué es | Pesos y configuración (archivos grandes con licencia propia) | Biblioteca o ejecutable que los ejecuta (CTranslate2, GGML, ONNX Runtime, PyTorch) |
+| Ciclo de vida | Instalación, verificación y eliminación por el User (UC-39) | Dependencia del producto o de un complemento, con versión fijada (D-8) |
+| Licencia | Distinta de la del motor (Edge0: Apache-2.0 el motor y licencia propia los modelos) | La del runtime |
+| Compatibilidad | Un modelo declara qué runtimes y versiones admite | Un runtime declara qué formatos carga |
+
+Mezclarlos obligaría a reinstalar modelos al actualizar un runtime o a revisar licencias de pesos al cambiar una biblioteca.
+
+### 18.6 Administración de modelos
+
+Reutiliza los mecanismos que ya existen para descargas y resultados, sin un sistema paralelo: descarga reanudable por rangos con manifiesto (como el acelerador de VoiceStudio), verificación de tamaño y resumen antes de publicar (UC-26), escritura atómica (`os.replace`), propiedad explícita (un modelo en una carpeta administrada por el User se usa sin moverlo ni borrarlo) y espacio previo (UC-17). La elección del extremo de descarga por sondeo (como `endpoint_race.py`) es una opción, no un requisito: no evade bloqueos ni restricciones de un sitio.
+
+### 18.7 Frontera comercial
+
+- **Dónde vive:** un componente de derechos de uso y adaptadores por canal (Google Play Billing en Android, StoreKit en iOS, la API de Microsoft Store si se publica ahí), todos fuera del núcleo.
+- **Qué no depende de él:** `MediaSource`, `WorkerPool`, `JobStore`, las reglas de identidad, la admisión y la recuperación. La regla de arquitectura de dependencias hacia dentro (AR-08) se extiende a los adaptadores comerciales cuando existan.
+- **Sin servidor de licencias remoto propio:** el derecho se obtiene del canal; en distribución directa no hay comprobación fuera del equipo (D-25, D-27).
+- **Vencimiento:** cambia lo que muestra la interfaz (anuncios); nunca borra, detiene ni altera trabajo ([BR-54](../requirements/business-rules.md)).
+- **SDK de anuncios:** si se elige uno, vive en el adaptador de la interfaz móvil, y su tratamiento de datos se documenta frente al contrato de privacidad (R-41); el modo privado no cambia por él ni él por el modo privado.
+
+### 18.8 Contratos públicos (§101)
+
+| Contrato | Ampliación | Origen |
+|---|---|---|
+| Comandos | Operaciones de procesamiento (UC-33 a UC-38); modelos (UC-39); colecciones (UC-40); reemplazo explícito (UC-02 A18); adquirir y restaurar (UC-41, solo en el adaptador móvil) | Candidatos |
+| Consultas | Resultados derivados con su procedencia; modelos instalados y sus requisitos; capacidades de procesamiento del equipo (en el diagnóstico); estado del derecho de uso (solo interfaz) | §16.7 del análisis |
+| Sucesos | Inicio y fin de etapa; resultado intermedio publicado; modelo instalado o dañado | §18.3 |
+| Progreso | Por etapa y por segmento | §18.3 |
+| Errores | Recursos insuficientes por dimensión; fallo del motor; licencia no aceptada; proveedor remoto inaccesible | Candidatos |
+| Representaciones de URL | Operativa, pública, de diagnóstico y exportable | SUP-SEC07 |
+
+**Comunicación entre interfaces y motor:** se conserva la petición por SQLite sin demonio obligatorio (ADR-0034). Electrum demuestra el patrón de un registro único de comandos compartido por CLI, RPC, consola y complementos; el producto ya tiene el equivalente en los comandos públicos del motor, y un demonio con RPC autenticado sigue siendo opcional, no obligatorio.
+
+### 18.9 Plataformas móviles
+
+- **Android:** Chaquopy es la alternativa prioritaria. Electron Cash demuestra en producción una interfaz Kotlin que llama en proceso a los comandos de Python y recibe retrollamadas. Restricción documentada: la mayoría de `multiprocessing` no funciona, así que la ejecución en Android es en proceso (hilos o `multiprocessing.dummy`), coherente con ADR-0034 (la coordinación no depende del mecanismo). Edge0 confirma que una aplicación Kotlin puede alojar un motor nativo de inferencia solo para `arm64-v8a` con CPU.
+- **iOS:** no se limita a hilos como única opción: Electron Cash usó Briefcase y rubicon-objc (sin mantenimiento desde 2023), y Edge0 ejecuta su motor nativo con Metal. La viabilidad sigue por cualificar (R-31); ninguna alternativa se elige aquí.
+
+### 18.10 Decisiones que se conservan y ADR propuestos
+
+- **Se conservan:** ADR-0032 (motor reutilizable y capacidades por plataforma), ADR-0033 (identidad de outputs y referencias de almacenamiento) y ADR-0034 (coordinación única con ejecución intercambiable); peticiones por SQLite; dependencias fijadas.
+- **Propuestos:** [ADR-0035](../notes/adr-0035-derived-results-and-stage-composition.md) (resultados derivados y composición de etapas) y [ADR-0036](../notes/adr-0036-commercial-entitlement-boundary.md) (frontera de los derechos de uso). Se aceptan cuando el Responsable apruebe los candidatos que los necesitan.
 
 ## Fuentes
 

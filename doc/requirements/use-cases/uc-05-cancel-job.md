@@ -6,7 +6,7 @@
 - **Significativo para la arquitectura:** sí
 - **Estado:** aceptado (Responsable, 2026-11-26). Implementación: los escenarios originales están implementados; los ampliados tienen la marca de su flujo (`[estado: …]`).
 - **Verificación:** escenarios implementados verificados con pruebas automáticas en desarrollo (Linux); validación en Windows pendiente de la campaña integral (T42 parcial, [registro](../../project-management/t42-results.md)).
-- **Propuestas pendientes de aprobación (2.5.0):** A10, marcadas como propuestas; [análisis de requisitos, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
+- **Ampliaciones aceptadas (instrucción 2.6.0):** A10, propuestas en la 2.5.0; [análisis de requisitos, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
 - **Decisiones relacionadas:** [ADR-0008](../../notes/adr-0008-process-based-worker-pool.md), [ADR-0013](../../notes/adr-0013-process-tree-terminator-abstraction.md)
 - **Diseño:** [Parte 2, §1.4](../../design/02-flows-persistence-and-operations.md#14-cancelación)
 
@@ -39,7 +39,7 @@ El User cancela uno o varios jobs. Si el job aún no empezó, se cancela de inme
 - **A7. Job ya terminado** `[estado: implementado]` (`COMPLETED`, `FAILED`, `SKIPPED`, `CANCELLED`): no se registra job request; `cancel` informa al User de que el job ya terminó. Si el job terminó entre el registro y el procesamiento, `run` marca la job request procesada sin cambios. Un job `FAILED` conserva su failure reason: no se cancela, se reintenta (UC-07). Ver la tabla de estados terminados, reintentables y cancelables del [vocabulario, §1.1](../../design/00-vocabulary.md#11-estados-terminados-reintentables-y-cancelables).
 - **A8. Job `CANCELLATION_REQUESTED`** `[estado: implementado]` (paso 4): ya se está cancelando; la job request se marca procesada sin cambios.
 - **A9. Cancelar durante el postprocesamiento con varios resultados** `[estado: ausente]` (paso 5; D-15): los resultados ya publicados en su ruta final se conservan con su reclamación y quedan registrados como parciales del job cancelado; los que no llegaron a publicarse se descartan como parciales. Nunca queda un archivo final a medio escribir: la publicación de cada resultado es un movimiento atómico.
-- **A10. Cancelar varios jobs seleccionados** `[estado: ausente; propuesto]` (paso 1): el User cancela una selección de jobs. Cada uno se cancela como en el flujo básico y el resultado se informa por job (cancelado, ya terminado o inexistente); un fallo en uno no impide cancelar los demás. Evidencia: YTDLnis (selección múltiple) y Open Video Downloader (`group_cancel`); [análisis, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
+- **A10. Cancelar varios jobs seleccionados** `[estado: ausente]` (paso 1): el User cancela una selección de jobs. Cada uno se cancela como en el flujo básico y el resultado se informa por job (cancelado, ya terminado o inexistente); un fallo en uno no impide cancelar los demás. Evidencia: YTDLnis (selección múltiple) y Open Video Downloader (`group_cancel`); [análisis, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
 
 ## Excepciones
 

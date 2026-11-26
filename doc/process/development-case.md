@@ -65,6 +65,21 @@ El Responsable del proyecto decidió implementar en E2 los casos de uso restante
 | Entorno | Caso de desarrollo | Este documento | Si cambia el proceso |
 | Implementación y pruebas | Código, pruebas y configuración | `queued_media_downloader/`, `tests/`, `pyproject.toml` | Continuo |
 
+### Dirección del proyecto y del producto: PMBOK 8
+
+PMBOK 8 gobierna el proyecto (gobierno, alcance, cronograma, finanzas, interesados y recursos, riesgo) con la adaptación descrita en el [documento de gobierno](../project-management/governance.md); BABOK v3 gobierna los requisitos y RUP la ingeniería. No hay procesos paralelos: cada asunto tiene un artefacto canónico.
+
+| Asunto | Marco | Artefacto |
+|---|---|---|
+| Autoridades, RAM, control de cambios, líneas base, registros y decisiones | PMBOK 8 | [Gobierno](../project-management/governance.md) |
+| EDT y paquetes de trabajo | PMBOK 8 | [Plan de E3, §12](../project-management/iteration-plan-e3.md#12-edt-y-líneas-base) |
+| Riesgos | PMBOK 8 | [Lista de riesgos](../project-management/risk-list.md) |
+| Modelo y caso de negocio, finanzas, hoja de ruta | PMBOK 8, §2.3 (gestión del producto) | [Espacio de producto](../product-management/business-model-and-case.md) |
+| Requisitos y su aprobación | BABOK v3 | Modelo de requisitos |
+| Análisis, diseño, implementación y pruebas | RUP; Clean Code y principios de nombres | Diseño, ADR, código y pruebas |
+
+**Aceptación y autorización:** el Responsable acepta requisitos y ADR y autoriza iteraciones; aceptar un caso de uso no autoriza implementarlo. **Evidencia:** niveles L0 a L5; hecho, declaración e hipótesis se separan siempre. **Autonomía del Agente:** redacta, analiza, ejecuta las comprobaciones e integra cuando la instrucción lo delega; nunca decide alcance, precio, canales ni modelo comercial.
+
 ### Requisitos: RUP con técnicas de BABOK v3
 
 La disciplina de Requisitos de RUP produce los artefactos de la tabla; BABOK v3 aporta las técnicas con las que se elaboran:

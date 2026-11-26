@@ -94,30 +94,48 @@ Tres preguntas distintas sobre un job status, con respuestas distintas (`Job.is_
 
 Una playlist (`EXPANSION`) se purga solo si todas sus entradas son purgables con las opciones elegidas o son `SKIPPED`; si no, se conserva con sus entradas pendientes de trabajo (UC-10 A2).
 
-### 1.2 Conceptos propuestos por el descubrimiento funcional (instrucción 2.5.0)
+### 1.2 Conceptos del descubrimiento funcional (instrucciones 2.5.0 y 2.6.0)
 
-Términos de las ampliaciones y de los casos de uso candidatos (UC-29 a UC-32). Mientras el Responsable no los apruebe, no se usan en el código.
+Términos de las ampliaciones y de UC-29 a UC-32, **aprobados** en la instrucción 2.6.0 junto con esos casos de uso: se usan en el código cuando se implementen.
 
 | Palabra | Significa | No usar |
 |---|---|---|
 | **job pause** (pausa de un job) | Estado de un job pendiente o activo que el User detuvo y que no se envía hasta que lo reanuda ([UC-14](../requirements/use-cases/uc-14-control-queue-execution.md) A7); distinto de la **pause** de la cola | hold, park, save for later |
 | **eligibility** (elegibilidad) | Condición de un job pendiente que puede enviarse ahora: no está en pausa, su hora de inicio llegó y ninguna condición externa lo aplaza (BR-46) | ready, available |
-| **priority** (prioridad) | Preferencia de envío entre jobs elegibles, derivada de su procedencia | urgency, weight |
+| **priority** (prioridad) | Valor ordenable que decide el envío entre jobs elegibles; la procedencia da un valor predeterminado configurable, no una precedencia absoluta ([BR-46](../requirements/business-rules.md)) | urgency, weight |
 | **job origin** (procedencia) | Quién creó el job: el User, una suscripción u otra aplicación; se conserva en reintentos y modificaciones | source (reservado para la fuente de contenido) |
 | **queue order** (orden de la cola) | Posición explícita que el User da a un job pendiente; decide después de la prioridad | rank, index |
 | **selection** (selección) | Conjunto de jobs o resultados elegidos por el User para una misma operación, con resultado por elemento | batch, bulk |
 | **external request** (solicitud externa) | Petición de encolado que llega de otra aplicación (compartir, enlace, extensión, invocación programática) y se trata como UC-02 | intent, share (como concepto del dominio) |
 | **content source** (fuente de contenido) | Canal, playlist o feed que yt-dlp puede listar y que se consulta repetidamente | channel (como genérico), subscription |
-| **subscription** (suscripción) | Registro local de una fuente con sus preferencias, filtros, política y contenido conocido; no implica una cuenta en el servicio | follow, watch, observe |
+| **content subscription** (suscripción de contenido) | Registro local de una fuente con sus preferencias, filtros, política y contenido conocido; no implica una cuenta en el servicio | follow, watch, observe |
 | **known content** (contenido conocido) | Lo que ya se presentó de una fuente, encolado o descartado; lo que no está aquí es **new content** (contenido nuevo) | seen, processed |
 | **media collection** (colección de medios) | Agrupación local de contenidos definida por el User, distinta de una playlist remota y de una selección. **Reservado:** sin requisito aprobado | local playlist (como sinónimo) |
-| **private mode** (modo privado) | Modalidad en la que los jobs terminados no dejan historial ni logs de actividad, sin perder la recuperación (BR-49) | incognito |
+| **private mode** (modo privado) | Modalidad definida por el contrato de [BR-49](../requirements/business-rules.md); no es el **ad-free mode**. Los jobs terminados no dejan historial ni logs de actividad, sin perder la recuperación (BR-49) | incognito |
 | **application data** (datos de la aplicación) | Todo lo que el producto guarda localmente salvo los resultados: jobs, historial, configuración, perfiles, credenciales, caché, temporales, respaldos y evidencia | user data (a secas) |
 | **application update** (actualización de la aplicación) | Paso a otra versión del producto por su canal de distribución (UC-32); distinta de la actualización de las dependencias multimedia (UC-27) | upgrade (a secas), self-update |
 | **interface language** (idioma de la interfaz) | Idioma de los textos del producto; nunca cambia la identidad de una petición | language (a secas) |
 | **query language** y **query country** (idioma y país de consulta) | Idioma y país con que se pide información a un sitio (títulos, metadatos, contenido regional) | locale (a secas) |
 | **audio track language** (idioma de la pista de audio) | Pista de audio elegida para el resultado: la original, un idioma o la predeterminada del sitio; forma parte de la especificación del resultado | audio language (sin «track») |
 | **subtitle language** (idioma de subtítulos) | Idiomas de los subtítulos pedidos (UC-24) | captions language |
+
+### 1.3 Conceptos de procesamiento y comerciales (instrucción 2.6.0, candidatos)
+
+Términos de los candidatos UC-33 a UC-41. Mientras el Responsable no los apruebe, no se usan en el código.
+
+| Palabra | Significa | No usar |
+|---|---|---|
+| **operation** (operación) | Lo que hace un job: obtener, expandir, transcribir, traducir, resumir, generar subtítulos, generar voz, doblar | task type, action |
+| **derived result** (resultado derivado) | Resultado producido a partir de otro resultado con una operación, un modelo y parámetros; tiene identidad propia ([BR-55](../requirements/business-rules.md)) | artifact (ambiguo), product |
+| **stage** (etapa) | Paso de una operación compuesta con un **intermediate result** propio | step (reservado a los flujos de los casos de uso), phase |
+| **transcript** (transcripción) | Texto con segmentos y marcas de tiempo obtenido del audio | captions (son subtítulos publicados) |
+| **inference model** (modelo de inferencia) | Pesos y configuración con licencia propia que usa una operación; distinto de su **runtime** | engine (ambiguo), dependency |
+| **runtime** (runtime de inferencia) | Biblioteca o ejecutable que ejecuta modelos (CTranslate2, GGML, ONNX Runtime) | model |
+| **trial period** (periodo inicial) | Los 15 días iniciales sin anuncios en todas las plataformas; sus condiciones son D-25 | free version, demo |
+| **entitlement** (derecho de uso) | Constancia, fuera del núcleo, de que el User adquirió un modo o una capacidad ([BR-54](../requirements/business-rules.md)) | license (reservado a licencias de software y modelos), premium |
+| **ad-free mode** (modo sin anuncios) | Modo adquirido en Android e iOS en el que la interfaz no muestra anuncios; no cambia qué datos se guardan | private mode, pro |
+| **commercial subscription** (suscripción comercial) | Pago recurrente de un modo o capacidad; nunca se abrevia como «suscripción» ([BR-50](../requirements/business-rules.md)) | subscription (sin calificar) |
+| **channel adapter** (adaptador de canal) | Componente que traduce el mecanismo de compra de una tienda al derecho de uso | billing service, store manager |
 
 ## 2. Conceptos de ejecución
 

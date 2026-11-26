@@ -1,13 +1,13 @@
 # Plan de la iteración E3
 
-- **Estado:** **Planificada; ejecución no autorizada.** E3 empieza cuando el Responsable la autorice (instrucción 2.4.0, §108). La instrucción 2.5.0 añade las unidades propuestas U13 a U16 (§11), separadas del alcance aceptado. Sustituye a la propuesta publicada en `ff21776` (mismo archivo, renombrado).
+- **Estado:** **Planificada; ejecución no autorizada.** E3 empieza cuando el Responsable la autorice (instrucción 2.4.0, §108). La instrucción 2.5.0 añadió las unidades U13 a U16 (§11) y la 2.6.0 las acepta y añade la EDT, las líneas base y la unidad Roadmap (§12). Sustituye a la propuesta publicada en `ff21776` (mismo archivo, renombrado).
 - **Fecha:** 2026-11-26
 - **Base:**
   - [diseño, Parte 3](../design/03-target-architecture-and-evolution.md): arquitectura objetivo, contratos públicos, arquitectura de ejecución (§16), realización de los 26 casos de uso;
   - [ADR-0032](../notes/adr-0032-reusable-engine-and-platform-capabilities.md), [ADR-0033](../notes/adr-0033-output-identity-and-storage-references.md), [ADR-0034](../notes/adr-0034-single-coordinator-and-isolated-execution.md);
   - [análisis de requisitos](../requirements/requirements-analysis.md) y [lista de riesgos](risk-list.md).
 - **Verificación del plan:** `scripts/check_requirements_model.py` comprueba:
-  - que cada flujo no implementado de los 26 casos de uso aceptados y de los candidatos tiene una sola unidad, con su alcance «Aceptado» o «Propuesto» (§6 y §11);
+  - que cada flujo no implementado de los 30 casos de uso aceptados y de los candidatos tiene una sola unidad, con su alcance «Aceptado», «Propuesto» o «Futuro» (este último solo en la unidad Roadmap) (§6, §11 y §12);
   - que las unidades existen y su grafo no tiene ciclos (§3);
   - que cada business rule aprobada y cada requisito suplementario pendiente aparecen en el plan.
 
@@ -136,15 +136,16 @@ flowchart LR
 | U11 | U6 | Implementación | Se exportan perfiles sin secretos |
 | U12 | U4 | Implementación | La consulta previa y el informe usan las vistas y la salida para otros programas |
 | U12 | U9 | Implementación | El diagnóstico informa las capacidades de transformación |
-| U13 | U3 | Diseño e implementación (propuesta) | La modificación recalcula la identidad de la petición y respeta las reclamaciones |
-| U13 | U7 | Implementación (propuesta) | Elegibilidad, prioridad y orden viven en la admisión |
-| U14 | U4 | Implementación (propuesta) | Suscripciones y contenido nuevo se exponen con el contrato estructurado |
-| U14 | U10 | Implementación (propuesta) | La consulta programada usa la programación y los avisos |
-| U14 | U13 | Implementación (propuesta) | Los jobs de una suscripción tienen procedencia y prioridad (BR-46) |
-| U15 | U4 | Implementación (propuesta) | La solicitud externa es el comando público de encolado (BR-48) |
-| U15 | U5 | Implementación (propuesta) | Abrir, compartir y exportar operan sobre outputs registrados y verificados |
-| U16 | U11 | Implementación (propuesta) | El modo privado y el borrado por categoría dependen de la retención (D-21) |
-| U16 | U12 | Implementación (propuesta) | La comprobación de versión comparte el diagnóstico de la instalación |
+| U13 | U3 | Diseño e implementación | La modificación recalcula la identidad de la petición y respeta las reclamaciones |
+| U13 | U7 | Implementación | Elegibilidad, prioridad y orden viven en la admisión |
+| U14 | U4 | Implementación | Suscripciones y contenido nuevo se exponen con el contrato estructurado |
+| U14 | U10 | Implementación | La consulta programada usa la programación y los avisos |
+| U14 | U13 | Implementación | Los jobs de una suscripción tienen procedencia y prioridad (BR-46) |
+| U15 | U4 | Implementación | La solicitud externa es el comando público de encolado (BR-48) |
+| U15 | U5 | Implementación | Abrir, compartir y exportar operan sobre outputs registrados y verificados |
+| U16 | U11 | Implementación | El modo privado y el borrado por categoría dependen de la retención (D-21) |
+| U16 | U12 | Implementación | La comprobación de versión comparte el diagnóstico de la instalación |
+| Roadmap | — | — | Candidatos con «Horizonte: futuro», fuera de E3 (§12) |
 <!-- e3-dependencies:end -->
 
 **Orden recomendado:**
@@ -447,20 +448,30 @@ El script del modelo lo comprueba. El criterio de aceptación es el del caso de 
 | UC-26 | Básico, A1, A2, A3, A4, E1, E2 | U5 | Aceptado |
 | UC-27 | Básico, A1, A2, A3, A4, A5, E1, E2 | U12 | Aceptado |
 | UC-28 | Básico, A1, A2, A3, A4, E1 | U10 | Aceptado |
-| UC-02 | A17 | U13 | Propuesto |
-| UC-05 | A10 | U13 | Propuesto |
-| UC-10 | A7 | U13 | Propuesto |
-| UC-14 | A7, A8, A9, E2 | U13 | Propuesto |
-| UC-21 | A10 | U13 | Propuesto |
-| UC-29 | Básico, A1, A2, A3, A4, E1, E2 | U13 | Propuesto |
-| UC-30 | Básico, A1, A2, A3, A4, A5, A6, A7, A8, E1, E2, E3 | U14 | Propuesto |
-| UC-31 | Básico, A1, A2, A3, A4, A5, A6, A7, E1, E2 | U14 | Propuesto |
-| UC-02 | A15, A16, E1 | U15 | Propuesto |
-| UC-25 | A7, A8, A9, A10, E4 | U15 | Propuesto |
-| UC-18 | A8, A9 | U6 | Propuesto |
-| UC-19 | A11 | U6 | Propuesto |
-| UC-20 | A8, A9, A10 | U16 | Propuesto |
-| UC-32 | Básico, A1, A2, A3, A4, A5, E1, E2, E3 | U16 | Propuesto |
+| UC-02 | A17 | U13 | Aceptado |
+| UC-05 | A10 | U13 | Aceptado |
+| UC-10 | A7 | U13 | Aceptado |
+| UC-14 | A7, A8, A9, E2 | U13 | Aceptado |
+| UC-21 | A10 | U13 | Aceptado |
+| UC-29 | Básico, A1, A2, A3, A4, A5, A6, E1, E2 | U13 | Aceptado |
+| UC-30 | Básico, A1, A2, A3, A4, A5, A6, A7, A8, E1, E2, E3 | U14 | Aceptado |
+| UC-31 | Básico, A1, A2, A3, A4, A5, A6, A7, E1, E2 | U14 | Aceptado |
+| UC-02 | A15, A16, E1 | U15 | Aceptado |
+| UC-25 | A7, A8, A9, A10, E4 | U15 | Aceptado |
+| UC-18 | A8, A9 | U6 | Aceptado |
+| UC-19 | A11 | U6 | Aceptado |
+| UC-20 | A8, A9, A10 | U16 | Aceptado |
+| UC-32 | Básico, A1, A2, A3, A4, A5, E1, E2, E3 | U16 | Aceptado |
+| UC-02 | A18 | U5 | Aceptado |
+| UC-33 | Básico, A1, A2, A3, A4, A5, E1, E2 | Roadmap | Futuro |
+| UC-34 | Básico, A1, A2, A3, A4, E1, E2 | Roadmap | Futuro |
+| UC-35 | Básico, A1, A2, E1 | Roadmap | Futuro |
+| UC-36 | Básico, A1, A2, E1 | Roadmap | Futuro |
+| UC-37 | Básico, A1, A2, E1, E2 | Roadmap | Futuro |
+| UC-38 | Básico, A1, A2, A3, A4, E1, E2 | Roadmap | Futuro |
+| UC-39 | Básico, A1, A2, A3, A4, E1, E2, E3 | Roadmap | Futuro |
+| UC-40 | Básico, A1, A2, A3, E1 | Roadmap | Futuro |
+| UC-41 | Básico, A1, A2, A3, E1 | Roadmap | Futuro |
 <!-- e3-coverage:end -->
 
 **Recuento:**
@@ -526,19 +537,57 @@ No se crean etiquetas ni se inicia otra campaña durante E3.
 | Secretos en Windows | U6 | Cualificación en la campaña |
 | R-31, R-33 | Posterior a E3 | Ejecutor y plataformas móviles |
 
-## 11. Ampliaciones propuestas por el descubrimiento funcional (instrucción 2.5.0)
+## 11. Ampliaciones aceptadas del descubrimiento funcional (instrucciones 2.5.0 y 2.6.0)
 
-**Nada de esta sección está aprobado.** Las unidades U1 a U12 siguen siendo el plan del alcance aceptado y no cambian de contenido. U13 a U16 agrupan las propuestas para poder ordenarlas si el Responsable las aprueba; en la tabla de cobertura (§6) llevan el alcance «Propuesto», que el verificador separa del aceptado. Evidencia en el [análisis, §15](../requirements/requirements-analysis.md#15-descubrimiento-funcional-250).
+La instrucción 2.6.0 **acepta** UC-29 a UC-32 y las ampliaciones de flujos propuestas en la 2.5.0, y aprueba BR-46 a BR-54; en la tabla de cobertura (§6) llevan el alcance «Aceptado». Aceptar no autoriza implementar: E3 sigue sin autorizar. U13 a U16 pasan a ser unidades del alcance aceptado de E3; U1 a U12 no cambian de contenido, salvo UC-02 A18 (reemplazo explícito, BR-53), que va en U5 con la administración de outputs y las reclamaciones. Evidencia en el [análisis, §15](../requirements/requirements-analysis.md#15-descubrimiento-funcional-250) y [§16](../requirements/requirements-analysis.md#16-descubrimiento-260-ia-privacidad-y-modelo-comercial).
 
 | Unidad | Responsabilidad | Requisitos | Migración | Pruebas |
 |---|---|---|---|---|
-| U13 | Orden, elegibilidad, pausa de un job, selecciones, acción al terminar y modificación de jobs pendientes | UC-14 A7, A8, A9, E2; UC-02 A17; UC-05 A10; UC-10 A7; UC-21 A10; UC-29; BR-46, BR-47 | Columnas de orden, pausa, hora de inicio y procedencia en jobs, con valores por defecto que conservan el comportamiento actual | Envío con jobs no elegibles y prioridades iguales; orden tras reinicio; modificación concurrente con el envío |
+| U13 | Orden, elegibilidad, prioridad, pausa de un job, selecciones, acción al terminar y modificación de jobs no terminados | UC-14 A7, A8, A9, E2; UC-02 A17; UC-05 A10; UC-10 A7; UC-21 A10; UC-29; BR-46 (con la política anti-inanición del diseño, §18.4), BR-47 | Columnas de orden, pausa, hora de inicio y procedencia en jobs, con valores por defecto que conservan el comportamiento actual | Envío con jobs no elegibles y prioridades iguales; orden tras reinicio; modificación concurrente con el envío |
 | U14 | Suscripciones y contenido nuevo | UC-30, UC-31; BR-50 | Tablas nuevas de suscripción y contenido conocido, sin tocar las de jobs | Fuente simulada que publica, retira y falla; consulta programada sin duplicados |
-| U15 | Solicitudes externas y acceso a resultados | UC-02 A15, A16, E1; UC-25 A7 a A10, E4; BR-48, BR-52; SUP-I06 | Ninguna | Adaptador con texto de una, varias y ninguna URL; exportación verificada sin mover la reclamación |
-| U16 | Datos de la aplicación, privacidad y actualización | UC-20 A8 a A10; UC-32; BR-49, BR-51; SUP-D02, SUP-C12 | Ninguna para la privacidad; la actualización reutiliza las migraciones existentes (SUP-C10) | Almacenes vacíos tras jobs privados; recuperación de un job privado interrumpido; canal simulado |
+| U15 | Solicitudes externas y acceso a resultados | UC-02 A15, A16, E1; UC-25 A7 a A10, E4; BR-48, BR-52; SUP-I06; SUP-SEC07 (representación exportable y pública de las URLs) | Ninguna | Adaptador con texto de una, varias y ninguna URL; exportación verificada sin mover la reclamación |
+| U16 | Datos de la aplicación, privacidad y actualización | UC-20 A8 a A10; UC-32; BR-49, BR-50 (términos separados), BR-51; SUP-D02, SUP-D03, SUP-C12; SUP-SEC07 (representación de diagnóstico) | Ninguna para la privacidad; la actualización reutiliza las migraciones existentes (SUP-C10) | Almacenes vacíos tras jobs privados; recuperación de un job privado interrumpido; canal simulado |
 
 - **Asignadas a unidades existentes:** UC-18 A8 y A9 (patrones de URL e idioma en el perfil) y UC-19 A11 (usuario y contraseña del sitio) van en U6, porque los perfiles y el almacén de credenciales ya están allí; SUP-U06 también.
 - **Sin unidad:** SUP-C11 (nombres de archivo portables) es una propiedad transversal de U3, que crea los nombres y las reclamaciones; SUP-C13 (condiciones técnicas de Google Play) y R-36 no son de E3: aplican solo si se elige ese canal.
-- **Prioridad de las propuestas:** U13 es la que conviene decidir antes de empezar E3, porque toca la identidad (U3) y la admisión (U7); decidirla tarde supondría rehacer esas migraciones. U14 a U16 pueden aprobarse después sin retrabajo, porque solo añaden tablas o adaptadores.
-- **Tareas T52 a T67:** no cambian. Ninguna duplica una propuesta; T-ids nuevos solo se crearán al aprobar las unidades.
+- **Orden:** U13 toca la identidad (U3) y la admisión (U7) y se diseña con ellas; U14 a U16 solo añaden tablas o adaptadores.
+- **BR-53** (reemplazo explícito) va en U5; **BR-54** (frontera comercial) no tiene implementación en E3: E3 la respeta no añadiendo ninguna dependencia comercial al núcleo, y su realización está en la unidad Roadmap (UC-41).
+- **Tareas T52 a T67:** no cambian. Los T-ids de U13 a U16 se crearán al autorizar E3.
 
+
+## 12. EDT y líneas base
+
+### 12.1 Estructura de desglose del trabajo
+
+| Nivel 1 | Paquetes de trabajo (nivel 2) | Alcance |
+|---|---|---|
+| E3. Motor y CLI de Windows | U1 a U12 (alcance aceptado desde la 2.4.0); U13 a U16 (alcance aceptado desde la 2.6.0) | Aceptado; ejecución no autorizada |
+| Roadmap | UC-33 a UC-38 (procesamiento con IA), UC-39 (modelos), UC-40 (colecciones), UC-41 (modo sin anuncios); BR-55 (propuesta) | Futuro; candidatos pendientes de aprobación |
+| Gestión del proyecto | Gobierno, registros y control de cambios ([gobierno](governance.md)) | Continuo |
+| Gestión del producto | Modelo y caso de negocio, hoja de ruta ([espacio de producto](../product-management/business-model-and-case.md)) | Continuo |
+
+Cada paquete de E3 es una unidad con sus requisitos, migración y pruebas (§4 y §11); la unidad Roadmap agrupa objetivos que no pertenecen a E3 y que el verificador separa con el alcance «Futuro».
+
+### 12.2 Líneas base
+
+| Línea base | Contenido |
+|---|---|
+| Alcance del producto | 30 casos de uso aceptados; reglas aprobadas, incluidas BR-46 a BR-54; requisitos aceptados, incluidos SUP-I06, SUP-D02, SUP-D03, SUP-C11 a SUP-C13, SUP-U06 y SUP-SEC07 |
+| Candidatos | UC-33 a UC-41; BR-55 |
+| Alcance de publicación propuesto | [Hoja de ruta, §3](../product-management/product-roadmap.md#3-alcance-de-publicación-propuesto) |
+| Alcance de la iteración E3 | U1 a U16 |
+| Hoja de ruta posterior | Unidad Roadmap |
+| Decisiones pendientes | D-25 a D-28 ([registro](governance.md#8-registro-de-decisiones)) |
+| Dependencias | §3 |
+
+### 12.3 Qué es esencial para el diseño de E3, qué se implementa y qué es futuro
+
+| Elemento | Esencial para el diseño de E3 | Se implementa en E3 | Futuro |
+|---|---|---|---|
+| Identidad de la petición y su recálculo (BR-47) | Sí: U3 debe permitir recalcularla sin cambiar la del job | Sí (U13) | — |
+| Prioridad, orden y elegibilidad (BR-46) | Sí: columnas de U7 y U13 | Sí (U13) | — |
+| Resultados derivados (BR-55) | Sí: la identidad de U3 no debe suponer que todo job es una descarga | No | Roadmap |
+| Frontera comercial (BR-54) | Sí: ninguna dependencia comercial en el núcleo | No | Roadmap |
+| Representaciones de URL (SUP-SEC07) | Sí: U3 guarda la operativa; U4 expone la pública | Sí (U15, U16) | — |
+| Modelos de inferencia (UC-39) | No | No | Roadmap |
+| Alternativas pendientes | Política anti-inanición (diseño, §18.4) | Se decide en U13 | — |

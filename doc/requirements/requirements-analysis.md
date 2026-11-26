@@ -1,7 +1,7 @@
 # Análisis de requisitos: continuidad, condiciones externas y referencias
 
 - **Fase RUP:** Elaboración (consolidación del modelo de requisitos tras la campaña T42)
-- **Versión:** 4.1 (2026-11-26; descubrimiento funcional, §15, instrucción 2.5.0). 4.0 (2026-11-26; alcance de 26 casos de uso aceptado por el Responsable; resolución de D-1 a D-21, §9; contratos, §13.11 a §13.19; impacto en la arquitectura, §14). 3.3: reconciliación de exclusiones y contratos transversales. 3.2 (2026-11-26; condiciones de almacenamiento separadas en UC-17 y análisis del acceso con proxy y cookies). 3.1 (añade YTDownload-2026 y VoiceBlueprintPro). 3.0 (2026-11-26). La versión 2.0 se titulaba «funcionamiento sin vigilancia y validación sin esperas»; esta integra el análisis de los proyectos de referencia en el modelo canónico y deja abiertas las decisiones.
+- **Versión:** 4.2 (2026-11-26; descubrimiento de IA, privacidad y modelo comercial, §16, instrucción 2.6.0; D-22 a D-24 resueltas; D-25 a D-28 nuevas). 4.1 (2026-11-26; descubrimiento funcional, §15, instrucción 2.5.0). 4.0 (2026-11-26; alcance de 26 casos de uso aceptado por el Responsable; resolución de D-1 a D-21, §9; contratos, §13.11 a §13.19; impacto en la arquitectura, §14). 3.3: reconciliación de exclusiones y contratos transversales. 3.2 (2026-11-26; condiciones de almacenamiento separadas en UC-17 y análisis del acceso con proxy y cookies). 3.1 (añade YTDownload-2026 y VoiceBlueprintPro). 3.0 (2026-11-26). La versión 2.0 se titulaba «funcionamiento sin vigilancia y validación sin esperas»; esta integra el análisis de los proyectos de referencia en el modelo canónico y deja abiertas las decisiones.
 - **Responsabilidad:** razonamiento y evidencia del modelo de requisitos. Los requisitos están en sus artefactos: [modelo de casos de uso](use-case-model.md), [reglas de negocio](business-rules.md), [especificación complementaria](supplementary-specification.md), [catálogo de condiciones de fallo](failure-conditions.md) y [modelo de validación](../process/validation-use-case-model.md).
 - **Técnicas (BABOK v3):** ver §5.2.
 
@@ -1896,15 +1896,15 @@ Consultadas el 2026-11-26. Son condiciones del canal, no reglas del motor (instr
 
 ### D-22. Sobrescritura autorizada de archivos ajenos
 
-NewPipe permite sobrescribir un archivo existente que ninguna descarga escribió, tras una confirmación (§15.5); Parabolic lo hace por defecto («Overwrite Existing Files», activado, según su documentación borrada en `7cbeb47b`). UC-03 A7 y ADR-0030 nunca lo permiten. La evidencia no resuelve si el producto debe ofrecerlo: afecta a la garantía de protección de archivos ajenos. **Estado:** pendiente del Responsable; mientras tanto se mantiene la garantía vigente.
+NewPipe permite sobrescribir un archivo existente que ninguna descarga escribió, tras una confirmación (§15.5); Parabolic lo hace por defecto («Overwrite Existing Files», activado, según su documentación borrada en `7cbeb47b`). UC-03 A7 y ADR-0030 nunca lo permiten. La evidencia no resuelve si el producto debe ofrecerlo: afecta a la garantía de protección de archivos ajenos. **Estado:** resuelta en la instrucción 2.6.0 (§16.9, BR-53).
 
 ### D-23. Alcance de consumo: reproducción, catálogos, transcripción e IA
 
-Las referencias de Android incluyen reproductor integrado, historial de reproducción, navegación por catálogos (N55, N58, N59) y, en VidBee, transcripción e IA (N70). Son objetivos de consumo o de transformación, no de obtención. **Estado:** decisión estratégica no tomada; no se crean casos de uso ni se descartan.
+Las referencias de Android incluyen reproductor integrado, historial de reproducción, navegación por catálogos (N55, N58, N59) y, en VidBee, transcripción e IA (N70). Son objetivos de consumo o de transformación, no de obtención. **Estado:** resuelta en la instrucción 2.6.0 (§16.7, §16.9).
 
 ### D-24. Modelo comercial y canales en tiendas
 
-GreenTuber incluye anuncios, compras y suscripción comercial (N71), y R-34 y R-35 dependen de los canales elegidos. **Estado:** decisión estratégica no tomada; no hay autorización para implementar monetización (instrucción 2.5.0, §64).
+GreenTuber incluye anuncios, compras y suscripción comercial (N71), y R-34 y R-35 dependen de los canales elegidos. **Estado:** resuelta en la instrucción 2.6.0 (§16.9); sigue sin autorización para implementar monetización.
 
 ### 15.11 Deducciones anteriores corregidas
 
@@ -1967,12 +1967,201 @@ GreenTuber incluye anuncios, compras y suscripción comercial (N71), y R-34 y R-
 - **Recursos inaccesibles:** `vidbee.org` no se pudo leer directamente; su documentación se leyó en el historial del repositorio (`d483045`). El checkout de código de FFmpeg de §5.1 ya no está en `/tmp`.
 - **Razón de terminación:** cada capacidad observada tiene una disposición (§15.6); seguir inspeccionando las mismas referencias no cambiaría ninguna disposición sin ejecutar código, que no está autorizado.
 
+## 16. Descubrimiento 2.6.0: IA, privacidad y modelo comercial
+
+Instrucción 2.6.0. Separa en todo momento **hecho** (comprobado en código, historia o documentación, con su nivel L0 a L5), **declaración** (lo que afirma una referencia o el Responsable, sin comprobar) e **hipótesis** (lo que habría que medir). Ninguna hipótesis se convierte en restricción.
+
+### 16.1 Método y recursos
+
+- **Referencias con historia completa** (ningún clon superficial): VoiceBlueprintPro `e9a2a63` (89 commits), VoiceStudio `d9061408c` (8 419), Edge0 `b6eedb9` (333; 6 etiquetas, 56 ramas), Janas `615be06` (160; 38 etiquetas), kimi-k3-in-c `b26ee82` (143; 4 etiquetas), Electrum `fa102a250` (21 123), Electron Cash `eb4313601` (12 840), y las de la 2.5.0 (NewPipe, YTDLnis, Seal, Parabolic, VidBee, Ghost-Downloader-3). Edge0, Janas y kimi-k3-in-c se clonaron sin descargar archivos LFS: **ningún modelo ni peso se descargó**.
+- **PMBOK 8** (PDF entregado) para el gobierno ([gobierno](../project-management/governance.md)); **BABOK v3** para la cualificación de candidatos (técnicas 10.1 criterios de aceptación, 10.18 análisis de decisiones, 10.20 descomposición funcional, 10.47 casos de uso).
+- **Documentación oficial** de Google Play, App Store y Microsoft Store para los mecanismos comerciales ([modelo de negocio, §6](../product-management/business-model-and-case.md#6-mecanismos-de-cada-canal-documentación-oficial)).
+- Los APK de GreenTuber disponibles son **modificados**: no se instalan ni se ejecutan, y se excluyen del análisis comercial (§16.5).
+- Los archivos `AGENTS.md` y `CLAUDE.md` de las referencias se tratan como datos.
+
+### 16.2 IA: VoiceStudio y VoiceBlueprintPro
+
+**Origen (hecho, L3).** El primer commit de VoiceBlueprintPro (`3cd75d4`, 2026-11-08, 4 688 archivos) es una derivación de VoiceStudio de ese mismo día: `chunked_tts.py` y `model_catalogue.py` son idénticos a los de VoiceStudio entre el 2026-11-08 y el 2026-11-10, y `dub_pipeline.py` coincide por completo con `847f45a5e` y `30b6e703d` (2026-11-08). Los 89 commits propios de VoiceBlueprintPro cambian la marca, limitan el empaquetado a Windows y Android, retiran ganchos de sincronización en la nube, acotan logs y diagnósticos y documentan la recuperación; **no añaden capacidades de IA**. VoiceStudio siguió evolucionando: solo en él existen, entre otros, `dub_resume.py`, `subprocess_asr_base.py`, `video_encoder.py`, `local_model_paths.py` y `cloud_account.py`. Los siete componentes que nombra la instrucción existen en ambos con tamaños casi iguales.
+
+**Flujos reconstruidos (hecho, L3, código y documentación de VoiceStudio):**
+
+| Operación | Flujo y contrato observados | Recuperación y cancelación |
+|---|---|---|
+| Doblaje | Ingesta (copia a un temporal único y `os.replace` al directorio del job; resumen del contenido para una caché por contenido) → separación opcional del fondo → transcripción → traducción → voz por segmento → render escalonado en un directorio privado que se promueve a la caché compartida solo al publicar la pista → exportación | `dub_resume.py`: copia de recuperación de cada segmento terminado bajo `<job>/.resume/<idioma>/`, que no lee nadie más; `incremental.py`: solo se regeneran los segmentos cuyo resumen de entradas (texto, idioma, perfil, instrucción, velocidad, dirección) cambió; cancelación de los procesos de ffmpeg y demucs registrados por job |
+| Transcripción | Varios motores; los nativos (whisper.cpp, CTranslate2) corren en un proceso hijo con protocolo JSON con prefijo de longitud, saludo de arranque y ranura de GPU: un fallo de segmentación se convierte en un job fallido y el siguiente pedido reinicia el proceso | `inference_cancellation.py`: solo un proceso aislado puede terminarse antes; una llamada nativa en proceso se contabiliza hasta que vuelve; un ámbito de cancelación pertenece a un job, nunca a un hilo del pool |
+| Traducción | Motores intercambiables: Argos y NLLB-200 sin conexión; Google, DeepL, Microsoft, MyMemory y un servicio compatible con OpenAI en línea; DeepL y Microsoft exigen clave; traducción pegada por el User | Error único y accionable si falta el paquete del motor |
+| Subtítulos | `POST /dub/validate-srt` valida sin crear job ni ejecutar transcripción (límite de 2 MB); `POST /dub/from-srt` crea un job solo de audio con identificadores de entrada estables | — |
+| Voz | `sentence_chunker.py` (adaptado de Patter, MIT) divide por frases con abreviaturas, decimales y puntuación CJK; `chunked_tts.py` (adaptado de voicebox, MIT) une los fragmentos con un fundido corto y usa la frecuencia declarada por el motor | Regeneración parcial por resumen de segmento |
+| Modelos | Descarga desde Hugging Face con un acelerador segmentado propio (hasta ocho rangos de 16 MB, manifiesto de reanudación, comprobación de tamaño y resumen antes de publicar); `endpoint_race.py` sondea el extremo oficial y el espejo y recuerda el ganador; `model_lifecycle.py` unifica cargar, enumerar y descargar de memoria | Reanudación por rangos |
+| Recursos | `gpu_gateway.py`: un único pool vigilado para cargas y generaciones; `memory_budget.py`: aviso de memoria libre **no bloqueante**, porque un rechazo por estimación inutilizaría cargas legítimas | — |
+| Licencias | `model_licenses.py`: declaraciones locales; explícitamente **no** es un mecanismo de aplicación ni implica derecho comercial | — |
+| Selección de motores | `docs/engine-acceptance.md`: cada motor ocupa un «trabajo» (mejor calidad, menor latencia en CPU, aislamiento de fallos...) y uno nuevo debe quitarle el trabajo a otro con números | — |
+
+**Ausencias (hecho, L3):** VoiceStudio no tiene resumen de contenido (sus funciones `summary` son estadísticas de uso y de disco). VoiceBlueprintPro no tiene `dub_resume.py`.
+
+### 16.3 Motores de inferencia: Edge0, Janas y kimi-k3-in-c
+
+**Edge0** (Apache-2.0 el código; «Edge0 Community Model License» 1.0 los modelos, con contacto de licencia comercial: licencias distintas para motor y pesos).
+- *Historia (hecho, L3):* la etiqueta `pre-edge0-infer` (2026-11-04) conserva un marco en Python con aplicaciones por plataforma (`python/`, `android/`, `ios/`, `macos/`, `windows/`) y parches sobre llama.cpp. Un commit los sustituye por `edge0-infer/`, un motor y una API nativa en C++ para macOS, iOS, Android y Windows sobre GGML. `v0.2.0` (2026-11-12) ya tiene `edge0-infer` y `edge0-strata`; `v0.3.0`, descarga de modelos en la aplicación de escritorio; `v0.3.1`, lectura desde SSD con Metal para los modelos de 145B y 120B.
+- *Contrato de la API nativa (hecho, L2, `native-api.md`):* toda llamada que puede fallar devuelve `Result<T>` con una categoría (`invalid_argument`, `conflict`, `busy`, `runtime_ended`, `asset_invalid`, `incompatible`...). Ciclo de vida: `query_capabilities` → `open_runtime` (uno por proceso, dispositivos explícitos) → `resolve_load_configuration` → `load_model` → sesiones → `generate`. Una generación a la vez; las demás llamadas devuelven `busy` sin encolarse. Cancelación con un *token* por generación que detiene en el siguiente punto seguro; lo entregado queda entregado y `state_valid` indica si la sesión sigue usable. Diagnóstico: libro de memoria con siete propósitos y progreso de la generación.
+- *Arquitectura (hecho, L2, `architecture.md`):* la memoria es un presupuesto fijado de antemano y un modelo que no cabe se rechaza al cargarlo, **antes de leer pesos**. Backends: Android solo CPU; Windows CPU o Vulkan; iOS Metal.
+- *Ejemplo de Android (hecho, L2):* Kotlin y Jetpack Compose sobre la API nativa; el APK solo contiene `arm64-v8a`; API mínima 28; `:core:test` no necesita pesos ni dispositivo.
+- *Limitaciones declaradas:* la reutilización entre turnos a veces recalcula; los modelos de 145B y 120B solo funcionan con `serve` y `chat`.
+
+**Janas** (GPL-3.0; etiquetas casi diarias, la última `v2026.11.26`).
+- *Hardware (hecho, L2, `hardware.md`):* `janas-bench` prueba configuraciones (hilos, núcleos, con y sin GPU y NPU) en pasadas reales del modelo, guarda la más rápida en `~/.cache/janas` para el siguiente arranque y deja un informe.
+- *Modelos (hecho, L2):* por nombre conocido (se descarga tras preguntar), por archivo `.jns` o elegido de una lista.
+- *Biblioteca (hecho, L2, `library.md`):* uso desde C, FreeBASIC, Node.js y servidores MCP.
+- *Funcionamiento (declaración, `how-it-works.md`):* ejecutar un modelo mayor que la memoria con caché de expertos propia, lectura anticipada, menos bits donde cuestan menos y borradores.
+
+**kimi-k3-in-c** (Apache-2.0).
+- *Valores declarados (declaración, L1; no reproducidos):* 2,78 billones de parámetros (`docs/README.md`, `ARCHITECTURE.md`); punto de control de 1,56 TB (`QUICKSTART.md`, `TESTING.md`); pico de RSS de 8,24 GB, declarado como medido (`README.md`); ~1,7 TB libres de almacenamiento (1,56 TB de punto de control más 109 GB de tronco empaquetado, `README.md`). El ~1,7 **GB** de `TESTING.md` es el pico de RSS de `make test`, un valor distinto.
+- *Estrategia de pruebas (hecho, L2, `TESTING.md` y `tests/`):* todas las pruebas de `make test` corren **sin pesos** (unos 15 s): núcleos comparados con valores de referencia con tolerancia declarada en un manifiesto, accesorios adversarios por construcción (el del enrutador reordena su top-2 en 5 de 6 filas), fragmentos sintéticos de pocos KB que reproducen la estructura, y las pruebas que necesitan el punto de control aparte (`make test-all SHARD_DIR=...`).
+
+**Consecuencia para el producto (hipótesis que se valida al aceptar un candidato):** las operaciones de IA se prueban sin modelos con motores simulados y accesorios sintéticos; el rendimiento real se mide aparte en el hardware objetivo.
+
+### 16.4 Privacidad
+
+**Qué guarda hoy el producto (hecho, L4, código de `main`):**
+
+| Clase de dato | ¿Existe hoy? | Dónde | Contenido |
+|---|---|---|---|
+| Historial de descargas | Sí | `queue.sqlite3`, tabla `jobs` (filas terminadas) | URL completa, extractor e identificador del medio, título, formato elegido, playlist (id, título, índice, total), opciones de descarga en JSON (selector, carpeta, plantilla, solo audio, playlist completa), ruta del output, intentos, motivo y mensaje del fallo, cuatro marcas de tiempo |
+| Historial de búsqueda | No | — | UC-15 (búsqueda) no está implementado |
+| Historial de reproducción | No | — | El producto no reproduce |
+| Estado operativo | Sí | Tabla `jobs` (no terminados) y `job_requests` (cancelar, reintentar) | Los mismos campos; peticiones con su instante |
+| Datos de recuperación | Sí | Directorios de parciales con `.owner` (identificador e instante del job) | Fragmentos de descarga |
+| Metadatos del resultado | Sí | Tabla `jobs` | Título, identificadores, ruta |
+| Evidencia de propiedad | Sí | Directorio de reclamaciones de outputs; `.owner` | Token del job y ruta canónica |
+| Logs | Sí | `logs/` en la carpeta de estado; rotación de 5 MB y 3 copias; nivel DEBUG | Instante, proceso, módulo, nivel y mensaje; pueden incluir URLs y rutas |
+| Credenciales | No las guarda | — | UC-19 sin implementar; SUP-SEC01 y SUP-SEC03 ya fijan su tratamiento |
+| Caché de modelos | No | — | Sin IA |
+| Artefactos de procesamiento | No | — | Sin IA |
+| Derecho comercial | No | — | Sin modelo comercial implementado |
+| Analítica | No | — | El producto no recoge ni envía analítica (SUP-D03) |
+| Otros | Sí | Caché JSON de resúmenes de ffmpeg; configuración (`config.toml`) | Rutas y resúmenes de binarios; valores configurados |
+
+**Cómo lo hacen las referencias (hecho, L3, código):**
+
+| Referencia | Comportamiento |
+|---|---|
+| NewPipe | Interruptores para el historial de reproducción y el de búsqueda, y acciones para borrarlos |
+| YTDLnis | `incognito`, global y por descarga: no se añade al historial; con el modo activo, una descarga cancelada o fallida se borra en lugar de actualizarse; desactiva el log de esa descarga |
+| Seal | Modo privado («Disable download history»): al terminar, no inserta la descarga en el historial |
+| Parabolic | Duración del historial configurable (nunca, 1 día, ...) |
+| VidBee | Recoge errores en tiempo de ejecución con `@sentry/electron` hacia GlitchTip (`apps/desktop/docs/glitchtip.md`) |
+| Electrum | `log_to_file` desactivado por defecto; el informe de fallos se envía solo si el User lo pide |
+| VoiceStudio | Rechazó PostHog (PR #1110); estadísticas de uso solo locales, calculadas sobre su propia base de datos, sin transmitir nada |
+| VoiceBlueprintPro | Retiró los ganchos de sincronización en la nube heredados |
+| GreenTuber | Preferencias de historial de reproducción y de búsqueda y acciones para borrarlos (cadenas de un APK modificado; nivel bajo) |
+
+**Contrato del modo privado:** [BR-49](business-rules.md) y SUP-D02. Comportamiento por clase de dato:
+
+| Clase de dato | En modo privado | Retención (D-21) | Exportable (UC-22) |
+|---|---|---|---|
+| Historial de descargas | El job no deja fila terminada | Configurable | Sí, salvo los jobs privados |
+| Estado operativo | Se conserva hasta terminar, para recuperar | Mientras no termina | Sí |
+| Datos de recuperación | Se eliminan al terminar, como siempre | Mientras no termina | No |
+| Metadatos del resultado | No se guardan tras terminar | Como el historial | Sí, salvo los jobs privados |
+| Evidencia de propiedad | Se libera al terminar | Como el historial | No |
+| Logs | Sin URL, título ni rutas; solo identificador y condición | Rotación | No (solo en diagnóstico, SUP-SEC07) |
+| Credenciales | Sin cambios (SUP-SEC01) | Hasta que el User las elimina | Nunca |
+| Caché de modelos y artefactos | Los artefactos intermedios se eliminan al terminar | Configurable | No |
+| Derecho comercial | Sin cambios: el modo privado no es el modo sin anuncios | El del canal | No |
+| Analítica | No existe en ningún modo | — | — |
+
+**Secretos en URLs (SUP-SEC07):** hoy la URL completa se guarda en `jobs.url` y puede llegar al log; las representaciones operativa, pública, de diagnóstico y exportable se separan sin quitar parámetros necesarios para la descarga.
+
+### 16.5 Mecanismos comerciales
+
+- **Referencias de código abierto (hecho, L3):** ninguna de las revisadas (Seal, YTDLnis, NewPipe, Parabolic, VidBee, Electrum, Electron Cash, VoiceStudio, VoiceBlueprintPro) implementa periodo de prueba, compra ni derecho de uso.
+- **GreenTuber:** los dos APK disponibles (0.2.0.3 y 0.2.0.4) son modificados y **se excluyen**; no se estudia cómo desbloquear funciones de pago.
+- **Canales (hecho documental, consultado el 2026-11-26):** [modelo de negocio, §6](../product-management/business-model-and-case.md#6-mecanismos-de-cada-canal-documentación-oficial). En Google Play la prueba gratuita gestionada por la tienda va asociada a una suscripción; en App Store, una aplicación sin suscripción puede ofrecer una prueba con una compra no consumible de precio cero; Microsoft Store admite pruebas configuradas en Partner Center; la distribución directa no tiene mecanismo de canal.
+- **Consecuencia:** el modo sin anuncios y el periodo inicial no tienen el mismo mecanismo en todos los canales; por eso viven en adaptadores fuera del núcleo ([BR-54](business-rules.md)).
+
+### 16.6 Matriz tecnológica
+
+Ninguna fila es una elección. «Evidencia» da el nivel.
+
+| Operación | Ejemplo observado | Runtime y backend | Plataformas | Formato | Licencia | Recursos | Cancelación | Recuperación | Evidencia | Limitaciones |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Transcripción | Motores de VoiceStudio (faster-whisper, whisper.cpp, WhisperX, Parakeet, Moonshine, sherpa-onnx...) | CTranslate2, GGML, PyTorch, ONNX, MLX; CPU, CUDA, Metal | Escritorio; MLX solo Apple | Modelos de Hugging Face | Por motor y por modelo | Memoria y GPU variables | Proceso aislado terminable | Por segmento (en doblaje) | L3 | Fallos nativos al liberar la GPU |
+| Traducción | Argos, NLLB-200; servicios en línea | CTranslate2, Transformers; remoto | Escritorio; remoto en todas | Modelos o API | Por motor; condiciones del proveedor | Bajos (Argos) a altos (NLLB) | Por petición | Por segmento | L3 | Los remotos sacan el texto del equipo |
+| Resumen | Ninguno en las referencias | Modelo de lenguaje local (GGML, Edge0) o remoto | — | — | — | Altos | Token por generación (Edge0) | — | L0 | Sin evidencia en el dominio |
+| Subtítulos | Validación y segmentación de VoiceStudio | Python | Todas | SRT, WebVTT | AGPL (solo ideas) | Bajos | — | — | L3 | — |
+| Voz | Motores TTS de VoiceStudio | PyTorch, GGML, ONNX | Escritorio | Modelos | Por modelo | Altos | Proceso aislado | Por fragmento | L3 | Muchos motores con plataformas distintas |
+| Doblaje | Canalización de VoiceStudio | Composición de las anteriores con ffmpeg | Escritorio | — | AGPL (solo ideas) | Suma de etapas | Procesos por job | Por segmento y etapa | L3 | — |
+| Inferencia general | Edge0 | GGML; Metal, CPU, Vulkan | macOS, iOS, Android (CPU), Windows | GGUF y propios | Apache-2.0 el motor; licencia propia del modelo | Presupuesto fijo | Token y punto seguro | Reutilización de prefijo | L2 | Una generación a la vez |
+| Inferencia general | Janas | Propio; CPU, GPU, NPU | Binarios por plataforma | `.jns` | GPL-3.0 | Medidos por `janas-bench` | — | — | L2 | GPL |
+| Inferencia de un modelo enorme | kimi-k3-in-c | C; lectura en flujo desde disco | Linux, Termux | Propio | Apache-2.0 | 8,24 GB declarados con 1,56 TB de punto de control | — | — | L1 | Muy lento (declarado) |
+
+Las licencias AGPL (VoiceStudio, VoiceBlueprintPro) y GPL (Janas) limitan la reutilización de código: se usan como **ideas y evidencia**, no como dependencias.
+
+### 16.7 Cualificación de los candidatos
+
+| Objetivo de la instrucción | Disposición | Motivo |
+|---|---|---|
+| Transcribe media | Candidato UC-33 | Objetivo propio con resultado propio |
+| Translate transcript | Candidato UC-34 | Objetivo propio sobre un resultado derivado |
+| Summarize media content | Candidato UC-35 | Objetivo propio; evidencia L0 en las referencias |
+| Generate subtitles | Candidato UC-36 | Objetivo propio; distinto de UC-24 |
+| Generate speech | Candidato UC-37 | Objetivo propio |
+| Dub media | Candidato UC-38 | Composición con identidad por etapa; no es un diseñador de flujos |
+| Manage inference models | Candidato UC-39 | Distinto de UC-27 (dependencias) y de UC-20 (configuración) |
+| Manage processing profiles | Ampliación futura de UC-18 | Mismo objetivo que los perfiles: fijar preferencias que determinan el resultado (D-19) |
+| Inspect processing capabilities | Ampliación del diagnóstico (UC-01, UC-16) reconciliada con UC-15, UC-20 y UC-27 | No es un objetivo independiente del User |
+| Manage processing workflows | Sin caso de uso | No hay diseñador genérico; la composición vive en UC-38 y BR-55 |
+| Manage media collections | Candidato UC-40 | La orientación de organizar resultados (D-23) le da una necesidad propia que en la 2.5.0 no tenía |
+| Objetivos comerciales | Candidato UC-41 | Objetivo del User en Android e iOS; el periodo inicial es comportamiento del sistema (D-25) |
+| Usar IA | Sin caso de uso | No es un objetivo (D-23) |
+
+### 16.8 Electrum, Electron Cash y Chaquopy
+
+Evidencia para la arquitectura (ADR-0032 a ADR-0034 se conservan; no se reabre la comparación de ejecución):
+- **Electrum (hecho, L3):** un registro de comandos con decorador `@command` compartido por CLI, JSON-RPC, consola y complementos; un demonio con JSON-RPC autenticado; interfaces gráficas cargadas por nombre; un solo bucle asyncio en un hilo; escritura atómica (temporal, `fsync`, `os.replace`) y migraciones secuenciales del almacenamiento; aviso de actualización firmado que solo notifica. Android con python-for-android y una interfaz QML de Qt6 (la de Kivy se retiró en 2023).
+- **Electron Cash (hecho, L3):** Android con **Chaquopy** (`minSdkVersion 24`, ABI `arm64-v8a` y `x86_64`); Kotlin llama en proceso a `AndroidCommands(commands.Commands)` y recibe retrollamadas en LiveData; última modificación de `android/` el 2026-11-02. iOS con Briefcase 0.2.6, rubicon-objc y Python 3.6, última modificación en 2023. Complementos externos en zip verificados con SHA-256.
+- **Chaquopy 17.2 (hecho documental):** Python 3.10 por defecto y 3.11 a 3.15 disponibles; 3.12 y posteriores solo 64 bits; minSdk 24; la mayoría de las API de `multiprocessing` fallan (no hay IPC de System V) y se recomienda `multiprocessing.dummy`; Electron Cash figura como ejemplo de producción publicado en Google Play.
+- **Consecuencia:** el pool de procesos de escritorio (ADR-0008, ADR-0034) no se impone a Android ni a la IA; en Android, la ejecución en proceso de Chaquopy es la alternativa prioritaria ([diseño, §18.9](../design/03-target-architecture-and-evolution.md#189-plataformas-móviles)).
+
+### 16.9 Decisiones pendientes
+
+**Resoluciones de la instrucción 2.6.0:**
+- **D-22 (resuelta):** el reemplazo solo ocurre por petición explícita ([BR-53](business-rules.md), UC-02 A18).
+- **D-23 (resuelta):** el consumo y la IA se descomponen en objetivos distintos (§16.7); no hay caso de uso «usar IA».
+- **D-24 (resuelta):** el modelo comercial está aprobado y su contenido se separa en estrategia de negocio, gestión del producto, publicación y distribución, y arquitectura ([modelo de negocio, §1](../product-management/business-model-and-case.md#1-separación-de-responsabilidades-d-24)).
+
+Decisiones nuevas, agrupadas por responsabilidad; ninguna se completa por deducción:
+
+### D-25. Periodo inicial
+
+Qué lo inicia; cómo se calcula su duración; efecto de reinstalar, restaurar, cambiar de dispositivo o actualizar; uso sin conexión; qué se muestra a un job activo en el vencimiento (BR-54 ya fija que no se detiene). **Responsabilidad:** Gestión del producto. **Estado:** pendiente.
+
+### D-26. Adquisición del modo sin anuncios
+
+Pago único o recurrente; precio; por usuario o por dispositivo; validez en varias plataformas; restauración; reembolsos. **Responsabilidad:** Gestión del producto, con Publicación y distribución. **Estado:** pendiente.
+
+### D-27. Canales y Windows tras el periodo inicial
+
+Qué canales por plataforma y en qué orden; qué ocurre en Windows al terminar el periodo inicial (sin anuncios por definición); capacidades de cada modo si difieren más allá de los anuncios. **Responsabilidad:** Publicación y distribución, con Gestión del producto. **Estado:** pendiente.
+
+### D-28. Inferencia y costes de la IA
+
+Qué alternativa o combinación de inferencia ([modelo de negocio, §7](../product-management/business-model-and-case.md#7-alternativas-de-coste-de-la-ia)) se ofrece; quién paga los costes; qué candidatos de IA se aceptan y en qué orden. **Responsabilidad:** Gestión del producto, con Arquitectura. **Estado:** pendiente.
+
+### 16.10 Limitaciones
+
+- Ningún motor de IA se ejecutó y ningún modelo se descargó: la evidencia de IA es L2 y L3 (código y documentación), no medición.
+- Los valores de kimi-k3-in-c son declaraciones (L1).
+- La versión de Google Play de GreenTuber no estuvo disponible.
+- Las políticas de los canales se consultaron en su documentación oficial y pueden cambiar; se revisan al publicar (SUP-C12).
+
 ## Fuentes
 
 - IIBA, *A Guide to the Business Analysis Body of Knowledge (BABOK Guide)* v3, copia entregada por el Responsable: capítulos 6, 7 y 10.
 - Wiki de yt-dlp, *Extractors* y *PO-Token-Guide*: texto entregado por el Responsable el 2026-11-26.
 - yt-dlp 2026.11.23: `yt_dlp/options.py`, `yt_dlp/__init__.py`, `yt_dlp/YoutubeDL.py`, `yt_dlp/utils/_utils.py` (`RetryManager`), `yt_dlp/networking/`, `yt_dlp/extractor/youtube/_video.py` y `_base.py`, `yt_dlp/extractor/common.py` (`raise_no_formats`).
 - Ghost-Downloader-3 `b824a78` (GPL-3.0, solo ideas; examinado en Analysis and Design, [diseño, Parte 3](../design/03-target-architecture-and-evolution.md#fuentes)).
+- Edge0 `b6eedb9`, Janas `615be06`, kimi-k3-in-c `b26ee82`, Electrum `fa102a250`, Electron Cash `eb4313601` y documentación de Chaquopy 17.2 (instrucción 2.6.0, §16); *PMBOK Guide* 8.ª ed., copia entregada por el Responsable.
 - Seal `5a4f5fb`, VoiceStudio `d9061408`, VoiceBlueprintPro `e9a2a63`, YTDownload-2026 `0abda8e`, Kannagi (`upstream/source/yt-dlp-gui-kannagi`), FFmpeg `329157f5` y n9.0.2-39: rutas en §5.1 y §6.1.
 - Consolas y evidencia de la ejecución `20261125-222227-ddffe96cb470` ([registro de la campaña](../project-management/t42-results.md)).
 - Historial: el análisis detallado de VoiceStudio (flujos, actores y trazabilidad) se publicó en `doc/requirements/benchmarking/voicestudio-use-cases.md` (commit `14bd247`) y se integró aquí y en los artefactos canónicos; el archivo se retiró en esta versión.

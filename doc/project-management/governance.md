@@ -5,7 +5,7 @@
 - **Revisión:** al cerrar cada iteración y ante cada cambio de línea base.
 - **Estado:** vigente. Describe cómo se gobierna el trabajo; no autoriza E3 ni ninguna implementación.
 
-Este documento reúne en un solo lugar los artefactos de dirección de proyectos de PMBOK 8 que el proyecto adapta: modelo de gobierno, autoridades, control de cambios, líneas base, registros (supuestos, incidencias, cambios, lecciones aprendidas), matriz de asignación de responsabilidades y registro de decisiones. La descomposición del trabajo (EDT) y los paquetes de trabajo están en el plan de E3, los riesgos en la [lista de riesgos](risk-list.md) y el producto en el espacio de gestión del producto. No hay procesos paralelos: cada asunto tiene un solo artefacto canónico.
+Este documento reúne en un solo lugar los artefactos de dirección de proyectos de PMBOK 8 que el proyecto adapta: modelo de gobierno, autoridades, control de cambios, líneas base, registros (supuestos, incidencias, cambios, lecciones aprendidas), matriz de asignación de responsabilidades y registro de decisiones. La descomposición del trabajo (EDT) y los paquetes de trabajo están en el [plan de E3](iteration-plan-e3.md#12-edt-y-líneas-base), los riesgos en la [lista de riesgos](risk-list.md) y el producto en el [espacio de gestión del producto](../product-management/business-model-and-case.md). No hay procesos paralelos: cada asunto tiene un solo artefacto canónico.
 
 ## 1. Fuentes y división de responsabilidades metodológicas
 
@@ -80,7 +80,7 @@ La columna «Adaptación» dice cómo se aplica cada proceso en un proyecto de u
 | Plan Scope Management | Este documento (§5, §6) y el caso de desarrollo |
 | Elicit and Analyze Requirements | Disciplina de requisitos con técnicas de BABOK v3; el análisis de requisitos es el registro |
 | Define Scope | Visión (alcance del producto) y plan de iteración (alcance del proyecto) |
-| Develop Scope Structure | EDT por unidades U1 a U16 y Roadmap en el plan de E3, §12 |
+| Develop Scope Structure | EDT por unidades U1 a U16 y Roadmap en el [plan de E3, §12](iteration-plan-e3.md#12-edt-y-líneas-base) |
 | Monitor and Control Scope | Tablas de cobertura verificadas automáticamente: cada flujo pendiente tiene una sola unidad y un alcance |
 | Validate Scope | Aceptación de la iteración por el Responsable con los criterios del plan |
 
@@ -96,7 +96,7 @@ La columna «Adaptación» dice cómo se aplica cada proceso en un proyecto de u
 
 | Proceso | Adaptación |
 |---|---|
-| Plan Financial Management | Variables financieras del producto en el caso de negocio |
+| Plan Financial Management | Variables financieras del producto en el [caso de negocio](../product-management/business-model-and-case.md#5-variables-financieras) |
 | Estimate Costs | Solo variables y fuentes de coste (canales, firma de código, inferencia remota); ningún importe inventado |
 | Develop Budget | No aplica: no hay presupuesto aprobado |
 | Monitor and Control Finances | No aplica hasta que exista presupuesto |
@@ -136,7 +136,7 @@ La columna «Adaptación» dice cómo se aplica cada proceso en un proyecto de u
 
 ### 4.8 Áreas de enfoque y gestión del producto
 
-Las cinco áreas de enfoque (inicio, planificación, ejecución, seguimiento y control, cierre) se aplican por iteración, no por proyecto completo. La gestión del producto (PMBOK 8, §2.3) es continua y sobrevive a los proyectos: por eso tiene un espacio propio (gestión del producto) y su hoja de ruta no es el cronograma del proyecto.
+Las cinco áreas de enfoque (inicio, planificación, ejecución, seguimiento y control, cierre) se aplican por iteración, no por proyecto completo. La gestión del producto (PMBOK 8, §2.3) es continua y sobrevive a los proyectos: por eso tiene un espacio propio ([gestión del producto](../product-management/business-model-and-case.md)) y su hoja de ruta no es el cronograma del proyecto.
 
 ## 5. Control de cambios
 
@@ -152,7 +152,7 @@ Las cinco áreas de enfoque (inicio, planificación, ejecución, seguimiento y c
 |---|---|---|
 | Alcance del producto | Visión y modelo de casos de uso | 30 casos aceptados, las reglas aprobadas y los requisitos aceptados |
 | Candidatos | Modelo de casos de uso, §4.3 | Objetivos documentados pendientes de aprobación |
-| Alcance de publicación propuesto | Hoja de ruta | Propuesta, no aprobada |
+| Alcance de publicación propuesto | [Hoja de ruta](../product-management/product-roadmap.md#3-alcance-de-publicación-propuesto) | Propuesta, no aprobada |
 | Alcance de la iteración E3 | Plan de E3 (unidades U1 a U16) | Planificado; ejecución no autorizada |
 | Hoja de ruta posterior | Hoja de ruta, unidad Roadmap | Candidatos con «Horizonte: futuro» |
 | Decisiones pendientes | Registro de decisiones (§8) | Estado «Pendiente» |
@@ -173,7 +173,7 @@ Las cinco áreas de enfoque (inicio, planificación, ejecución, seguimiento y c
 
 | Incidencia | Estado |
 |---|---|
-| La evidencia de GreenTuber proviene de APK modificados; no sirve para mecanismos comerciales | Registrada; excluida del análisis comercial (análisis de requisitos, §16.5) |
+| La evidencia de GreenTuber proviene de APK modificados; no sirve para mecanismos comerciales | Registrada; excluida del análisis comercial ([análisis de requisitos, §16.5](../requirements/requirements-analysis.md#165-mecanismos-comerciales)) |
 | La versión de Google Play de GreenTuber no está disponible para análisis | Abierta; la capacidad de descarga en esa versión es una declaración del Responsable |
 
 ### 7.3 Cambios
@@ -226,4 +226,8 @@ Las decisiones se definen y argumentan en el [análisis de requisitos](../requir
 | D-22 | Reemplazo de archivos solo por petición explícita | Requisitos | Aprobada |
 | D-23 | Consumo e IA descompuestos en objetivos distintos | Gestión del producto | Aprobada |
 | D-24 | Modelo comercial y canales separados por responsabilidad | Gestión del producto | Aprobada |
+| D-25 | Periodo inicial: inicio, duración, reinstalación, sin conexión, vencimiento | Gestión del producto | Pendiente |
+| D-26 | Adquisición del modo sin anuncios: modalidad, precio, alcance, restauración, reembolsos | Gestión del producto | Pendiente |
+| D-27 | Canales por plataforma y Windows tras el periodo inicial | Publicación y distribución | Pendiente |
+| D-28 | Inferencia y costes de la IA | Gestión del producto | Pendiente |
 <!-- decision-register:end -->

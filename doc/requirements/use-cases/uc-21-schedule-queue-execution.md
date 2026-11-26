@@ -9,7 +9,7 @@
 - **Significativo para la arquitectura:** sí; la programación es una capacidad del producto (D-13, resuelta funcionalmente)
 - **Estado:** aceptado (Responsable, 2026-11-26). Implementación: ausente. Condición técnica: D-13.
 - **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
-- **Propuestas pendientes de aprobación (2.5.0):** A10, marcadas como propuestas; [análisis de requisitos, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
+- **Ampliaciones aceptadas (instrucción 2.6.0):** A10, propuestas en la 2.5.0; [análisis de requisitos, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
 - **Origen:** revisión de la exclusión «lo cubre el Programador de tareas de Windows»: esa herramienta puede arrancar `run`, pero no ofrece ventanas de descarga ni las combina con la pausa, los aplazamientos y la recuperación de la cola ([análisis, §12](../requirements-analysis.md#12-reconciliación-de-exclusiones)).
 
 ## Breve descripción
@@ -39,7 +39,7 @@ Una programación es una ventana de descarga (días y horas) o un inicio único.
 - **A7. Reinicio del equipo:** `[estado: ausente]` la programación sigue vigente. Si un programador externo arranca `run`, se recupera la cola (UC-06).
 - **A8. Cambio de hora (horario de verano):** `[estado: ausente]` la ventana usa la hora local vigente en cada momento.
 - **A9. Conexión de uso medido** `[estado: ausente]` (prioridad baja): con `respect_metered_connection`, `run` no envía jobs mientras Windows marque la conexión como de uso medido, igual que una ventana cerrada (BR-37). Origen: Seal (no descargar con datos móviles); la exclusión «propia de Android» no se sostiene porque Windows también tiene conexiones de uso medido.
-- **A10. Programar un job concreto** `[estado: ausente; propuesto]` (paso 1): el User fija la hora a partir de la cual un job pendiente es elegible. Antes no se envía, y la ventana de la cola sigue aplicándose. Evidencia: YTDLnis (estado `Scheduled`, `downloadStartTime`, `CancelScheduledDownloadWorker`); [análisis, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
+- **A10. Programar un job concreto** `[estado: ausente]` (paso 1): el User fija la hora a partir de la cual un job pendiente es elegible. Antes no se envía, y la ventana de la cola sigue aplicándose. Evidencia: YTDLnis (estado `Scheduled`, `downloadStartTime`, `CancelScheduledDownloadWorker`); [análisis, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
 
 ## Excepciones
 
