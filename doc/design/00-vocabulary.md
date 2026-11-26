@@ -119,23 +119,35 @@ Términos de las ampliaciones y de UC-29 a UC-32, **aprobados** en la instrucci�
 | **audio track language** (idioma de la pista de audio) | Pista de audio elegida para el resultado: la original, un idioma o la predeterminada del sitio; forma parte de la especificación del resultado | audio language (sin «track») |
 | **subtitle language** (idioma de subtítulos) | Idiomas de los subtítulos pedidos (UC-24) | captions language |
 
-### 1.3 Conceptos de procesamiento y comerciales (instrucción 2.6.0, candidatos)
+### 1.3 Conceptos de procesamiento, organización y acceso (instrucciones 2.6.0 y 2.7.0)
 
-Términos de los candidatos UC-33 a UC-41. Mientras el Responsable no los apruebe, no se usan en el código.
+Términos de UC-33 a UC-40 (aceptados en la 2.7.0) y de los candidatos UC-41 a UC-43. Una palabra por concepto.
 
 | Palabra | Significa | No usar |
 |---|---|---|
 | **operation** (operación) | Lo que hace un job: obtener, expandir, transcribir, traducir, resumir, generar subtítulos, generar voz, doblar | task type, action |
-| **derived result** (resultado derivado) | Resultado producido a partir de otro resultado con una operación, un modelo y parámetros; tiene identidad propia ([BR-55](../requirements/business-rules.md)) | artifact (ambiguo), product |
-| **stage** (etapa) | Paso de una operación compuesta con un **intermediate result** propio | step (reservado a los flujos de los casos de uso), phase |
-| **transcript** (transcripción) | Texto con segmentos y marcas de tiempo obtenido del audio | captions (son subtítulos publicados) |
-| **inference model** (modelo de inferencia) | Pesos y configuración con licencia propia que usa una operación; distinto de su **runtime** | engine (ambiguo), dependency |
-| **runtime** (runtime de inferencia) | Biblioteca o ejecutable que ejecuta modelos (CTranslate2, GGML, ONNX Runtime) | model |
-| **trial period** (periodo inicial) | Los 15 días iniciales sin anuncios en todas las plataformas; sus condiciones son D-25 | free version, demo |
-| **entitlement** (derecho de uso) | Constancia, fuera del núcleo, de que el User adquirió un modo o una capacidad ([BR-54](../requirements/business-rules.md)) | license (reservado a licencias de software y modelos), premium |
-| **ad-free mode** (modo sin anuncios) | Modo adquirido en Android e iOS en el que la interfaz no muestra anuncios; no cambia qué datos se guardan | private mode, pro |
-| **commercial subscription** (suscripción comercial) | Pago recurrente de un modo o capacidad; nunca se abrevia como «suscripción» ([BR-50](../requirements/business-rules.md)) | subscription (sin calificar) |
-| **channel adapter** (adaptador de canal) | Componente que traduce el mecanismo de compra de una tienda al derecho de uso | billing service, store manager |
+| **processing specification** (especificación de procesamiento) | Operación y atributos que afectan al resultado pedido ([BR-55](../requirements/business-rules.md)) | job config |
+| **execution** (ejecución) | Realización concreta de una especificación: dispositivo, backend, versión del runtime, intentos | run (reservado al comando `run`) |
+| **portable identity** y **local identity** (identidad portable y local) | La identidad de la petición sin el destino y con el destino normalizado (BR-32) | path identity |
+| **derived result** (resultado derivado) | Resultado producido a partir de otro con una operación; tiene identidad propia | artifact (ambiguo), product |
+| **equivalent**, **identical**, **compatible**, **reusable** | Petición con la misma especificación; resultado con el mismo resumen; resultado que cumple el contrato aunque difiera; compatible que cumple las condiciones de reutilización | same |
+| **intermediate result** (resultado intermedio) | Resultado de una operación dentro de otra, con identidad | step output |
+| **temporary artifact**, **recovery artifact**, **invalidated result** | Recurso de una ejecución; evidencia para reanudar; resultado incompatible con una modificación ([diseño, §18.3](03-target-architecture-and-evolution.md#183-composición-de-operaciones-y-resultados-intermedios)) | temp, cache (sin calificar) |
+| **draft** (borrador) | Información editable todavía no publicada (transcripción o traducción corregida) | — |
+| **processing project** (proyecto de procesamiento) | Contexto persistente con entradas, borradores, preferencias y ejecuciones (UC-42, candidato) | job, collection |
+| **transcript** (transcripción) | Texto con segmentos y marcas de tiempo obtenido del audio | captions |
+| **subtitles** (subtítulos) | Líneas sincronizadas con límites de lectura, en un formato | transcript |
+| **voice** (voz) | Voz reutilizable con su modelo y sus atributos (UC-43, candidato) | speaker (reservado a hablantes de una transcripción) |
+| **inference model** (modelo de inferencia) | Pesos y configuración con licencia propia; distinto de su **runtime** y su **backend** | engine (ambiguo), dependency |
+| **media collection** (colección de medios) | Lista ordenada de referencias del User, a contenidos remotos, locales o derivados | remote playlist, local playlist, content subscription, download batch, job queue, download history, processing project |
+| **device qualification** (cualificación del dispositivo) | Detección, comprobación, medición y conservación de la configuración por equipo y modelo (SUP-P10) | benchmark (solo una de sus partes) |
+| **operational metrics**, **performance metrics**, **local statistics**, **diagnostics**, **usage history**, **remote analytics**, **telemetry**, **advertising measurement** | Conceptos distintos; ninguno se decide por BR-49 y las estadísticas locales no son seguimiento remoto | analytics (sin calificar) |
+| **trial period** (periodo inicial) | Los 15 días iniciales sin publicidad | free version, demo |
+| **access** (acceso) | Periodo inicial y modalidad vigentes, evaluados por el contrato de acceso (ADR-0036) | license |
+| **entitlement** (derecho de uso) | Constancia de una adquisición | license (reservado a licencias de software y modelos), premium |
+| **ad-free mode** (modalidad sin publicidad) | Modalidad adquirida en Android e iOS en la que la interfaz no muestra publicidad | private mode, pro |
+| **commercial subscription** (suscripción comercial) | Pago recurrente; nunca se abrevia como «suscripción» ([BR-50](../requirements/business-rules.md)) | subscription (sin calificar) |
+| **channel adapter** (adaptador de canal) | Traduce el mecanismo de compra de una tienda al contrato de acceso | billing service |
 
 ## 2. Conceptos de ejecución
 

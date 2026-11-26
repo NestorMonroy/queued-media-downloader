@@ -1,9 +1,9 @@
 # Catálogo de condiciones de fallo
 
 - **Fase RUP:** Elaboración (consolidación de requisitos)
-- **Versión:** 1.3 (2026-11-26; `Retry-After`, autenticación y directos según las resoluciones aprobadas). 1.2: separa las condiciones de almacenamiento y documenta la cadena de causas
+- **Versión:** 1.4 (2026-11-26; instrucción 2.7.0: condiciones propuestas de las operaciones de procesamiento, §7). 1.3 (2026-11-26; `Retry-After`, autenticación y directos según las resoluciones aprobadas). 1.2: separa las condiciones de almacenamiento y documenta la cadena de causas
 - **Responsabilidad:** autoridad única sobre qué condiciones impiden o interrumpen una descarga, a qué alcanzan y qué garantiza el producto ante cada una. Los casos de uso enlazan aquí en lugar de repetirlo: UC-03 A2, UC-06, UC-11, UC-15 E2 y UC-17.
-- **Técnicas (BABOK v3):** 10.40 Root Cause Analysis, 10.44 State Modelling, 10.16 Decision Modelling, 10.1 Acceptance and Evaluation Criteria
+- **Técnicas (BABOK v3):** 10.40 Root Cause Analysis, 10.44 State Modelling, 10.17 Decision Modelling (número corregido en la 2.7.0), 10.1 Acceptance and Evaluation Criteria
 - **Mecanismos actuales:**
   - `jobs.FailureReason`;
   - `media_extraction.failure_classifier`;
@@ -124,3 +124,17 @@ Consecuencias:
 ## 6. Información al User en cada fallo
 
 Hoy cada fallo se muestra con su motivo y su mensaje (UC-08, UC-09, SUP-U01). Falta indicar si reintentar sirve y qué acción lo resuelve (SUP-U05, propuesto). En VoiceStudio, cada clase de fallo trae esa indicación.
+
+## 7. Condiciones propuestas de las operaciones de procesamiento
+
+**Propuesta (instrucción 2.7.0, pendiente de aprobación):** condiciones de UC-33 a UC-39 que no son de descarga. Se aplican cuando esas operaciones se implementen; las categorías actuales no cambian.
+
+| Condición | Alcance | Garantía propuesta |
+|---|---|---|
+| Recurso no disponible (por dimensión: memoria, memoria de GPU, disco, ranura de inferencia) | El job | Se informa el recurso concreto; el job se aplaza o se rechaza antes de cargar un modelo que no cabe |
+| Fallo del motor | El job | El proceso del producto sigue funcionando; las operaciones con evidencia válida se conservan |
+| Licencia de modelo no aceptada | La obtención del modelo | Nada se descarga |
+| Integridad de un modelo no verificada | El modelo | No se publica; se conserva la versión anterior |
+| Proveedor remoto inaccesible o sin crédito | El job | Se conserva lo traducido o generado para reanudar |
+| Resultado invalidado por una modificación | El resultado | No se reutiliza; se aparta o se elimina con la decisión del User |
+| Entrada sin audio utilizable | El job | Falla con esa condición sin efectos en la entrada |

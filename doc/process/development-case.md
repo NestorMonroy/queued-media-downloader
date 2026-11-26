@@ -78,7 +78,7 @@ PMBOK 8 gobierna el proyecto (gobierno, alcance, cronograma, finanzas, interesad
 | Requisitos y su aprobación | BABOK v3 | Modelo de requisitos |
 | Análisis, diseño, implementación y pruebas | RUP; Clean Code y principios de nombres | Diseño, ADR, código y pruebas |
 
-**Aceptación y autorización:** el Responsable acepta requisitos y ADR y autoriza iteraciones; aceptar un caso de uso no autoriza implementarlo. **Evidencia:** niveles L0 a L5; hecho, declaración e hipótesis se separan siempre. **Autonomía del Agente:** redacta, analiza, ejecuta las comprobaciones e integra cuando la instrucción lo delega; nunca decide alcance, precio, canales ni modelo comercial.
+**Aceptación y autorización:** el Responsable acepta requisitos y ADR y autoriza iteraciones; aceptar un caso de uso no autoriza implementarlo. **Evidencia:** dos dimensiones, naturaleza del recurso y grado de demostración funcional (análisis de requisitos, §17.1); hecho, declaración e hipótesis se separan siempre. **Autonomía del Agente:** redacta, analiza, ejecuta las comprobaciones e integra cuando la instrucción lo delega; nunca decide alcance, precio, canales ni modelo comercial.
 
 ### Requisitos: RUP con técnicas de BABOK v3
 

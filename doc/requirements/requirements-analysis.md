@@ -1,7 +1,7 @@
 # Análisis de requisitos: continuidad, condiciones externas y referencias
 
 - **Fase RUP:** Elaboración (consolidación del modelo de requisitos tras la campaña T42)
-- **Versión:** 4.2 (2026-11-26; descubrimiento de IA, privacidad y modelo comercial, §16, instrucción 2.6.0; D-22 a D-24 resueltas; D-25 a D-28 nuevas). 4.1 (2026-11-26; descubrimiento funcional, §15, instrucción 2.5.0). 4.0 (2026-11-26; alcance de 26 casos de uso aceptado por el Responsable; resolución de D-1 a D-21, §9; contratos, §13.11 a §13.19; impacto en la arquitectura, §14). 3.3: reconciliación de exclusiones y contratos transversales. 3.2 (2026-11-26; condiciones de almacenamiento separadas en UC-17 y análisis del acceso con proxy y cookies). 3.1 (añade YTDownload-2026 y VoiceBlueprintPro). 3.0 (2026-11-26). La versión 2.0 se titulaba «funcionamiento sin vigilancia y validación sin esperas»; esta integra el análisis de los proyectos de referencia en el modelo canónico y deja abiertas las decisiones.
+- **Versión:** 4.3 (2026-11-26; consolidación 2.7.0, §17: modelo de evidencia en dos dimensiones, revisión de disposiciones absolutas, comparación exacta de VoiceStudio y VoiceBlueprintPro, GreenTuber, UC-41, D-25 a D-28 descompuestas). 4.2 (2026-11-26; descubrimiento de IA, privacidad y modelo comercial, §16, instrucción 2.6.0; D-22 a D-24 resueltas; D-25 a D-28 nuevas). 4.1 (2026-11-26; descubrimiento funcional, §15, instrucción 2.5.0). 4.0 (2026-11-26; alcance de 26 casos de uso aceptado por el Responsable; resolución de D-1 a D-21, §9; contratos, §13.11 a §13.19; impacto en la arquitectura, §14). 3.3: reconciliación de exclusiones y contratos transversales. 3.2 (2026-11-26; condiciones de almacenamiento separadas en UC-17 y análisis del acceso con proxy y cookies). 3.1 (añade YTDownload-2026 y VoiceBlueprintPro). 3.0 (2026-11-26). La versión 2.0 se titulaba «funcionamiento sin vigilancia y validación sin esperas»; esta integra el análisis de los proyectos de referencia en el modelo canónico y deja abiertas las decisiones.
 - **Responsabilidad:** razonamiento y evidencia del modelo de requisitos. Los requisitos están en sus artefactos: [modelo de casos de uso](use-case-model.md), [reglas de negocio](business-rules.md), [especificación complementaria](supplementary-specification.md), [catálogo de condiciones de fallo](failure-conditions.md) y [modelo de validación](../process/validation-use-case-model.md).
 - **Técnicas (BABOK v3):** ver §5.2.
 
@@ -1481,7 +1481,7 @@ La cobertura de T52 a T67 se reconcilia en el [plan de E3](../project-management
 | Clases de paquetes propios | 634 → 926; +351, −59, 228 con métodos distintos, 575 iguales; los nombres ofuscados cambian entre builds | Unresolved |
 | Assets | Solo cambian los perfiles `dexopt` | Modified |
 
-Las diferencias no se atribuyen a la evolución oficial: los dos APK están firmados por `TRUMods` y las de anuncios y facturación tienen la forma de una modificación de terceros. **Relaciones con NewPipe:** demostradas, la coincidencia de nombres y de estructura de `us.shandian.giga.*` (constructor de `DownloadMission` con URLs, `StoredFileHelper`, tipo y `Postprocessing`, igual que en NewPipe), de `RouterActivity`, `PanicResponderActivity` y `FilePickerActivityHelper`, de 13 rutas de clase del extractor y de 50 de las 65 claves de preferencia (presentes en `settings_keys.xml` de NewPipe); y textos de interfaz de NewPipe con «YouTube» sustituido por «PeerTube». Sin demostrar: la procedencia del código, su licencia y su equivalencia funcional completa. **Declaración del Responsable:** la versión de Google Play tiene descarga; no se inspeccionó ese APK.
+Las diferencias no se atribuyen a nadie: los dos APK están firmados por `TRUMods`, no se dispone de la versión oficial para comparar, y el origen de los componentes de anuncios y facturación no se puede determinar (corregido en la 2.7.0, §17.7). **Relaciones con NewPipe:** demostradas, la coincidencia de nombres y de estructura de `us.shandian.giga.*` (constructor de `DownloadMission` con URLs, `StoredFileHelper`, tipo y `Postprocessing`, igual que en NewPipe), de `RouterActivity`, `PanicResponderActivity` y `FilePickerActivityHelper`, de 13 rutas de clase del extractor y de 50 de las 65 claves de preferencia (presentes en `settings_keys.xml` de NewPipe); y textos de interfaz de NewPipe con «YouTube» sustituido por «PeerTube». Sin demostrar: la procedencia del código, su licencia y su equivalencia funcional completa. **Declaración del Responsable:** la versión de Google Play tiene descarga; no se inspeccionó ese APK.
 
 ### 15.4 Inventario funcional independiente
 
@@ -1511,7 +1511,7 @@ Cada fila es una evidencia, antes de normalizar. N-ID enlaza con la capacidad no
 | N57 | L2 | `comments/CommentsFragment`, `LiveChatFragment` |
 | N61 | L2 | `update/UpdateActivity`; `update_app_key` |
 | N38 | L2 | `PanicResponderActivity` (`info.guardianproject.panic.action.TRIGGER`) |
-| N71 | L2 | `VipActivity`, `StopAdsActivity`, `network/ads/*`; Play Billing 8.0.0 |
+| N71 | L2 | `VipActivity`, `StopAdsActivity`, `network/ads/*`; Play Billing 8.0.0 (componentes de los APK examinados, firmados por `TRUMods`; §17.7) |
 | N72 | L2 | `AccountActivity`, `signup/SignUpActivity`, `local/noauthsignin/*` |
 | N73 | L2 | `util/DialogRate`, `util/feedback/*` |
 | N76 | L1 | `youtube_restricted_mode_enabled`, `show_age_restricted_content` |
@@ -1826,7 +1826,7 @@ Los elementos que no se pudieron determinar (por ejemplo, los valores predetermi
 | N68 | Directos y post-directos | NewPipeExtractor L2 | Cubierta | UC-03 E1; BR-24 |
 | N69 | Progreso por etapas | Aptoide L1; Open Video Downloader L2; Parabolic L2 | Cubierta | Canal de observación (Parte 3 §5.3) |
 | N70 | Transcripción e IA sobre lo descargado | VidBee L1 | Evidencia insuficiente | Decisión estratégica pendiente D-23 |
-| N71 | Anuncios, compras y suscripción comercial | GreenTuber L2 | Evidencia insuficiente | Decisión estratégica pendiente D-24 |
+| N71 | Anuncios, compras y suscripción comercial presentados en los APK examinados de GreenTuber | GreenTuber L2 (APK firmados por `TRUMods`) | Evidencia insuficiente | Decisión estratégica pendiente D-24 |
 | N72 | Cuenta de usuario de la propia aplicación | GreenTuber L2 | No aplicable | El producto no tiene cuentas propias; la autenticación ante un sitio es UC-19 |
 | N73 | Valoración y comentarios al desarrollador | GreenTuber L2 | Condición de distribución | Mecanismo del canal; los fallos se informan con UC-16 |
 | N74 | Servidor web y API con interfaz web | VidBee L1 | No aplicable | Fuera de las plataformas de la visión; consumidores programáticos con el contrato estructurado (ADR-0032) |
@@ -1904,7 +1904,7 @@ Las referencias de Android incluyen reproductor integrado, historial de reproduc
 
 ### D-24. Modelo comercial y canales en tiendas
 
-GreenTuber incluye anuncios, compras y suscripción comercial (N71), y R-34 y R-35 dependen de los canales elegidos. **Estado:** resuelta en la instrucción 2.6.0 (§16.9); sigue sin autorización para implementar monetización.
+Los APK examinados de GreenTuber, firmados por `TRUMods`, contienen componentes de anuncios y compras (N71; no se atribuyen a la versión oficial, §17.7), y R-34 y R-35 dependen de los canales elegidos. **Estado:** resuelta en la instrucción 2.6.0 (§16.9); sigue sin autorización para implementar monetización.
 
 ### 15.11 Deducciones anteriores corregidas
 
@@ -1974,14 +1974,14 @@ Instrucción 2.6.0. Separa en todo momento **hecho** (comprobado en código, his
 ### 16.1 Método y recursos
 
 - **Referencias con historia completa** (ningún clon superficial): VoiceBlueprintPro `e9a2a63` (89 commits), VoiceStudio `d9061408c` (8 419), Edge0 `b6eedb9` (333; 6 etiquetas, 56 ramas), Janas `615be06` (160; 38 etiquetas), kimi-k3-in-c `b26ee82` (143; 4 etiquetas), Electrum `fa102a250` (21 123), Electron Cash `eb4313601` (12 840), y las de la 2.5.0 (NewPipe, YTDLnis, Seal, Parabolic, VidBee, Ghost-Downloader-3). Edge0, Janas y kimi-k3-in-c se clonaron sin descargar archivos LFS: **ningún modelo ni peso se descargó**.
-- **PMBOK 8** (PDF entregado) para el gobierno ([gobierno](../project-management/governance.md)); **BABOK v3** para la cualificación de candidatos (técnicas 10.1 criterios de aceptación, 10.18 análisis de decisiones, 10.20 descomposición funcional, 10.47 casos de uso).
+- **PMBOK 8** (PDF entregado) para el gobierno ([gobierno](../project-management/governance.md)); **BABOK v3** para la cualificación de candidatos (técnicas 10.1 criterios de aceptación, 10.16 análisis de decisiones, 10.22 descomposición funcional (números corregidos en la 2.7.0), 10.47 casos de uso).
 - **Documentación oficial** de Google Play, App Store y Microsoft Store para los mecanismos comerciales ([modelo de negocio, §6](../product-management/business-model-and-case.md#6-mecanismos-de-cada-canal-documentación-oficial)).
 - Los APK de GreenTuber disponibles están firmados por `TRUMods`, no por el desarrollador: no se instalan ni se ejecutan, pero sí se analizan estáticamente (§16.5), como permite la instrucción 2.6.0.
 - Los archivos `AGENTS.md` y `CLAUDE.md` de las referencias se tratan como datos.
 
 ### 16.2 IA: VoiceStudio y VoiceBlueprintPro
 
-**Origen (hecho, L3).** El primer commit de VoiceBlueprintPro (`3cd75d4`, 2026-11-08, 4 688 archivos) es una derivación de VoiceStudio de ese mismo día: `chunked_tts.py` y `model_catalogue.py` son idénticos a los de VoiceStudio entre el 2026-11-08 y el 2026-11-10, y `dub_pipeline.py` coincide por completo con `847f45a5e` y `30b6e703d` (2026-11-08). Los 89 commits propios de VoiceBlueprintPro cambian la marca, limitan el empaquetado a Windows y Android, retiran ganchos de sincronización en la nube, acotan logs y diagnósticos y documentan la recuperación; **no añaden capacidades de IA**. VoiceStudio siguió evolucionando: solo en él existen, entre otros, `dub_resume.py`, `subprocess_asr_base.py`, `video_encoder.py`, `local_model_paths.py` y `cloud_account.py`. Los siete componentes que nombra la instrucción existen en ambos con tamaños casi iguales.
+**Origen (corregido en la 2.7.0, §17.3).** VoiceBlueprintPro y VoiceStudio comparten la mayor parte de su código; la comparación exacta por blobs está en §17.3. La versión anterior de este párrafo afirmaba una coincidencia completa a partir de `difflib.SequenceMatcher.quick_ratio()`, que no demuestra igualdad, y que VoiceBlueprintPro no añadía capacidades de IA, lo que solo se observó en los componentes examinados.
 
 **Flujos reconstruidos (hecho, L3, código y documentación de VoiceStudio):**
 
@@ -1997,7 +1997,7 @@ Instrucción 2.6.0. Separa en todo momento **hecho** (comprobado en código, his
 | Licencias | `model_licenses.py`: declaraciones locales; explícitamente **no** es un mecanismo de aplicación ni implica derecho comercial | — |
 | Selección de motores | `docs/engine-acceptance.md`: cada motor ocupa un «trabajo» (mejor calidad, menor latencia en CPU, aislamiento de fallos...) y uno nuevo debe quitarle el trabajo a otro con números | — |
 
-**Ausencias (hecho, L3):** VoiceStudio no tiene resumen de contenido (sus funciones `summary` son estadísticas de uso y de disco). VoiceBlueprintPro no tiene `dub_resume.py`.
+**Ausencias (hecho, L3):** VoiceStudio no tiene resumen de contenido (sus funciones `summary` son estadísticas de uso y de disco). VoiceBlueprintPro no tiene `dub_resume.py`. Las aportaciones propias de VoiceBlueprintPro identificadas están en §17.3.
 
 ### 16.3 Motores de inferencia: Edge0, Janas y kimi-k3-in-c
 
@@ -2038,7 +2038,7 @@ Instrucción 2.6.0. Separa en todo momento **hecho** (comprobado en código, his
 | Caché de modelos | No | — | Sin IA |
 | Artefactos de procesamiento | No | — | Sin IA |
 | Derecho comercial | No | — | Sin modelo comercial implementado |
-| Analítica | No | — | El producto no recoge ni envía analítica (SUP-D03) |
+| Analítica | No existe hoy | — | Ninguna; su eventual incorporación necesita su propio objetivo y su decisión (SUP-D03) |
 | Otros | Sí | Caché JSON de resúmenes de ffmpeg; configuración (`config.toml`) | Rutas y resúmenes de binarios; valores configurados |
 
 **Cómo lo hacen las referencias (hecho, L3, código):**
@@ -2068,7 +2068,7 @@ Instrucción 2.6.0. Separa en todo momento **hecho** (comprobado en código, his
 | Credenciales | Sin cambios (SUP-SEC01) | Hasta que el User las elimina | Nunca |
 | Caché de modelos y artefactos | Los artefactos intermedios se eliminan al terminar | Configurable | No |
 | Derecho comercial | Sin cambios: el modo privado no es el modo sin anuncios | El del canal | No |
-| Analítica | No existe en ningún modo | — | — |
+| Analítica | No existe hoy; BR-49 no la decide | — | — |
 
 **Secretos en URLs (SUP-SEC07):** hoy la URL completa se guarda en `jobs.url` y puede llegar al log; las representaciones operativa, pública, de diagnóstico y exportable se separan sin quitar parámetros necesarios para la descarga.
 
@@ -2076,7 +2076,7 @@ Instrucción 2.6.0. Separa en todo momento **hecho** (comprobado en código, his
 
 - **Referencias de código abierto (hecho, L3):** ninguna de las revisadas en su forma original (Seal, YTDLnis, NewPipe, Parabolic, VidBee, Electrum, Electron Cash, VoiceStudio, VoiceBlueprintPro) implementa periodo de prueba, compra ni derecho de uso.
 - **GreenTuber (análisis estático de los dos APK modificados; corregido tras la revisión del Responsable).** Se separa lo comprobado, lo que declara la aplicación y lo que no se puede determinar.
-  - *Hechos (L3, manifiesto y firma):* los dos APK (`GreenTuber v0.2.0.3 Mod.apk` y `GreenTuber v0.2.0.4 (Premium).apk`, paquete `by.green.tuber`) están firmados con el certificado `TRUMods` (`META-INF/TRUMODS.RSA`) y sus recursos de texto están renombrados `tg@trumods`; ninguno es una build firmada por el desarrollador. Los dos contienen la actividad `by.green.tuber.VipActivity`, Google Play Billing (`com.android.billingclient.api.ProxyBillingActivity`), Google Mobile Ads (id de aplicación `ca-app-pub-6748037308086919~…`), Yandex Mobile Ads, Facebook Audience Network y AppMetrica. En 0.2.0.3 esos componentes y los permisos `com.android.vending.BILLING`, `AD_ID` y `ACCESS_ADSERVICES_*` están declarados tal cual; en 0.2.0.4 trece de esas entradas del manifiesto llevan el prefijo `disabled_` (Billing, Google Mobile Ads, Yandex, Facebook Audience Network, `AD_ID`, `ACCESS_ADSERVICES_*`); `VipActivity` no lo lleva.
+  - *Hechos (naturaleza: manifiesto y firma; grado: mecanismo identificado, sin flujos reconstruidos; §17.1):* los dos APK (`GreenTuber v0.2.0.3 Mod.apk` y `GreenTuber v0.2.0.4 (Premium).apk`, paquete `by.green.tuber`) están firmados con el certificado `TRUMods` (`META-INF/TRUMODS.RSA`) y sus recursos de texto están renombrados `tg@trumods`; ninguno es una build firmada por el desarrollador. Los dos contienen la actividad `by.green.tuber.VipActivity`, Google Play Billing (`com.android.billingclient.api.ProxyBillingActivity`), Google Mobile Ads (id de aplicación `ca-app-pub-6748037308086919~…`), Yandex Mobile Ads, Facebook Audience Network y AppMetrica. En 0.2.0.3 esos componentes y los permisos `com.android.vending.BILLING`, `AD_ID` y `ACCESS_ADSERVICES_*` están declarados tal cual; en 0.2.0.4 trece de esas entradas del manifiesto llevan el prefijo `disabled_` (Billing, Google Mobile Ads, Yandex, Facebook Audience Network, `AD_ID`, `ACCESS_ADSERVICES_*`); `VipActivity` no lo lleva.
   - *Declaraciones de la aplicación (cadenas de interfaz; no se comprobó el comportamiento):* el «VIP» se describe con «sin anuncios», «reproducción de fondo», «aumento de velocidad del 30 %», «resolución HD» y «acceso a todas las funciones premium nuevas»; las cadenas ofrecen obtenerlo con un botón «Buy»/«comprar», con un código de invitación, invitando a amigos que instalen la aplicación e introduzcan el código, y viendo anuncios con temporizador («mira los videos restantes para obtener el premium gratis»). Una cadena dice que la información de la compra se guarda en Google Play Store y no depende del inicio de sesión en la aplicación. Otra dice «VIP es gratis». Estas cadenas no permiten saber si la compra es única o recurrente ni su precio.
   - *No determinable con la evidencia disponible:* si la capa VIP, los anuncios y la facturación pertenecen a la aplicación del desarrollador o los añadió quien firmó los APK, porque no se dispone de la versión de Google Play ni del código fuente de GreenTuber; qué hace en ejecución cada vía de obtención del VIP; qué efecto tiene el prefijo `disabled_` en ejecución, porque los APK no se instalan ni se ejecutan. No se infiere ninguna de estas cosas.
   - *Uso en este análisis:* las cadenas son un ejemplo de cómo una aplicación de este dominio presenta un modo sin anuncios adquirible y varias vías para obtenerlo (relevante para UC-41 y D-26), y el manifiesto es evidencia de SDK de anuncios y analítica en el dominio (R-41). No se documenta un procedimiento para eludir la comprobación de pago.
@@ -2138,19 +2138,19 @@ Decisiones nuevas, agrupadas por responsabilidad; ninguna se completa por deducc
 
 ### D-25. Periodo inicial
 
-Qué lo inicia; cómo se calcula su duración; efecto de reinstalar, restaurar, cambiar de dispositivo o actualizar; uso sin conexión; qué se muestra a un job activo en el vencimiento (BR-54 ya fija que no se detiene). **Responsabilidad:** Gestión del producto. **Estado:** pendiente.
+La duración de 15 días está **resuelta** (instrucciones 2.6.0 y 2.7.0). Pendiente: el evento que lo inicia, el cómputo y la persistencia del periodo, las actualizaciones, reinstalaciones, restauraciones y cambios de dispositivo, el funcionamiento sin conexión y la transición comercial (§17.9). No se seleccionan cuentas obligatorias, identificadores persistentes de dispositivo ni servidores de licencias. **Responsabilidad:** Gestión del producto, con Arquitectura para los mecanismos. **Estado:** pendiente.
 
 ### D-26. Adquisición del modo sin anuncios
 
-Pago único o recurrente; precio; por usuario o por dispositivo; validez en varias plataformas; restauración; reembolsos. **Responsabilidad:** Gestión del producto, con Publicación y distribución. **Estado:** pendiente.
+Pendiente: precio, pago único o recurrente, modalidades de contratación, por usuario o por dispositivo, restauración, adquisición compartida entre plataformas, condiciones de actualización comercial y capacidades incluidas (§17.9). No se establece ninguna decisión económica. **Responsabilidad:** Gestión del producto, con Publicación y distribución. **Estado:** pendiente.
 
 ### D-27. Canales y Windows tras el periodo inicial
 
-Qué canales por plataforma y en qué orden; qué ocurre en Windows al terminar el periodo inicial (sin anuncios por definición); capacidades de cada modo si difieren más allá de los anuncios. **Responsabilidad:** Publicación y distribución, con Gestión del producto. **Estado:** pendiente.
+Se separa en cinco cuestiones que no se resuelven juntas (§17.9): continuidad de Windows tras el periodo (Estrategia de negocio), capacidades después del periodo (Gestión del producto), comportamiento de las operaciones (Requisitos), verificación de la adquisición (Arquitectura y diseño técnico) y canal de distribución (Publicación y distribución). No se presupone bloqueo completo, uso ilimitado ni una forma de pago. **Estado:** pendiente.
 
 ### D-28. Inferencia y costes de la IA
 
-Qué alternativa o combinación de inferencia ([modelo de negocio, §7](../product-management/business-model-and-case.md#7-alternativas-de-coste-de-la-ia)) se ofrece; quién paga los costes; qué candidatos de IA se aceptan y en qué orden. **Responsabilidad:** Gestión del producto, con Arquitectura. **Estado:** pendiente.
+Se descompone en: capacidades de IA ofrecidas (alcance del producto: UC-33 a UC-40 aceptados), capacidades incluidas en cada modalidad (modelo de negocio), costes de inferencia (finanzas), procesamiento local, remoto o híbrido (arquitectura), selección de modelos y disponibilidad según hardware (cualificación técnica) y selección de runtimes (diseño técnico) (§17.9). No se deduce que una función de IA sea solo de pago, que la modalidad sin publicidad incluya inferencia remota ilimitada ni que todas las funciones necesiten servicios externos. **Estado:** pendiente.
 
 ### 16.10 Limitaciones
 
@@ -2158,6 +2158,183 @@ Qué alternativa o combinación de inferencia ([modelo de negocio, §7](../produ
 - Los valores de kimi-k3-in-c son declaraciones (L1).
 - La versión de Google Play de GreenTuber no estuvo disponible; los dos APK analizados están firmados por `TRUMods`, no por el desarrollador, así que el origen de su capa VIP, anuncios y facturación no se puede determinar (§16.5).
 - Las políticas de los canales se consultaron en su documentación oficial y pueden cambiar; se revisan al publicar (SUP-C12).
+
+## 17. Consolidación 2.7.0
+
+Instrucción 2.7.0: resolver y reconciliar con el conocimiento existente, sin una nueva investigación general. Cada afirmación lleva su **naturaleza** y su **grado de demostración** (§17.1).
+
+### 17.1 Estado inicial y modelo de evidencia
+
+**Estado inicial verificado (nueva comprobación del 2026-11-26):** HEAD, `main` y `origin/main` en `09d40f1`, árbol limpio; 30 casos de uso aceptados, 9 candidatos y 2 retirados (UC-12, UC-13), 41 identificadores; 39 flujos básicos más 356 alternativos y de excepción (395); 55 reglas, 75 suplementarios, 28 decisiones, 41 riesgos, 16 unidades. Las cifras de 605 pruebas y 14 deseleccionadas eran de un corte anterior; la primera ejecución nueva de esta instrucción (con las pruebas de los hooks añadidas) da 616 y 14.
+
+**Modelo de evidencia en dos dimensiones.** Los niveles L0 a L5 de §15 y §16 expresan desde ahora solo el **grado de demostración funcional**; la **naturaleza** del recurso se indica aparte. Un manifiesto puede probar de forma concluyente una declaración (un componente existe) sin demostrar un flujo; una firma prueba una propiedad criptográfica, no un comportamiento comercial.
+
+| Grado | Antes | Significa |
+|---|---|---|
+| Indicación | L0 | Un nombre o una cadena sugieren algo |
+| Capacidad declarada | L1 | Un recurso, un manifiesto o un README declaran una capacidad |
+| Mecanismo identificado | L2 | Se identifica el componente que la realizaría |
+| Flujo reconstruido | L3 | Se reconstruye el flujo con código |
+| Contrato corroborado | L4 | Pruebas existentes corroboran el contrato |
+| Comportamiento verificado | L5 | Un experimento propio lo verifica |
+
+**Naturalezas:** documentación, manifiesto, recurso, firma, código fuente, prueba, experimento, observación en ejecución, declaración del Responsable y política oficial.
+
+**Correcciones de grado:** en §16.5 los hechos de GreenTuber se presentaban como «L3» por ser de manifiesto y firma; su grado es capacidad declarada o mecanismo identificado (se identifican componentes), no flujo reconstruido. En §15.4, N71 (L2) identifica componentes de un APK firmado por `TRUMods`; no demuestra flujos ni atribuye esos componentes a la versión oficial (§17.7).
+
+### 17.2 Revisión de disposiciones absolutas
+
+Revisión dirigida de las expresiones absolutas añadidas desde la instrucción 2.5.0 en la Visión, el modelo de casos de uso, las especificaciones, las reglas, los suplementarios, el análisis, los riesgos, el gobierno, el espacio de producto, los ADR y el plan. Se conservan las que expresan una garantía aprobada; se corrigen las que exceden su autoridad.
+
+| Disposición | Origen | Resultado |
+|---|---|---|
+| SUP-D03: «el producto no recoge analítica ni telemetría» | Redacción propia (2.6.0) | **Corregida:** una clase de datos nueva requiere su objetivo y su decisión; no se autoriza ni se excluye |
+| BR-49: lista de lo que el modo privado «no autoriza ni implica» | Límites de autorización de la 2.6.0 convertidos en regla | **Corregida:** BR-49 se limita al modo privado y no decide otras capacidades |
+| BR-54, modelo de negocio, ADR-0036, UC-41: el vencimiento «nunca detiene» trabajo | Redacción propia (2.6.0) | **Corregida:** se aprueba la preservación; la elegibilidad queda pendiente (D-25, D-27) |
+| «No existe/no hay servidor de licencias remoto propio» (BR-54, modelo de negocio §2 y §6, diseño §18.7, ADR-0036) | La 2.6.0 decía «no impongas un servidor de licenciamiento remoto sin una decisión sustentada» | **Corregida:** alternativa no seleccionada; su implementación no está autorizada |
+| «Sin cuenta obligatoria» (modelo de negocio §2) | La 2.6.0 decía «no se autoriza implementar cuentas obligatorias» | **Corregida:** límite de autorización, no restricción del producto |
+| «El núcleo no lo consulta nunca» (diseño §18.1) | Redacción propia | **Corregida:** el acceso se evalúa con un contrato compartido fuera de los componentes multimedia (§18.7) |
+| «Secuencia fija de etapas» (diseño §18.3, ADR-0035) | Redacción propia | **Corregida:** composición según las entradas disponibles (§18.3) |
+| «La comprobación de versiones nunca instala nada por sí misma» (BR-51) | Redacción propia | **Corregida:** la comprobación informa; instalar es otro paso, del User o del canal |
+| UC-29 A1: el destino «no forma parte de la identidad» | Contradicción con BR-32 y diseño §6.2 | **Corregida:** identidad portable sin cambio, identidad local recalculada |
+| UC-37: «no incluye clonación de voz»; Visión: clonación fuera del dominio | Exclusión aprobada en `7dc9842`, no revertida | **Conservada** con su fuente; su revisión es una cuestión del Responsable |
+| Windows GUI y CLI «nunca» muestran anuncios | Decisión ratificada (2.6.0 y 2.7.0) | Conservada |
+| Un job no elegible «nunca» impide enviar a los elegibles (BR-46) | Disposición de la 2.6.0 | Conservada |
+| El reemplazo «nunca» por defecto (BR-53) | D-22 | Conservada |
+| Un archivo que no coincide con su resumen «nunca» se publica (UC-39) | Garantía de integridad (UC-26, ADR-0033) | Conservada |
+| Consultar una fuente «nunca» borra jobs ni resultados (BR-50) | BR-31 | Conservada |
+| «No hay instalador universal» (BR-51) | Disposición de la 2.6.0 | Conservada |
+| «Nunca instalar ni ejecutar» APK modificados | Regla del Responsable | Conservada |
+| «Reproducción integrada sin candidato por falta de evidencia» (hoja de ruta) | Redacción propia | **Corregida:** objetivo por cualificar en el alcance del producto y en la hoja de ruta (§17.10) |
+
+### 17.3 VoiceStudio frente a VoiceBlueprintPro
+
+**Corrección:** la §16.2 afirmaba que el primer commit de VoiceBlueprintPro coincidía con VoiceStudio y que VoiceBlueprintPro no añadía capacidades de IA. La primera parte se apoyaba en `difflib.SequenceMatcher.quick_ratio()`, que no demuestra igualdad; la segunda generalizaba a todo el producto lo observado en siete componentes. Comparación exacta (naturaleza: código fuente; grado: mecanismo identificado):
+
+| Medida (raíz de VoiceBlueprintPro `3cd75d4`, 4 688 archivos) | Resultado |
+|---|---|
+| Commit de VoiceStudio más próximo por blobs idénticos (762 commits del 2026-11-06 al 10) | `e5700ceee0` (2026-11-07): 2 674 archivos idénticos |
+| Archivos cuyo contenido existe en algún punto de la historia de VoiceStudio | 2 811 |
+| Idénticos a `e5700ceee0` tras normalizar solo la marca (`OMNIVOICE_` → `VOICEBLUEPRINT_`, VoiceStudio → VoiceBlueprint) | 1 115 más |
+| Distintos tras normalizar | 463 (174 en `electron/`, 80 en `tests/`, 72 en `docs/`, 38 en `backend/`) |
+| Rutas sin equivalente en `e5700ceee0` | 299 (168 en `mobile/android`, 113 en `mobile/ios`; esos subárboles existen en VoiceStudio con otro contenido) |
+
+**Componentes de IA** (versión más próxima en toda la historia de VoiceStudio): `chunked_tts`, `sentence_chunker`, `video_context`, `incremental`, `inference_cancellation` y `gpu_gateway` son idénticos a una versión de VoiceStudio; `dub_pipeline` (4 líneas) y `endpoint_race` (8) difieren solo en la marca; `asr_backend` difiere en nombres de variables de entorno y textos; `model_manager`, en constantes renombradas y la dirección de incidencias. `dub_resume.py` no existe en VoiceBlueprintPro.
+
+**Aportaciones diferenciales identificadas** (commits propios después de la raíz):
+- `5b1a648`: retira las funciones de cuenta, nube, patrocinio y colaboradores.
+- `88059e3` y `ab5cab3`: retiran los ganchos de sincronización en la nube.
+- `8e51c10` y `ff256e0`: el intercambio de proyectos (`project_bundle.py`) rechaza activos demasiado grandes o inválidos antes de calcular su resumen y conserva errores de validación precisos, con pruebas.
+- La galería comunitaria no trae ninguna fuente ni clave de firma por defecto.
+
+**Alcance:** no se examinaron los 463 archivos que difieren fuera de `backend/`, ni la aplicación móvil. No se extraen conclusiones sobre procedencia ni licencias a partir de la similitud.
+
+### 17.4 Proyectos, voces, regeneración y perfiles
+
+| Necesidad | Evidencia (naturaleza; grado) | Disposición |
+|---|---|---|
+| Proyectos de procesamiento | VoiceStudio: tabla `studio_projects` (estado editable `state_json`) con glosario por proyecto, distinta de `jobs` y `dub_history`; borrar un proyecto no borra medios, voces ni audio; `project_bundle.py` intercambia proyectos sin credenciales, pesos ni rutas absolutas e importa con identidades nuevas (código y documentación; flujo reconstruido) | **Nuevo candidato UC-42.** Guardar un proyecto no es conservar un job terminado |
+| Administración de voces | VoiceStudio: `voice_profiles` como entidad propia, con receta de diseño y campos de consentimiento, referenciada por el historial de generación (código; mecanismo identificado) | **Nuevo candidato UC-43**, sin clonación (fuera del dominio según la Visión) |
+| Regeneración selectiva | VoiceStudio: `incremental.py` regenera solo los segmentos cuyas entradas cambiaron; `dub_resume.py` conserva cada segmento terminado (código; flujo reconstruido) | **Objetivo del User, no solo optimización:** flujos de corrección, reproceso y regeneración de una parte en UC-33, UC-34, UC-36, UC-37 y UC-38 |
+| Perfiles de procesamiento | VoiceStudio: preferencias de rendimiento y preajustes compartidos con comparación antes de aplicarlos (código; mecanismo identificado) | **Ampliación de UC-18** (A10, propuesta): mismo objetivo que los perfiles, fijados al crear el job (D-19) |
+| Operaciones compuestas reutilizables | Sin evidencia de una necesidad distinta de los perfiles | Cubiertas por los perfiles (UC-18 A10) y la composición de UC-38; sin caso de uso propio |
+| Edición de transcripciones | VoiceStudio: corrección antes de generar la voz (documentación; capacidad declarada) | Flujos de corrección en UC-33 y UC-34 con revisiones |
+| Traducción directa de subtítulos | Necesidad de la instrucción | UC-34 A2 traduce; UC-36 sincroniza y da formato |
+
+### 17.5 Recursos, cualificación del dispositivo y cancelación
+
+| Pregunta | Evidencia | Consecuencia |
+|---|---|---|
+| ¿Cómo conservar una configuración medida? | Janas (documentación; capacidad declarada): mide en las primeras pasadas, guarda la más rápida por máquina y modelo en `~/.cache/janas`, prueba las demás de vez en cuando; la autocomprobación de la GPU se guarda por driver; la medición inicial en el chat es una oferta | SUP-P10 (propuesto): detectar, comprobar, medir cuando haga falta, conservar e invalidar por cambio de condiciones; sin pruebas extensas obligatorias en cada inicio |
+| ¿Una GPU detectada sirve para todos los modelos? | Janas excluye los shaders que el driver calcula mal; Edge0 declara backends por plataforma | No: la compatibilidad es por modelo, runtime y backend |
+| ¿Estimación o límite? | VoiceStudio: aviso de memoria no bloqueante; Edge0: rechazo al cargar si no cabe en el presupuesto | La admisión distingue recurso inexistente, ocupado, estimación, capacidad medida, presupuesto explícito y fallo efectivo (diseño, §18.4) |
+| ¿Cuándo está cancelada una inferencia? | VoiceStudio `inference_cancellation.py` (código; mecanismo identificado): solo un proceso aislado se termina antes; una llamada nativa en proceso se contabiliza hasta que vuelve; el ámbito de cancelación pertenece al job. `subprocess_asr_base.py`: el fallo nativo del proceso hijo se convierte en job fallido. `gpu_gateway.py`: un pool vigilado | Pedir la cancelación, cancelar de forma cooperativa, terminar efectivamente y liberar recursos son pasos distintos; un recurso no se declara liberado mientras se usa |
+
+### 17.6 Privacidad: BR-49 y SUP-D03
+
+- **BR-49** queda delimitada al modo privado; el contrato verificable está en [UC-20](use-cases/uc-20-manage-application-configuration.md#contrato-del-modo-privado-a8) e identifica cada dato que se conserva con su operación, finalidad, requisito, ciclo de vida y tratamiento.
+- **SUP-D03** deja de prohibir la analítica y la telemetría, que no estaban aprobadas en esos términos; exige que cualquier clase de datos nueva tenga su objetivo y su decisión.
+- **Conceptos distintos** (vocabulario, §1.3): métricas operativas, métricas de rendimiento, estadísticas locales, diagnóstico, historial de uso, analítica remota, telemetría, medición publicitaria y derecho de uso. Ninguno se decide por BR-49, y las estadísticas locales no son seguimiento remoto.
+- **Propiedad frente a historial:** borrar el historial no borra archivos; conservar un archivo no exige conservar la actividad que lo originó; al liberar la reclamación de un output privado, el archivo pasa a ser externo para el producto.
+- En §16.4, las filas «Analítica» describen el estado actual (no existe hoy) y no una prohibición.
+
+### 17.7 GreenTuber: clasificación de la evidencia
+
+| Elemento | Qué demuestra | Qué no demuestra |
+|---|---|---|
+| APK examinados | Dos archivos `GreenTuber v0.2.0.3 Mod.apk` y `v0.2.0.4 (Premium).apk`, paquete `by.green.tuber` (manifiesto; concluyente) | Que representen la versión oficial |
+| Firmas | Certificado `TRUMods` en ambos; un segundo certificado `Country: IN` en 0.2.0.4 (firma; concluyente) | Quién modificó qué |
+| Permisos y componentes | `VipActivity`, Google Play Billing, SDK de anuncios y analítica; 13 entradas con el prefijo `disabled_` en 0.2.0.4 (manifiesto; mecanismo identificado) | Su comportamiento en ejecución, su origen o el efecto del prefijo |
+| Recursos de texto | Cadenas de una capa «VIP»: beneficios, compra, código de invitación, referidos, anuncios recompensados (recurso; capacidad declarada) | Que esos flujos funcionen ni que existan en la versión oficial |
+| Versión oficial | Declaración del Responsable: está en Google Play y descarga | Su contenido: no se examinó |
+| Procedencia | Desconocida | — |
+
+**Uso para el modelo comercial:** las cadenas muestran modalidades **presentadas** en una aplicación del dominio: VIP, eliminación de publicidad, adquisición, diferenciación de capacidades, promociones, referidos y anuncios recompensados. No obligan a implementarlas ni se descartan por venir de APK modificados. No se investigan mecanismos de desbloqueo ni la modificación de controles comerciales. Se corrigieron N71 en §15 y su resolución, que atribuían «anuncios, compras y suscripción comercial» a GreenTuber en general, y la frase de §15.3 que atribuía las diferencias a «una modificación de terceros».
+
+### 17.8 Objetivos comerciales y UC-41
+
+Técnicas de BABOK: casos de uso y escenarios (10.47) y descomposición funcional (10.22).
+
+| Objetivo | Clasificación | Dónde |
+|---|---|---|
+| Consultar el estado del periodo inicial, la modalidad vigente y los derechos de uso | Paso del objetivo general | UC-41, flujo básico |
+| Adquirir acceso | Objetivo independiente del User (el general) | UC-41 «Adquirir acceso a la aplicación» |
+| Adquirir la modalidad sin publicidad | Escenario de Android e iOS | UC-41, flujo básico |
+| Continuar con publicidad | Escenario alternativo | UC-41 A1 |
+| Restaurar una adquisición | Escenario alternativo | UC-41 A2 |
+| Cambiar de modalidad | Escenario (adquirir o continuar con publicidad) | UC-41 |
+| Gestionar una adquisición fallida o pendiente | Excepción y alternativa | UC-41 E1, A3 |
+| Iniciar el periodo inicial | Comportamiento automático | D-25 (evento) |
+| Administrar licencias | Sin objetivo mientras no se decida una forma de contratación | D-26 |
+| Mecanismo de cada tienda | Mecanismo de distribución | Adaptadores de canal (ADR-0036) |
+
+UC-41 conserva su identificador porque es la evolución coherente del mismo objetivo; sigue como **candidato**. No se justifican otros casos de uso comerciales.
+
+### 17.9 Decisiones comerciales y de IA pendientes
+
+D-25 a D-28 se descomponen por responsabilidad. Lo aprobado está en el [modelo de negocio, §3](../product-management/business-model-and-case.md#3-modelo-comercial-aprobado); la duración de 15 días está resuelta.
+
+| Cuestión | Decisión | Responsabilidad | Alternativas | Evidencia | Consecuencias | Trabajo afectado | Cuándo |
+|---|---|---|---|---|---|---|---|
+| Evento que inicia el periodo inicial | D-25 | Gestión del producto | Instalación; primer arranque; primer job | Mecanismos de canal (§16.5) | Qué se persiste y cuándo | Adaptadores comerciales (futuro) | Antes de diseñar el componente de acceso |
+| Cómputo y persistencia del periodo | D-25 | Arquitectura | Medición local; medición del canal (suscripción); combinación | Google Play (prueba ligada a suscripción); App Store (compra de precio cero) | Comportamiento sin conexión y tras reinstalar | Ídem | Ídem |
+| Reinstalación, restauración, cambio de dispositivo, actualización | D-25 | Gestión del producto y Publicación | Según canal | Ídem | Sin seleccionar cuentas, identificadores persistentes de dispositivo ni servidores de licencias | Ídem | Ídem |
+| Funcionamiento sin conexión | D-25 | Gestión del producto | Conservar la última modalidad registrada; otras | — | — | Ídem | Ídem |
+| Transición al terminar el periodo | D-25, D-27 | Requisitos | Job iniciado termina (recomendada, no aprobada); otras | — | Elegibilidad (BR-54) | U7 (punto de extensión de la elegibilidad) | Antes de implementar el componente de acceso; U7 solo necesita el punto de extensión |
+| Precio | D-26 | Gestión del producto | — | — | — | Ninguno en E3 | Antes de publicar en tiendas |
+| Pago único o recurrente; modalidad de contratación | D-26 | Gestión del producto | Compra única; suscripción comercial | Mecanismos de canal | Mecanismo de prueba disponible | Adaptadores | Ídem |
+| Por usuario o por dispositivo; compartida entre plataformas | D-26 | Gestión del producto | — | — | Identificación de la adquisición | Adaptadores | Ídem |
+| Capacidades incluidas por modalidad | D-26, D-28 | Gestión del producto | — | — | — | Ninguno en E3 | Antes de publicar |
+| Continuidad de Windows tras el periodo | D-27 | Estrategia de negocio | Sin presuponer bloqueo, uso ilimitado ni forma de pago | — | Comportamiento de la CLI y la GUI | Ninguno en E3 salvo el punto de extensión | Antes de la primera publicación de Windows |
+| Capacidades después del periodo | D-27 | Gestión del producto | — | — | — | Ídem | Ídem |
+| Verificación de la adquisición | D-27 | Arquitectura y diseño técnico | Mecanismo del canal; otras sin seleccionar | ADR-0036 | — | Adaptadores | Al diseñar los adaptadores |
+| Canal de distribución por plataforma | D-27 | Publicación y distribución | Distribución directa; Microsoft Store; Google Play; App Store | §16.5 | SUP-C12, SUP-C13 | Empaquetado | Antes de cada publicación |
+| Capacidades de IA ofrecidas | D-28 | Alcance del producto | UC-33 a UC-40 aceptados | — | — | Hoja de ruta | Antes de asignarlas a una entrega |
+| Capacidades de IA por modalidad comercial | D-28 | Modelo de negocio | — | — | No se deduce que la IA sea solo de pago ni que la modalidad sin publicidad incluya inferencia remota ilimitada | — | Antes de publicar |
+| Costes de inferencia | D-28 | Finanzas | §7 del modelo de negocio | — | — | — | Antes de ofrecer inferencia remota |
+| Procesamiento local, remoto o híbrido | D-28 | Arquitectura | Local; remoto; proveedor del User; híbrido | §16.6 | No todas las funciones necesitan servicios externos | Diseño de procesamiento | Antes de implementar UC-33 |
+| Selección de modelos y disponibilidad según hardware | D-28 | Cualificación técnica | §16.6 | — | — | — | Por operación |
+| Selección de runtimes | D-28 | Diseño técnico | §16.6 | — | — | — | Por operación |
+
+### 17.10 Necesidades parciales: disposiciones
+
+| Necesidad | Disposición |
+|---|---|
+| Perfiles de procesamiento | UC-18 A10 (propuesta) |
+| Cualificación del dispositivo | SUP-P10 (propuesto); UC-39 A2 (compatibilidad) |
+| Operaciones compuestas reutilizables | Perfiles y UC-38 (§17.4) |
+| Edición de transcripciones | UC-33 A6, UC-34 A7 |
+| Regeneración selectiva | UC-33 A7, UC-34 A4, UC-37 A4, UC-38 A3 a A5 |
+| Proyectos de procesamiento | Candidato UC-42 |
+| Administración de voces | Candidato UC-43 |
+| Traducción directa de subtítulos | UC-34 A2 y UC-36 |
+| Reproducción integrada | Objetivo por cualificar en el alcance del producto y en la hoja de ruta (H8); se distinguen abrir un archivo (UC-25 A7), vista previa, reproducir con otra aplicación, reproducir en el producto, segundo plano, imagen en imagen e historial de reproducción; no se elige reproductor ni framework |
+
+### 17.11 Limitaciones
+
+- La comparación de VoiceStudio y VoiceBlueprintPro se limitó a la raíz y a los componentes de IA de `backend/`.
+- Ningún motor de IA se ejecutó y ningún modelo se descargó.
+- La versión oficial de GreenTuber sigue sin examinarse.
 
 ## Fuentes
 

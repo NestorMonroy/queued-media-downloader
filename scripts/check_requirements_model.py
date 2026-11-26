@@ -29,21 +29,23 @@ Comprobaciones (todas con stop-on-error en el código de salida):
    <!-- e3-coverage:start --> y <!-- e3-coverage:end --> asigna una sola unidad
    a cada flujo no implementado de cada caso de uso aceptado o candidato, y
    «Básico» a los casos cuyo campo Estado dice «Implementación: ausente» o
-   «parcial»; no asigna flujos implementados ni inexistentes. Su columna Alcance
-   separa lo aprobado de las propuestas: «Aceptado» para los flujos aprobados de
-   un caso aceptado y «Propuesto» para los flujos marcados como propuestos y para
-   todos los de un candidato, salvo que el campo Estado del candidato diga
-   «Horizonte: futuro»: entonces sus flujos tienen el alcance «Futuro» y la
-   unidad «Roadmap», que solo admite ese alcance (objetivos fuera de E3). La
+   «parcial»; no asigna flujos implementados ni inexistentes. Cada fila tiene
+   un estado de planificación (PLANNING_STATES) y su justificación:
+   «Planificado» exige una unidad de trabajo de la tabla de dependencias;
+   «Futuro» y «Candidato», la unidad «—» y un horizonte H<n> definido en la hoja
+   de ruta del producto; «Bloqueado», una decisión D-n pendiente en el registro;
+   «No aplicable», la unidad «—» y un motivo. Los flujos propuestos y todos los
+   de un candidato tienen el estado «Candidato»; los aprobados de un caso
+   aceptado, cualquier otro. La hoja de ruta no es una unidad de trabajo. La
    tabla entre
    <!-- e3-dependencies:start --> y <!-- e3-dependencies:end --> define las
    unidades y sus dependencias, sin ciclos ni unidades desconocidas, y cada
-   unidad cubre algún flujo. Cada regla de «Reglas aprobadas sin implementar» y
-   de «Reglas propuestas», y cada requisito suplementario pendiente (sin
-   implementar, parcial, pendiente de medición, divergente, condicionado o
-   propuesto) aparece en el plan. Una regla propuesta no está también entre las
-   aprobadas y un requisito propuesto no se declara aceptado. Es consistencia
-   documental, no evidencia de implementación.
+   unidad tiene algún flujo «Planificado». Cada regla de «Reglas aprobadas sin
+   implementar» y de «Reglas propuestas», y cada requisito suplementario
+   pendiente (sin implementar, parcial, pendiente de medición, divergente,
+   condicionado o propuesto) aparece en el plan. Una regla propuesta no está
+   también entre las aprobadas y un requisito propuesto no se declara aceptado.
+   Es consistencia documental, no evidencia de implementación.
 6. Registro de decisiones (doc/project-management/governance.md): la tabla entre
    <!-- decision-register:start --> y <!-- decision-register:end --> tiene una
    fila por cada decisión D-n definida en el análisis de requisitos, y solo
@@ -94,10 +96,15 @@ REALIZATION_TABLE = "uc-realization"
 APPLICABILITY_TABLE = "platform-applicability"
 DESIGN_STATES = ("Realizado", "Definido", "Condicionado", "Candidato")
 CANDIDATE_DESIGN_STATE = "Candidato"
-SCOPES = ("Aceptado", "Propuesto", "Futuro")
-FUTURE_SCOPE = "Futuro"
-ROADMAP_UNIT = "Roadmap"
-FUTURE_HORIZON = re.compile(r"Horizonte: futuro", re.IGNORECASE)
+PLANNED = "Planificado"
+CANDIDATE_PLANNING = "Candidato"
+BLOCKED = "Bloqueado"
+NOT_APPLICABLE = "No aplicable"
+PLANNING_STATES = (PLANNED, "Futuro", CANDIDATE_PLANNING, BLOCKED, NOT_APPLICABLE)
+NO_UNIT = "—"
+ROADMAP = Path("doc/product-management/product-roadmap.md")
+HORIZON = re.compile(r"\bH\d+\b")
+DECISION = re.compile(r"\bD-\d+\b")
 GOVERNANCE = Path("doc/project-management/governance.md")
 DECISION_TABLE = "decision-register"
 DECISION_STATES = ("Aprobada", "Pendiente", "Sustituida")
@@ -158,7 +165,6 @@ class UseCaseCounts:
     pending_flows: list[str] = field(default_factory=list)
     proposed_flows: list[str] = field(default_factory=list)
     basic_pending: bool = False
-    future: bool = False
     rules: int = 0
     supplementary: int = 0
     criteria: int = 0
@@ -314,7 +320,6 @@ def use_case_counts(path: Path) -> UseCaseCounts:
             else:
                 counts.pending_flows.append(flow)
     status_line = re.search(r"^- \*\*Estado:\*\* ([^\n]+)", text, re.MULTILINE)
-    counts.future = bool(status_line and FUTURE_HORIZON.search(status_line.group(1)))
     counts.basic_pending = bool(
         status_line
         and re.search(r"Implementación: (ausente|parcial)", status_line.group(1))
@@ -575,64 +580,112 @@ def dependency_problems(
     return edges, problems
 
 
+def planning_context(root: Path) -> tuple[set[str], set[str]]:
+    """Horizontes de la hoja de ruta y decisiones pendientes del registro."""
+    roadmap = root / ROADMAP
+    horizons = (
+        set(re.findall(r"^\| (H\d+)\.", roadmap.read_text("utf-8"), re.MULTILINE))
+        if roadmap.exists()
+        else set()
+    )
+    governance = root / GOVERNANCE
+    rows = (
+        marked_rows(governance.read_text("utf-8"), DECISION_TABLE)
+        if governance.exists()
+        else None
+    )
+    pending = {row[0] for row in rows or [] if row[-1] == "Pendiente"}
+    return horizons, pending
+
+
+def planning_row_problems(
+    row: list[str], units: set[str], horizons: set[str], pending: set[str]
+) -> list[str]:
+    """Estado de planificación de una fila coherente con su unidad y su motivo."""
+    identifier, _flows, unit, *rest = row
+    state = rest[0] if rest else ""
+    reason = rest[1] if len(rest) > 1 else ""
+    prefix = f"{PLAN}: {identifier}"
+    if state not in PLANNING_STATES:
+        return [f"{prefix} has unknown planning state {state!r}"]
+    if state == PLANNED:
+        return (
+            [] if unit in units else [f"{prefix} is {PLANNED} with unknown unit {unit}"]
+        )
+    if state == BLOCKED:
+        blocking = set(DECISION.findall(reason))
+        problems = (
+            [] if unit in units | {NO_UNIT} else [f"{prefix} uses unknown unit {unit}"]
+        )
+        if not blocking & pending:
+            problems.append(f"{prefix} is {BLOCKED} without a pending decision")
+        return problems
+    problems = [] if unit == NO_UNIT else [f"{prefix} is {state} but names unit {unit}"]
+    if state == NOT_APPLICABLE:
+        if reason in ("", NO_UNIT):
+            problems.append(f"{prefix} is {NOT_APPLICABLE} without a reason")
+    elif not set(HORIZON.findall(reason)) & horizons:
+        problems.append(f"{prefix} is {state} without a roadmap horizon")
+    return problems
+
+
 def flow_coverage_problems(
     root: Path, coverage: list[list[str]], units: set[str]
 ) -> list[str]:
-    """Cada flujo pendiente con una sola unidad conocida; cada unidad con flujos."""
+    """Cada flujo pendiente con una fila y un estado de planificación coherente."""
+    horizons, pending = planning_context(root)
     problems: list[str] = []
     assigned: dict[str, Counter[str]] = {}
-    scopes: dict[tuple[str, str], str] = {}
-    for identifier, flows, unit, *rest in coverage:
-        scope = rest[0] if rest else ""
-        if unit not in units:
-            problems.append(f"{PLAN}: {identifier} uses unknown unit {unit}")
-        if scope not in SCOPES:
-            problems.append(f"{PLAN}: {identifier} has unknown scope {scope!r}")
-        elif (scope == FUTURE_SCOPE) != (unit == ROADMAP_UNIT):
-            problems.append(
-                f"{PLAN}: {identifier} uses scope {FUTURE_SCOPE} only with unit"
-                f" {ROADMAP_UNIT}"
-            )
+    states: dict[tuple[str, str], str] = {}
+    for row in coverage:
+        identifier, flows = row[0], row[1]
+        problems += planning_row_problems(row, units, horizons, pending)
         names = [flow.strip() for flow in flows.split(",")]
         assigned.setdefault(identifier, Counter()).update(names)
-        scopes.update({(identifier, name): scope for name in names})
+        state = row[3] if len(row) > 3 else ""
+        states.update({(identifier, name): state for name in names})
     for use_case in use_case_rows(root):
         if use_case.definition in ("aceptado", "candidato"):
             problems += use_case_coverage_problems(
                 use_case, assigned.get(use_case.identifier, Counter())
             )
-            problems += scope_problems(use_case, scopes)
-    covered_units = {row[2] for row in coverage}
+            problems += candidate_planning_problems(use_case, states)
+    planned_units = {row[2] for row in coverage if len(row) > 3 and row[3] == PLANNED}
     problems += [
-        f"{PLAN}: {unit} covers no flow" for unit in sorted(units - covered_units)
+        f"{PLAN}: {unit} has no {PLANNED} flow"
+        for unit in sorted(units - planned_units)
     ]
     return problems
 
 
-def expected_scopes(use_case: UseCaseCounts) -> dict[str, str]:
-    """Alcance que debe tener en el plan cada flujo pendiente de un caso de uso."""
-    if use_case.definition != "candidato":
-        own = "Aceptado"
-    else:
-        own = FUTURE_SCOPE if use_case.future else "Propuesto"
-    expected = dict.fromkeys(use_case.pending_flows, own)
-    expected |= dict.fromkeys(use_case.proposed_flows, "Propuesto")
-    if use_case.basic_pending:
-        expected[BASIC_FLOW] = own
-    return expected
+def candidate_flows(use_case: UseCaseCounts) -> set[str]:
+    """Flujos pendientes de aprobación: propuestos, o todos los de un candidato."""
+    if use_case.definition == "candidato":
+        flows = set(use_case.pending_flows) | set(use_case.proposed_flows)
+        return flows | ({BASIC_FLOW} if use_case.basic_pending else set())
+    return set(use_case.proposed_flows)
 
 
-def scope_problems(
-    use_case: UseCaseCounts, scopes: dict[tuple[str, str], str]
+def candidate_planning_problems(
+    use_case: UseCaseCounts, states: dict[tuple[str, str], str]
 ) -> list[str]:
-    """Flujos asignados con un alcance distinto del que les corresponde."""
-    return [
-        f"{PLAN}: {use_case.identifier} {flow} must have scope {scope}"
-        for flow, scope in sorted(expected_scopes(use_case).items())
-        if (use_case.identifier, flow) in scopes
-        and scopes[(use_case.identifier, flow)] in SCOPES
-        and scopes[(use_case.identifier, flow)] != scope
-    ]
+    """Propuestas con un estado distinto de Candidato y aprobados como Candidato."""
+    pending_approval = candidate_flows(use_case)
+    problems = []
+    for (identifier, flow), state in sorted(states.items()):
+        if identifier != use_case.identifier or state not in PLANNING_STATES:
+            continue
+        if flow in pending_approval and state != CANDIDATE_PLANNING:
+            problems.append(
+                f"{PLAN}: {identifier} {flow} awaits approval and must be"
+                f" {CANDIDATE_PLANNING}"
+            )
+        elif flow not in pending_approval and state == CANDIDATE_PLANNING:
+            problems.append(
+                f"{PLAN}: {identifier} {flow} is approved and cannot be"
+                f" {CANDIDATE_PLANNING}"
+            )
+    return problems
 
 
 def use_case_coverage_problems(

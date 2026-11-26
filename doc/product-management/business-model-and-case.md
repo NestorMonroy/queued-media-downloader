@@ -1,6 +1,6 @@
 # Modelo de negocio, caso de negocio y finanzas
 
-- **Versión:** 1.0 (instrucción 2.6.0, 2026-11-26).
+- **Versión:** 2.0 (instrucción 2.7.0, 2026-11-26: modelo ratificado con su matriz por plataforma; UC-41 reconciliado; D-25 a D-28 descompuestas; retiradas las afirmaciones que convertían límites de autorización en restricciones). 1.0 (instrucción 2.6.0).
 - **Responsabilidad:** Gestión del producto (decide el Responsable del proyecto).
 - **Estado:** el modelo comercial de §3 está **aprobado**; las condiciones de §4 están **pendientes** y no se completan por deducción. Nada de este documento autoriza implementar anuncios, pagos, licencias, cuentas ni servicios remotos.
 
@@ -26,34 +26,44 @@ D-24 conserva su identificador, pero su contenido se reparte entre cuatro respon
 | Canales | Distribución directa en Windows; tiendas cuando corresponda (Google Play, App Store, Microsoft Store) | Qué canales y en qué orden (D-27) |
 | Ingresos | En Android e iOS: modo con anuncios o modo sin anuncios adquirido | Pago único o recurrente, precio, alcance de la compra (D-26) |
 | Costes | Firma de código, cuentas de desarrollador de cada tienda, comisión de cada canal, infraestructura de inferencia remota si se elige | Importes: no se inventan (§5) |
-| Relación | Sin cuenta obligatoria; sin servidor de licencias remoto propio | — |
+| Relación | Sin cuentas propias seleccionadas; implementar cuentas obligatorias no está autorizado, lo que no es una restricción del producto | Si alguna vez hacen falta cuentas, identificadores de dispositivo o un servidor de licencias (D-25, D-26) |
 
 ## 3. Modelo comercial aprobado
 
-1. **Periodo inicial:** 15 días sin anuncios en todas las plataformas.
-2. **Android e iOS, después del periodo inicial:** dos modos, con anuncios o sin anuncios adquirido.
-3. **Windows GUI y CLI:** nunca muestran anuncios; el periodo inicial de 15 días también se aplica.
-4. **Modo privado ≠ modo sin anuncios** (BR-49): adquirir el modo sin anuncios no cambia qué datos se guardan, y activar el modo privado no quita anuncios.
-5. **El vencimiento no destruye trabajo** (BR-54): el fin del periodo inicial o de un derecho de uso no borra, detiene ni altera jobs, resultados, parciales, perfiles, configuración ni historial.
-6. **Frontera técnica:** los derechos de uso viven fuera del núcleo; `MediaSource`, `WorkerPool`, `JobStore` y las reglas de identidad no dependen de bibliotecas de facturación, StoreKit, SDK de anuncios ni similares.
+Decisiones del Responsable, ratificadas en la instrucción 2.7.0. Sus mecanismos técnicos están por cualificar.
+
+1. **Periodo inicial:** 15 días gratuitos en todas las plataformas, sin publicidad. La duración está resuelta.
+2. **Android e iOS, después del periodo inicial:** pueden continuar con publicidad o adquirir una modalidad sin publicidad.
+3. **Windows GUI y CLI:** no usan publicidad; el periodo de 15 días también se aplica.
+4. **Modo privado y modalidad sin publicidad son distintos** (BR-49): uno no cambia al otro.
+5. **Preservación** (BR-54): el vencimiento del periodo inicial o de una adquisición no borra ni altera jobs, outputs, parciales, perfiles, configuración ni historial. Su efecto en la elegibilidad de jobs nuevos, pendientes o activos está pendiente (D-25, D-27).
+6. **Separación** (ADR-0036, orientación aceptada): los componentes multimedia no dependen de proveedores de pago, publicidad ni tiendas, y todas las interfaces usan el mismo contrato de acceso.
+
+| Característica | Windows CLI | Windows GUI | Android | iOS |
+|---|---|---|---|---|
+| Periodo inicial | 15 días | 15 días | 15 días | 15 días |
+| Publicidad durante el periodo | No | No | No | No |
+| Publicidad después | No | No | Según modalidad | Según modalidad |
+| Adquirir la modalidad sin publicidad | No es un objetivo aplicable por sí mismo | No es un objetivo aplicable por sí mismo | Sí | Sí |
+| Continuidad comercial | Por definir (D-27) | Por definir (D-27) | Modalidades establecidas | Modalidades establecidas |
+| Precio | Pendiente (D-26) | Pendiente | Pendiente | Pendiente |
+| Forma de contratación | Pendiente (D-26) | Pendiente | Pendiente | Pendiente |
+| Capacidades de IA incluidas | Pendiente (D-28) | Pendiente | Pendiente | Pendiente |
+
+**Objetivo comercial del User:** UC-41 «Adquirir acceso a la aplicación» (candidato), con la adquisición sin publicidad como escenario de Android e iOS ([análisis, §17.8](../requirements/requirements-analysis.md#178-objetivos-comerciales-y-uc-41)). El inicio del periodo inicial es un comportamiento automático (D-25).
 
 ## 4. Condiciones pendientes
 
-Ninguna se resuelve aquí. Cada fila nombra la decisión que la agrupa en el [análisis de requisitos, §16.9](../requirements/requirements-analysis.md#169-decisiones-pendientes).
+Conjunto trazable en el [análisis, §17.9](../requirements/requirements-analysis.md#179-decisiones-comerciales-y-de-ia-pendientes), con alternativas, evidencia, consecuencias, autoridad, trabajo afectado y momento. Resumen por decisión:
 
-| Condición | Decisión |
-|---|---|
-| Qué inicia el periodo inicial (instalación, primer uso, primer job) y cómo se calcula su duración | D-25 |
-| Reinstalación, restauración, cambio de dispositivo y actualización durante o después del periodo | D-25 |
-| Uso sin conexión durante el periodo y al comprobarlo | D-25 |
-| Jobs activos en el momento del vencimiento (BR-54 fija que no se detienen; falta qué se muestra) | D-25 |
-| Pago único o recurrente; precio | D-26 |
-| Por usuario o por dispositivo; compra válida en varias plataformas | D-26 |
-| Restaurar la compra; reembolsos y su efecto | D-26 |
-| Qué ocurre en Windows al terminar el periodo inicial (sin anuncios, por definición) | D-27 |
-| Capacidades de cada modo (si difieren más allá de los anuncios) | D-27 |
-| Canales de publicación por plataforma y su orden | D-27 |
-| Costes de la IA y quién los paga | D-28 |
+| Decisión | Pendiente | Responsabilidad |
+|---|---|---|
+| D-25 | Evento iniciador, cómputo, persistencia, actualizaciones, reinstalaciones, restauraciones, cambio de dispositivo, sin conexión, transición | Gestión del producto; Arquitectura para los mecanismos |
+| D-26 | Precio, pago único o recurrente, modalidades de contratación, por usuario o dispositivo, restauración, entre plataformas, condiciones de actualización, capacidades incluidas | Gestión del producto |
+| D-27 | Continuidad de Windows (Estrategia de negocio), capacidades tras el periodo (Gestión del producto), comportamiento de las operaciones (Requisitos), verificación de la adquisición (Arquitectura y diseño técnico), canal (Publicación y distribución) | Cinco responsabilidades separadas |
+| D-28 | Capacidades de IA ofrecidas (alcance), incluidas por modalidad (modelo de negocio), costes (finanzas), local, remoto o híbrido (arquitectura), modelos y disponibilidad (cualificación), runtimes (diseño) | Seis responsabilidades separadas |
+
+Ninguna se completa por deducción. No se deduce que la IA sea solo de pago, que la modalidad sin publicidad incluya inferencia remota ilimitada ni que todas las funciones de IA necesiten servicios externos. Ninguna bloquea E3 salvo el punto de extensión de la elegibilidad (plan de E3, §12.4).
 
 ## 5. Variables financieras
 
@@ -81,7 +91,7 @@ Hechos documentales consultados el 2026-11-26; no se probaron. No sustituyen la 
 | Google Play | Las ofertas de suscripción pueden tener una fase de prueba gratuita de 3 días a 3 años; Google Play solo devuelve las ofertas para las que el usuario es elegible | Productos de pago único (antes «in-app products») o suscripciones; un beneficio único no puede presentarse como suscripción; la oferta debe indicar la duración de la prueba y cómo cancelarla | Un periodo de 15 días medido por la tienda solo existe asociado a una suscripción; con pago único, el periodo lo mide la aplicación (D-25, D-26) |
 | App Store | Las suscripciones con renovación automática admiten prueba gratuita; las aplicaciones sin suscripción pueden ofrecer una prueba por tiempo con una compra integrada no consumible de precio cero llamada «XX-day Trial» | Desbloquear funciones exige compra integrada (directriz 3.1.1) | El modo sin anuncios adquirido en iOS es una compra integrada; el periodo de 15 días tiene dos formas documentadas (D-25, D-26) |
 | Microsoft Store | La aplicación puede configurarse como prueba gratuita en Partner Center y limitar funciones o mostrar elementos durante la prueba (`Windows.Services.Store`) | Compras integradas con la API de la tienda o una API de terceros segura (política 10.8) | Solo aplica si se publica en la tienda; Windows no muestra anuncios en ningún caso |
-| Distribución directa en Windows | No hay mecanismo de canal | No hay mecanismo de canal | El periodo lo mediría la aplicación; sin servidor de licencias remoto propio, no hay comprobación fuera del equipo (D-25, D-27) |
+| Distribución directa en Windows | El canal no ofrece mecanismo | El canal no ofrece mecanismo | El mecanismo está pendiente (D-25, D-27); servidores de licencias, cuentas o identificadores de dispositivo no se seleccionan sin una decisión sustentada |
 
 **Referencias de implementación consultadas:** ninguna referencia de código abierto revisada implementa periodo de prueba ni compra (Seal, YTDLnis, NewPipe, Parabolic, VidBee, Electrum, Electron Cash; VoiceStudio declara en `model_licenses.py` que no implica derecho comercial). Los dos APK de GreenTuber disponibles están firmados por `TRUMods`, no por el desarrollador. Contienen una actividad VIP, Google Play Billing y SDK de anuncios, y sus cadenas presentan un modo «VIP» sin anuncios que se obtiene comprando, con código de invitación, invitando a amigos o viendo anuncios. Que esa capa sea del desarrollador o de quien firmó los APK no se puede determinar sin la versión de Google Play ([análisis, §16.5](../requirements/requirements-analysis.md#165-mecanismos-comerciales)). No se documenta cómo eludir la comprobación de pago.
 

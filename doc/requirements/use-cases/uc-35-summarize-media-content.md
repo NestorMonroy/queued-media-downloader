@@ -1,18 +1,18 @@
 # UC-35: Resumir el contenido de un medio
 
-- **Objetivo:** el User obtiene un resumen breve del contenido hablado de un medio, a partir de su transcripción.
+- **Objetivo:** el User obtiene un resumen del contenido hablado de un medio, general o por secciones, en el idioma y con el nivel de detalle que pide.
 - **Actor principal:** User
-- **Disparador:** el User pide un resumen de un resultado o de una transcripción.
+- **Disparador:** el User pide un resumen de un medio, de una transcripción o de una traducción.
 - **Prioridad:** baja.
-- **Significativo para la arquitectura:** sí: requiere un modelo de lenguaje, local o remoto, con recursos distintos de los de la transcripción.
-- **Estado:** candidato (propuesta de la instrucción 2.6.0, pendiente de aprobación del Responsable). Horizonte: futuro. Implementación: ausente.
+- **Significativo para la arquitectura:** sí: modelo de lenguaje local o remoto con recursos distintos de los de la transcripción.
+- **Estado:** aceptado (Responsable, instrucción 2.7.0): el objetivo y su flujo básico están en el alcance del producto. Los flujos alternativos y de excepción son propuestas (instrucciones 2.6.0 y 2.7.0) pendientes de aprobación: aceptar el objetivo no aprueba todos sus flujos, mecanismos, modelos ni runtimes. Implementación: ausente.
 - **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
-- **Origen:** Sin evidencia de implementación en las referencias revisadas: VoiceStudio no tiene resumen de contenido (sus funciones `summary` son de estadísticas y discos). VidBee anuncia transcripción e IA (N70, §15). Objetivo de la orientación estratégica de la instrucción 2.6.0. Evidencia y nivel en el [análisis de requisitos, §16](../requirements-analysis.md#16-descubrimiento-260-ia-privacidad-y-modelo-comercial).
-- **Independencia:** UC-33 produce el texto; aquí se condensa. UC-24 obtiene la descripción publicada por el sitio, que no es un resumen del contenido.
+- **Origen:** Necesidad aceptada en la instrucción 2.7.0 con independencia de las referencias: en las revisadas no se identificó un flujo completo de resumen de contenido (las funciones llamadas `summary` de VoiceStudio son estadísticas, no un flujo de resumen).
+- **Independencia:** UC-33 produce el texto; aquí se condensa. La descripción que publica el sitio (UC-24) no es un resumen del contenido.
 
 ## Breve descripción
 
-El sistema usa la transcripción registrada (o la crea con UC-33) y produce un resumen con el modelo elegido, registrado como resultado derivado.
+El sistema parte de una transcripción registrada —o la crea con UC-33— y produce un resumen con el modelo elegido. El resumen puede ser general, por secciones o capítulos, o de ideas principales, y puede citar los segmentos de los que procede.
 
 ## Precondiciones
 
@@ -21,20 +21,23 @@ El sistema usa la transcripción registrada (o la crea con UC-33) y produce un r
 
 ## Flujo básico
 
-1. El User elige la entrada, la longitud del resumen y el modelo.
-2. El sistema obtiene la transcripción registrada de la entrada.
-3. El sistema calcula la identidad del resultado derivado y comprueba si ya existe uno equivalente.
-4. El sistema crea un job de procesamiento y genera el resumen.
-5. El sistema publica el resumen como resultado del job con su procedencia.
+1. El User elige la entrada, el tipo de resumen, el idioma, el nivel de detalle y el modelo.
+2. El sistema obtiene la transcripción de la entrada.
+3. El sistema busca un resultado reutilizable según BR-55.
+4. Si no lo hay, el sistema crea un job y genera el resumen.
+5. El sistema publica el resumen como resultado del job, con su procedencia y las referencias a segmentos cuando existen.
 
 ## Flujos alternativos
 
-- **A1. Sin transcripción previa** `[estado: ausente]` (paso 2): el sistema crea primero la transcripción (UC-33) como etapa del mismo procesamiento, con su propia identidad.
-- **A2. Transcripción larga** `[estado: ausente]` (paso 4): el texto excede el contexto del modelo; el sistema resume por partes y combina, y lo registra en la procedencia.
+- **A1. Sin transcripción previa** `[estado: ausente; propuesto]` (paso 2): el sistema crea primero la transcripción (UC-33), que queda registrada y reutilizable.
+- **A2. Por secciones o capítulos** `[estado: ausente; propuesto]` (paso 1): el sistema usa los capítulos del medio, si existen, o una segmentación del texto, y resume cada parte.
+- **A3. Ideas principales** `[estado: ausente; propuesto]` (paso 1): el resultado es una lista de ideas con referencia a sus segmentos.
+- **A4. Texto largo** `[estado: ausente; propuesto]` (paso 4): el texto excede el contexto del modelo; el sistema resume por partes y combina, y lo registra en la procedencia.
+- **A5. Exportar** `[estado: ausente; propuesto]` (paso 5): el User exporta el resumen como copia (BR-52).
 
 ## Excepciones
 
-- **E1. Modelo no disponible o recursos insuficientes** `[estado: ausente]` (paso 4): el job falla o se aplaza con la condición clasificada.
+- **E1. Modelo no disponible o recursos insuficientes** `[estado: ausente; propuesto]` (paso 4): el job falla o se aplaza con la condición clasificada.
 
 ## Postcondiciones
 
@@ -42,19 +45,21 @@ El sistema usa la transcripción registrada (o la crea con UC-33) y produce un r
 
 ## Requisitos especiales
 
-- El resumen se presenta como generado por un modelo, sin afirmar exactitud.
+- El resumen se presenta como generado por un modelo.
+- Criterios de evaluación por cualificar, sin umbrales: fidelidad al contenido, cobertura de las secciones y errores (afirmaciones ausentes del texto).
 
 ## Reglas, requisitos y restricciones asociados
 
-- [BR-55](../business-rules.md) (propuesta); UC-33, UC-39.
+- [BR-52](../business-rules.md), [BR-55](../business-rules.md); UC-33, UC-39.
 
 ## Criterios de aceptación
 
 1. El resumen registra la transcripción, el modelo y los parámetros de los que procede.
-2. Sin transcripción previa, la transcripción creada queda también registrada y reutilizable.
+2. Un resumen por secciones cubre cada sección o indica cuáles omite.
+3. Las referencias a segmentos apuntan a segmentos existentes de la transcripción.
 
 ## Escenarios de prueba
 
 | Escenario | Dónde |
 |---|---|
-| Resumen con un modelo simulado y una transcripción larga | Desarrollo |
+| Modelo simulado: resumen general, por secciones y de un texto largo | Desarrollo |

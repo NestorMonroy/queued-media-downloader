@@ -1,7 +1,7 @@
 # Modelo de casos de uso
 
 - **Fase RUP:** Elaboración
-- **Versión:** 3.3 (2026-11-26; instrucción 2.6.0: UC-29 a UC-32 aceptados, 30 casos de uso aceptados; candidatos UC-33 a UC-41 con horizonte futuro, §4.3). 3.2 (2026-11-26; casos de uso candidatos UC-29 a UC-32 y ampliaciones propuestas, §4.3, instrucción 2.5.0). 3.1 (2026-11-26; trazabilidad con la realización arquitectónica y la aplicabilidad por plataforma). 3.0 (2026-11-26; **alcance de los 26 casos de uso aceptado por el Responsable**). 2.1: reconciliación de exclusiones, UC-18 a UC-28. 2.0 (2026-11-26; consolidación del modelo de requisitos). La 1.1 era la auditoría previa a la aceptación (T49).
+- **Versión:** 3.4 (2026-11-26; instrucción 2.7.0: UC-33 a UC-40 aceptados, 38 casos de uso aceptados; UC-41 reconciliado como «Adquirir acceso a la aplicación»; candidatos UC-42 y UC-43, §4.3). 3.3 (2026-11-26; instrucción 2.6.0: UC-29 a UC-32 aceptados, 30 casos de uso aceptados; candidatos UC-33 a UC-41 con horizonte futuro, §4.3). 3.2 (2026-11-26; casos de uso candidatos UC-29 a UC-32 y ampliaciones propuestas, §4.3, instrucción 2.5.0). 3.1 (2026-11-26; trazabilidad con la realización arquitectónica y la aplicabilidad por plataforma). 3.0 (2026-11-26; **alcance de los 26 casos de uso aceptado por el Responsable**). 2.1: reconciliación de exclusiones, UC-18 a UC-28. 2.0 (2026-11-26; consolidación del modelo de requisitos). La 1.1 era la auditoría previa a la aceptación (T49).
 - **Términos:** [vocabulario](../design/00-vocabulary.md)
 - **Razonamiento y evidencia:** [análisis de requisitos](requirements-analysis.md)
 
@@ -95,6 +95,14 @@ flowchart LR
         Subscriptions["UC-30 Manage content subscriptions"]
         NewContent["UC-31 Retrieve new content"]
         UpdateApplication["UC-32 Update the application"]
+        Transcribe["UC-33 Transcribe media"]
+        Translate["UC-34 Translate a transcript"]
+        Summarize["UC-35 Summarize media content"]
+        Subtitles["UC-36 Generate subtitles"]
+        Speech["UC-37 Generate speech"]
+        Dub["UC-38 Dub media"]
+        Models["UC-39 Manage inference models"]
+        Collections["UC-40 Manage media collections"]
     end
 
     User --> InstallAndVerify
@@ -126,6 +134,14 @@ flowchart LR
     User --> NewContent
     User --> UpdateApplication
     NewContent --> MediaSite
+    User --> Transcribe
+    User --> Translate
+    User --> Summarize
+    User --> Subtitles
+    User --> Speech
+    User --> Dub
+    User --> Models
+    User --> Collections
     SupplementaryInfo --> MediaSite
     InspectMedia --> MediaSite
     DownloadSingleMedia --> MediaSite
@@ -143,7 +159,8 @@ flowchart LR
     classDef focalProposed fill:#1e3a8a,stroke:#60a5fa,stroke-dasharray:4 3,color:#f1f5f9
     classDef external fill:#172032,stroke:#475569,color:#94a3b8
     class InstallAndVerify,DownloadSingleMedia,ExpandPlaylist,CancelJob,RecoverAndResume,EnqueueMedia focal
-    class PreserveJobs,PreserveStorage,ModifyJobs,Subscriptions,NewContent,UpdateApplication focalProposed
+    class PreserveJobs,PreserveStorage,ModifyJobs,Subscriptions,NewContent,UpdateApplication,Transcribe,Translate,Summarize,Speech,Dub,Models,Collections focalProposed
+    class Subtitles optional
     class InspectMedia,ControlQueue,DiagnosticReport,DownloadProfiles,Configuration,Schedule,ExportImport,BackupRestore,SupplementaryInfo,ManageMedia,VerifyMedia,AccessProfiles,Dependencies,Notifications optional
     class MediaSite,Maintainer external
 ```
@@ -188,31 +205,33 @@ UC-03 y UC-04 los inicia el User con `run`; se ejecutan dentro de la cola y se c
 | UC-30 | Gestionar suscripciones a fuentes de contenido | `subscription` | **Sí:** fuente y contenido conocido en el modelo de información | Aceptado (2.6.0); sin implementar | [Completa](use-cases/uc-30-manage-content-subscriptions.md) |
 | UC-31 | Obtener contenido nuevo de las fuentes | `subscription check` | **Sí:** creación de jobs no interactiva con procedencia | Aceptado (2.6.0); sin implementar | [Completa](use-cases/uc-31-retrieve-new-content.md) |
 | UC-32 | Actualizar la aplicación | `update` | **Sí:** mecanismo por canal, migración | Aceptado (2.6.0); sin implementar | [Completa](use-cases/uc-32-update-the-application.md) |
+| UC-33 | Transcribir un medio | `transcribe` | **Sí:** primer resultado derivado; motor aislado | Aceptado (2.7.0): objetivo y flujo básico; flujos alternativos propuestos; sin implementar | [Completa](use-cases/uc-33-transcribe-media.md) |
+| UC-34 | Traducir una transcripción | `translate` | **Sí:** motores locales o remotos con secretos | Aceptado (2.7.0), ídem | [Completa](use-cases/uc-34-translate-transcript.md) |
+| UC-35 | Resumir el contenido de un medio | `summarize` | **Sí:** modelo de lenguaje | Aceptado (2.7.0), ídem | [Completa](use-cases/uc-35-summarize-media-content.md) |
+| UC-36 | Generar subtítulos | `subtitles` | No | Aceptado (2.7.0), ídem | [Completa](use-cases/uc-36-generate-subtitles.md) |
+| UC-37 | Generar voz | `speak` | **Sí:** síntesis por fragmentos y GPU | Aceptado (2.7.0), ídem | [Completa](use-cases/uc-37-generate-speech.md) |
+| UC-38 | Doblar un medio | `dub` | **Sí:** composición de operaciones y recuperación por etapa | Aceptado (2.7.0), ídem | [Completa](use-cases/uc-38-dub-media.md) |
+| UC-39 | Administrar modelos de inferencia | `models` | **Sí:** descarga, integridad y compatibilidad | Aceptado (2.7.0), ídem | [Completa](use-cases/uc-39-manage-inference-models.md) |
+| UC-40 | Administrar colecciones de medios | `collection` | **Sí, moderado:** referencias heterogéneas | Aceptado (2.7.0), ídem | [Completa](use-cases/uc-40-manage-media-collections.md) |
 
-### 4.3 Casos de uso candidatos (instrucción 2.6.0)
+### 4.3 Casos de uso candidatos (instrucción 2.7.0)
 
-UC-29 a UC-32, candidatos de la instrucción 2.5.0, están **aceptados** desde la 2.6.0 (tabla de §4); aceptarlos no autoriza implementarlos. Los candidatos siguientes salen de la orientación estratégica de la 2.6.0 (IA, organización y modos comerciales; [análisis, §16.7](requirements-analysis.md#167-cualificación-de-los-candidatos)), **pendientes de aprobación del Responsable**, con «Horizonte: futuro»: el plan los asigna a la unidad Roadmap, fuera de E3.
+UC-33 a UC-40 están **aceptados** desde la 2.7.0 (tabla de §4): el objetivo y su flujo básico están en el alcance del producto; sus flujos alternativos y de excepción son propuestas pendientes de aprobación, y su asignación a entregas se decide en la [hoja de ruta](../product-management/product-roadmap.md). Quedan como candidatos, pendientes de aprobación del Responsable:
 
 | ID | Caso de uso | Comando previsto | Arquitectura | Estado | Especificación |
 |---|---|---|---|---|---|
-| UC-33 | Transcribir un medio | `transcribe` | **Sí:** primer resultado derivado; motor aislado | Candidato; horizonte futuro | [Completa](use-cases/uc-33-transcribe-media.md) |
-| UC-34 | Traducir una transcripción | `translate` | **Sí:** motores locales o remotos con secretos | Candidato; horizonte futuro | [Completa](use-cases/uc-34-translate-transcript.md) |
-| UC-35 | Resumir el contenido de un medio | `summarize` | **Sí:** modelo de lenguaje | Candidato; horizonte futuro | [Completa](use-cases/uc-35-summarize-media-content.md) |
-| UC-36 | Generar subtítulos | `subtitles` | No | Candidato; horizonte futuro | [Completa](use-cases/uc-36-generate-subtitles.md) |
-| UC-37 | Generar voz | `speak` | **Sí:** síntesis por fragmentos y GPU | Candidato; horizonte futuro | [Completa](use-cases/uc-37-generate-speech.md) |
-| UC-38 | Doblar un medio | `dub` | **Sí:** composición de etapas y recuperación por etapa | Candidato; horizonte futuro | [Completa](use-cases/uc-38-dub-media.md) |
-| UC-39 | Administrar modelos de inferencia | `models` | **Sí:** descarga e integridad de archivos grandes | Candidato; horizonte futuro | [Completa](use-cases/uc-39-manage-inference-models.md) |
-| UC-40 | Administrar colecciones de medios | `collection` | No | Candidato; horizonte futuro | [Completa](use-cases/uc-40-manage-media-collections.md) |
-| UC-41 | Adquirir el modo sin anuncios | — (Android, iOS) | **Sí:** frontera comercial (BR-54) | Candidato; horizonte futuro | [Completa](use-cases/uc-41-acquire-ad-free-mode.md) |
+| UC-41 | Adquirir acceso a la aplicación | — (interfaces con canal comercial) | **Sí:** contrato de acceso compartido (ADR-0036) | Candidato; reconciliado en la 2.7.0 (antes «Adquirir el modo sin anuncios») | [Completa](use-cases/uc-41-acquire-ad-free-mode.md) |
+| UC-42 | Administrar proyectos de procesamiento | `project` | **Sí:** entidad persistente distinta del job | Candidato (2.7.0) | [Completa](use-cases/uc-42-manage-processing-projects.md) |
+| UC-43 | Administrar voces | `voice` | No | Candidato (2.7.0) | [Completa](use-cases/uc-43-manage-voices.md) |
 
-Objetivos cualificados que **no** se convierten en casos de uso:
-- **Usar IA:** no es un objetivo del User; cada operación es un candidato propio (D-23).
-- **Administrar perfiles de procesamiento:** amplía UC-18 (perfiles) cuando un candidato de IA se acepte; sin flujo hasta entonces.
-- **Consultar capacidades de procesamiento:** se reconcilia con UC-01 y UC-16 (diagnóstico de capacidades), UC-15 (lo que admite una URL), UC-20 (configuración) y UC-27 (dependencias); se ampliará el diagnóstico, sin caso de uso propio.
-- **Administrar flujos de trabajo de procesamiento:** sin diseñador genérico; la composición de etapas está dentro de UC-38 y de la identidad de resultados derivados (BR-55).
-- **Ordenar la cola, acceder a resultados, gestionar los datos de la aplicación:** ampliaciones aceptadas de UC-14, UC-25, UC-20 y UC-10.
-- **Periodo inicial:** comportamiento del sistema, no objetivo del User; sus condiciones son D-25.
-- **Reproducción integrada y vista previa:** sin evidencia de necesidad propia; quedan en la [hoja de ruta](../product-management/product-roadmap.md#2-horizontes) como objetivos por cualificar.
+Objetivos cualificados que **no** se convierten en casos de uso ([análisis, §17.4, §17.8 y §17.10](requirements-analysis.md#1710-necesidades-parciales-disposiciones)):
+- **Usar IA:** no es un objetivo del User; cada operación es un caso de uso (D-23).
+- **Perfiles de procesamiento:** ampliación de UC-18 (A10, propuesta).
+- **Cualificación del dispositivo y consulta de capacidades:** SUP-P10 (propuesto), UC-39 A2 y el diagnóstico (UC-01, UC-16).
+- **Flujos de trabajo de procesamiento:** sin diseñador genérico; la composición está en UC-38 y en BR-55.
+- **Regeneración selectiva y edición de transcripciones:** flujos de UC-33, UC-34, UC-36, UC-37 y UC-38.
+- **Objetivos comerciales** (consultar el acceso, continuar con publicidad, restaurar, adquisición fallida): escenarios de UC-41; el inicio del periodo inicial es un comportamiento automático (D-25).
+- **Reproducción integrada:** objetivo por cualificar en la hoja de ruta; abrir con otra aplicación ya está aceptado (UC-25 A7).
 
 ### 4.1 Capacidades transversales
 
@@ -241,7 +260,7 @@ El inventario de exclusiones y su cualificación están en el [análisis, §12](
 La genera `scripts/check_requirements_model.py` a partir de las especificaciones, y `scripts/run_checks.py` comprueba que esté al día. No se edita a mano.
 
 Tiene tres dimensiones independientes:
-- **Definición** del caso de uso (campo Estado): aceptado o retirado. Los 26 vigentes están aceptados (Responsable, 2026-11-26). Los retirados no tienen especificación y no aparecen.
+- **Definición** del caso de uso (campo Estado): aceptado o retirado. Los 38 vigentes están aceptados (Responsable: 26 el 2026-11-26, UC-29 a UC-32 en la instrucción 2.6.0 y UC-33 a UC-40 en la 2.7.0); los candidatos son objetivos propuestos pendientes de aprobación. Los retirados no tienen especificación y no aparecen.
 - **Implementación de cada flujo** (marca `[estado: …]` del flujo):
   - **implementado**, **parcial** (con una brecha documentada), **defecto** (un escenario vigente se comporta mal), **divergente** (contradice una resolución o el reparto documentado), **ausente** (aceptado sin implementar) o **sin cualificar**;
   - «condicionado» se suma cuando el flujo tiene una condición técnica pendiente (columna Condicionados).
@@ -267,9 +286,9 @@ Que un requisito esté aceptado o especificado no significa que esté implementa
 | UC-15 | aceptado | 6 | 3 | 0 | 0 | 0 | 0 | 9 | 0 | 0 | 0 | 3 | 3 | 3 | sin evidencia | Sí |
 | UC-16 | aceptado | 2 | 1 | 0 | 0 | 0 | 0 | 3 | 0 | 0 | 0 | 0 | 3 | 3 | sin evidencia | No |
 | UC-17 | aceptado | 10 | 2 | 0 | 0 | 0 | 0 | 12 | 0 | 0 | 0 | 8 | 4 | 5 | sin evidencia | Sí |
-| UC-18 | aceptado | 9 | 3 | 0 | 0 | 0 | 0 | 12 | 0 | 0 | 0 | 2 | 2 | 3 | sin evidencia | No |
+| UC-18 | aceptado | 10 | 3 | 0 | 0 | 0 | 0 | 13 | 0 | 0 | 1 | 2 | 2 | 3 | sin evidencia | No |
 | UC-19 | aceptado | 11 | 3 | 0 | 0 | 0 | 0 | 14 | 0 | 1 | 0 | 3 | 3 | 4 | sin evidencia | Sí |
-| UC-20 | aceptado | 10 | 2 | 0 | 0 | 0 | 0 | 12 | 0 | 0 | 0 | 4 | 4 | 3 | sin evidencia | No |
+| UC-20 | aceptado | 10 | 2 | 0 | 0 | 0 | 0 | 12 | 0 | 0 | 0 | 4 | 6 | 3 | sin evidencia | No |
 | UC-21 | aceptado | 10 | 2 | 0 | 0 | 0 | 0 | 12 | 0 | 0 | 0 | 3 | 2 | 3 | sin evidencia | Sí |
 | UC-22 | aceptado | 6 | 3 | 0 | 0 | 0 | 0 | 9 | 0 | 0 | 0 | 4 | 2 | 4 | sin evidencia | No |
 | UC-23 | aceptado | 3 | 3 | 0 | 0 | 0 | 0 | 6 | 0 | 0 | 0 | 4 | 2 | 3 | sin evidencia | No |
@@ -278,20 +297,22 @@ Que un requisito esté aceptado o especificado no significa que esté implementa
 | UC-26 | aceptado | 4 | 2 | 0 | 0 | 0 | 0 | 6 | 0 | 0 | 0 | 5 | 2 | 3 | sin evidencia | Sí |
 | UC-27 | aceptado | 5 | 2 | 0 | 0 | 0 | 0 | 7 | 0 | 1 | 0 | 0 | 3 | 3 | sin evidencia | No |
 | UC-28 | aceptado | 4 | 1 | 0 | 0 | 0 | 0 | 5 | 0 | 0 | 0 | 2 | 3 | 2 | sin evidencia | Sí |
-| UC-29 | aceptado | 6 | 2 | 0 | 0 | 0 | 0 | 8 | 0 | 0 | 0 | 2 | 0 | 4 | sin evidencia | No |
+| UC-29 | aceptado | 6 | 2 | 0 | 0 | 0 | 0 | 8 | 0 | 0 | 0 | 5 | 0 | 5 | sin evidencia | No |
 | UC-30 | aceptado | 8 | 3 | 0 | 0 | 0 | 0 | 11 | 0 | 0 | 0 | 1 | 0 | 4 | sin evidencia | No |
 | UC-31 | aceptado | 7 | 2 | 0 | 0 | 0 | 0 | 9 | 0 | 0 | 0 | 3 | 0 | 4 | sin evidencia | No |
 | UC-32 | aceptado | 5 | 3 | 0 | 0 | 0 | 0 | 8 | 0 | 0 | 0 | 2 | 2 | 3 | sin evidencia | No |
-| UC-33 | candidato | 5 | 2 | 0 | 0 | 0 | 0 | 7 | 0 | 0 | 0 | 2 | 1 | 4 | sin evidencia | Sí |
-| UC-34 | candidato | 4 | 2 | 0 | 0 | 0 | 0 | 6 | 0 | 0 | 0 | 1 | 2 | 3 | sin evidencia | No |
-| UC-35 | candidato | 2 | 1 | 0 | 0 | 0 | 0 | 3 | 0 | 0 | 0 | 1 | 0 | 2 | sin evidencia | No |
-| UC-36 | candidato | 2 | 1 | 0 | 0 | 0 | 0 | 3 | 0 | 0 | 0 | 2 | 0 | 3 | sin evidencia | No |
-| UC-37 | candidato | 2 | 2 | 0 | 0 | 0 | 0 | 4 | 0 | 0 | 0 | 1 | 0 | 2 | sin evidencia | No |
-| UC-38 | candidato | 4 | 2 | 0 | 0 | 0 | 0 | 6 | 0 | 0 | 0 | 2 | 0 | 3 | sin evidencia | No |
-| UC-39 | candidato | 4 | 3 | 0 | 0 | 0 | 0 | 7 | 0 | 0 | 0 | 0 | 1 | 3 | sin evidencia | No |
-| UC-40 | candidato | 3 | 1 | 0 | 0 | 0 | 0 | 4 | 0 | 0 | 0 | 1 | 1 | 2 | sin evidencia | No |
-| UC-41 | candidato | 3 | 1 | 0 | 0 | 0 | 0 | 4 | 0 | 0 | 0 | 2 | 2 | 2 | sin evidencia | No |
-| **Total** | **39** | **276** | **80** | **72** | **2** | **2** | **2** | **278** | **0** | **4** | **0** | — | — | **124** | **10 con prueba** | **19 de 39** |
+| UC-33 | aceptado | 9 | 3 | 0 | 0 | 0 | 0 | 12 | 0 | 0 | 12 | 2 | 0 | 5 | sin evidencia | Sí |
+| UC-34 | aceptado | 7 | 2 | 0 | 0 | 0 | 0 | 9 | 0 | 0 | 9 | 1 | 2 | 4 | sin evidencia | No |
+| UC-35 | aceptado | 5 | 1 | 0 | 0 | 0 | 0 | 6 | 0 | 0 | 6 | 2 | 0 | 3 | sin evidencia | No |
+| UC-36 | aceptado | 7 | 2 | 0 | 0 | 0 | 0 | 9 | 0 | 0 | 9 | 3 | 0 | 4 | sin evidencia | No |
+| UC-37 | aceptado | 5 | 2 | 0 | 0 | 0 | 0 | 7 | 0 | 0 | 7 | 1 | 0 | 3 | sin evidencia | No |
+| UC-38 | aceptado | 7 | 2 | 0 | 0 | 0 | 0 | 9 | 0 | 0 | 9 | 2 | 0 | 4 | sin evidencia | No |
+| UC-39 | aceptado | 8 | 4 | 0 | 0 | 0 | 0 | 12 | 0 | 0 | 12 | 0 | 1 | 4 | sin evidencia | No |
+| UC-40 | aceptado | 6 | 1 | 0 | 0 | 0 | 0 | 7 | 0 | 0 | 7 | 1 | 1 | 3 | sin evidencia | No |
+| UC-41 | candidato | 4 | 2 | 0 | 0 | 0 | 0 | 6 | 0 | 0 | 0 | 2 | 2 | 3 | sin evidencia | No |
+| UC-42 | candidato | 2 | 1 | 0 | 0 | 0 | 0 | 3 | 0 | 0 | 0 | 0 | 0 | 2 | sin evidencia | No |
+| UC-43 | candidato | 2 | 1 | 0 | 0 | 0 | 0 | 3 | 0 | 0 | 0 | 0 | 0 | 1 | sin evidencia | No |
+| **Total** | **41** | **310** | **86** | **72** | **2** | **2** | **2** | **318** | **0** | **4** | **72** | — | — | **137** | **10 con prueba** | **19 de 41** |
 <!-- completeness-matrix:end -->
 
 Las columnas Reglas y Suplementarios cuentan los identificadores distintos que enlaza cada caso de uso.

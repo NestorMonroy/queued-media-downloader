@@ -54,7 +54,7 @@ El sistema consulta la versión publicada en el canal por el que se instaló. Si
 
 ## Criterios de aceptación
 
-1. Una comprobación nunca instala nada por sí sola.
+1. Una comprobación informa; instalar es otro paso, iniciado por el User o gestionado por el canal.
 2. Una instalación de un canal nunca recibe una versión de otro canal.
 3. Tras actualizar, los jobs pendientes y los resultados siguen disponibles.
 

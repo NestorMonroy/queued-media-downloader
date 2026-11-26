@@ -2,7 +2,7 @@
 
 - **Proyecto:** queued-media-downloader
 - **Fase RUP:** Inicio
-- **Versión:** 1.5 (2026-11-26; instrucción 2.6.0: 30 casos de uso aceptados; orientación estratégica de IA y modelo comercial; la transcripción, la traducción y la síntesis de voz dejan de estar fuera del dominio y pasan a candidatos con horizonte futuro). 1.4 (2026-11-26; ampliaciones propuestas del descubrimiento funcional, instrucción 2.5.0, pendientes de aprobación). 1.3 (2026-11-26; **orientación multiplataforma**, instrucción 2.3.0). 1.2: alcance de 26 casos de uso aceptado por el Responsable. 1.1: alcance revisado en la reconciliación de exclusiones. 1.0: 2026-11-23, borrador para revisión
+- **Versión:** 1.6 (2026-11-26; instrucción 2.7.0: 38 casos de uso aceptados con UC-33 a UC-40; modelo comercial ratificado). 1.5 (2026-11-26; instrucción 2.6.0: 30 casos de uso aceptados; orientación estratégica de IA y modelo comercial; la transcripción, la traducción y la síntesis de voz dejan de estar fuera del dominio y pasan a candidatos con horizonte futuro). 1.4 (2026-11-26; ampliaciones propuestas del descubrimiento funcional, instrucción 2.5.0, pendientes de aprobación). 1.3 (2026-11-26; **orientación multiplataforma**, instrucción 2.3.0). 1.2: alcance de 26 casos de uso aceptado por el Responsable. 1.1: alcance revisado en la reconciliación de exclusiones. 1.0: 2026-11-23, borrador para revisión
 
 ---
 
@@ -67,7 +67,9 @@ Formulación del alcance: **administrar de manera persistente, configurable, seg
 
 **Ampliaciones aceptadas** (instrucción 2.6.0; propuestas en la 2.5.0, [análisis de requisitos, §15](requirements-analysis.md#15-descubrimiento-funcional-250)): modificar jobs no terminados (UC-29), suscripciones de contenido y obtención de contenido nuevo (UC-30, UC-31), actualización de la aplicación (UC-32); solicitudes desde otras aplicaciones y portapapeles y reemplazo explícito (UC-02), pausa, prioridad y orden de jobs y acción al terminar la cola (UC-14), usuario y contraseña del sitio (UC-19), selecciones (UC-05, UC-10), perfiles por URL e idioma (UC-18), modo privado y borrado por categoría (UC-20), programación por job (UC-21), abrir, compartir y exportar resultados (UC-25). Son 30 casos de uso aceptados; aceptarlos no autoriza implementarlos.
 
-**Orientación estratégica** (instrucción 2.6.0, [hoja de ruta](../product-management/product-roadmap.md)): el producto evoluciona hacia obtener, organizar y administrar resultados y, después, procesar audio, video y texto con IA. Los objetivos están como candidatos con horizonte futuro (UC-33 a UC-41: transcripción, traducción, resúmenes, subtítulos, voz, doblaje, modelos, colecciones y modo sin anuncios), pendientes de aprobación. El modelo comercial aprobado (15 días iniciales sin anuncios; después, en Android e iOS, con anuncios o sin anuncios adquirido; Windows nunca muestra anuncios) está en el [modelo de negocio](../product-management/business-model-and-case.md).
+**Objetivos de procesamiento y organización aceptados** (instrucción 2.7.0): transcribir (UC-33), traducir (UC-34), resumir (UC-35), generar subtítulos (UC-36), generar voz (UC-37), doblar (UC-38), administrar modelos (UC-39) y colecciones (UC-40). Son 38 casos de uso aceptados; sus flujos alternativos son propuestas y su asignación a entregas está en la [hoja de ruta](../product-management/product-roadmap.md). Candidatos: UC-41 (acceso a la aplicación), UC-42 (proyectos de procesamiento) y UC-43 (voces).
+
+**Orientación estratégica** (instrucción 2.6.0, ratificada en la 2.7.0, [hoja de ruta](../product-management/product-roadmap.md)): el producto evoluciona hacia obtener, organizar y administrar resultados y, después, procesar audio, video y texto con IA. Los objetivos están como candidatos con horizonte futuro (UC-33 a UC-41: transcripción, traducción, resúmenes, subtítulos, voz, doblaje, modelos, colecciones y modo sin anuncios), pendientes de aprobación. El modelo comercial aprobado (15 días iniciales sin anuncios; después, en Android e iOS, con anuncios o sin anuncios adquirido; Windows nunca muestra anuncios) está en el [modelo de negocio](../product-management/business-model-and-case.md).
 
 ## 5. Restricciones
 
@@ -81,7 +83,7 @@ Formulación del alcance: **administrar de manera persistente, configurable, seg
 
 Cada exclusión está cualificada en el [análisis, §12](requirements-analysis.md#12-reconciliación-de-exclusiones), que separa la necesidad de la solución. Excluir una tecnología o una interfaz no excluye la necesidad que resolvería.
 
-**Fuera del dominio:** clonación de voz; edición multimedia general; administración general de cuentas; recortes de voz para otros productos.
+**Fuera del dominio:** clonación de voz (exclusión aprobada en `7dc9842` y no revertida; generar voz no la presupone y su revisión es una cuestión abierta del Responsable); edición multimedia general; administración general de cuentas; recortes de voz para otros productos.
 
 **Restricciones vigentes:**
 - PO Tokens y cualquier mecanismo para evadir los controles, bloqueos o restricciones geográficas de un sitio (decisión del Responsable, 2026-11-26), incluidos cambiar de cliente de YouTube y rotar proxies o agentes de usuario;

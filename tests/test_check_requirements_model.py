@@ -59,11 +59,19 @@ PLAN = """# Plan
 <!-- e3-dependencies:end -->
 
 <!-- e3-coverage:start -->
-| UC | Flujos | Unidad | Alcance |
-|---|---|---|---|
-| UC-01 | Básico, A2 | U1 | Aceptado |
-| UC-01 | E1 | U2 | Aceptado |
+| UC | Flujos | Unidad | Planificación | Horizonte o condición |
+|---|---|---|---|---|
+| UC-01 | Básico, A2 | U1 | Planificado | E3 |
+| UC-01 | E1 | U2 | Planificado | E3 |
 <!-- e3-coverage:end -->
+"""
+ROADMAP_PATH = "doc/product-management/product-roadmap.md"
+ROADMAP = """# Hoja de ruta
+
+| Horizonte | Contenido |
+|---|---|
+| H1. Primera | Algo |
+| H5. Posterior | Otra cosa |
 """
 
 
@@ -123,6 +131,7 @@ def repository(tmp_path: Path) -> Path:
     write(tmp_path / "doc/design/03-target-architecture-and-evolution.md", DESIGN)
     write(tmp_path / "doc/project-management/iteration-plan-e3.md", PLAN)
     write(tmp_path / GOVERNANCE_PATH, GOVERNANCE)
+    write(tmp_path / ROADMAP_PATH, ROADMAP)
     subprocess.run(
         [sys.executable, str(SCRIPT), "--root", str(tmp_path), "--write"],
         check=True,
@@ -344,8 +353,8 @@ def test_available_on_windows_requires_automated_tests(repository: Path) -> None
     ("change", "messages"),
     [
         (
-            ("| UC-01 | E1 | U2 | Aceptado |\n", ""),
-            ["UC-01 E1 has no unit", "U2 covers no flow"],
+            ("| UC-01 | E1 | U2 | Planificado | E3 |\n", ""),
+            ["UC-01 E1 has no unit", "U2 has no Planificado flow"],
         ),
         (
             ("| UC-01 | E1 | U2 |", "| UC-01 | E1, A2 | U2 |"),
@@ -357,7 +366,7 @@ def test_available_on_windows_requires_automated_tests(repository: Path) -> None
         ),
         (
             ("| UC-01 | E1 | U2 |", "| UC-01 | E1 | U9 |"),
-            ["UC-01 uses unknown unit U9", "U2 covers no flow"],
+            ["UC-01 is Planificado with unknown unit U9", "U2 has no Planificado flow"],
         ),
         (
             ("| U1 | — | — | Primera |", "| U1 | U2 | Diseño | Primera |"),
@@ -428,9 +437,7 @@ def add_proposed_flow(repository: Path) -> None:
     )
 
 
-def test_a_proposed_flow_needs_the_proposed_scope_in_the_plan(
-    repository: Path,
-) -> None:
+def test_a_proposed_flow_is_planned_as_a_candidate(repository: Path) -> None:
     add_proposed_flow(repository)
     assert "UC-01 A3 has no unit" in check(repository).stdout
 
@@ -438,28 +445,93 @@ def test_a_proposed_flow_needs_the_proposed_scope_in_the_plan(
         repository / PLAN_PATH,
         PLAN.replace(
             "<!-- e3-coverage:end -->",
-            "| UC-01 | A3 | U2 | Aceptado |\n<!-- e3-coverage:end -->",
+            "| UC-01 | A3 | U2 | Planificado | E3 |\n<!-- e3-coverage:end -->",
         ),
     )
-    assert "UC-01 A3 must have scope Propuesto" in check(repository).stdout
+    assert "UC-01 A3 awaits approval and must be Candidato" in check(repository).stdout
 
     write(
         repository / PLAN_PATH,
         PLAN.replace(
             "<!-- e3-coverage:end -->",
-            "| UC-01 | A3 | U2 | Propuesto |\n<!-- e3-coverage:end -->",
+            "| UC-01 | A3 | — | Candidato | H5 |\n<!-- e3-coverage:end -->",
         ),
     )
     assert check(repository).returncode == 0
 
 
-def test_an_unknown_scope_fails(repository: Path) -> None:
-    write(repository / PLAN_PATH, PLAN.replace("| U2 | Aceptado |", "| U2 | Quizá |"))
+@pytest.mark.parametrize(
+    ("row", "message"),
+    [
+        (
+            "| UC-01 | E1 | U2 | Quizá | E3 |",
+            "UC-01 has unknown planning state 'Quizá'",
+        ),
+        (
+            "| UC-01 | E1 | U9 | Planificado | E3 |",
+            "UC-01 is Planificado with unknown unit U9",
+        ),
+        ("| UC-01 | E1 | U2 | Futuro | H5 |", "UC-01 is Futuro but names unit U2"),
+        (
+            "| UC-01 | E1 | — | Futuro | más tarde |",
+            "UC-01 is Futuro without a roadmap horizon",
+        ),
+        (
+            "| UC-01 | E1 | — | Futuro | H9 |",
+            "UC-01 is Futuro without a roadmap horizon",
+        ),
+        (
+            "| UC-01 | E1 | — | Candidato | H5 |",
+            "UC-01 E1 is approved and cannot be Candidato",
+        ),
+        (
+            "| UC-01 | E1 | U2 | Bloqueado | D-1 |",
+            "UC-01 is Bloqueado without a pending decision",
+        ),
+        (
+            "| UC-01 | E1 | — | No aplicable | — |",
+            "UC-01 is No aplicable without a reason",
+        ),
+    ],
+)
+def test_each_planning_state_needs_its_justification(
+    repository: Path, row: str, message: str
+) -> None:
+    write(
+        repository / PLAN_PATH,
+        PLAN.replace("| UC-01 | E1 | U2 | Planificado | E3 |", row),
+    )
+
+    assert message in check(repository).stdout
+
+
+def test_future_and_blocked_flows_are_valid_with_their_justification(
+    repository: Path,
+) -> None:
+    write(
+        repository / GOVERNANCE_PATH,
+        GOVERNANCE.replace(
+            "<!-- decision-register:end -->",
+            "| D-2 | Otra | Requisitos | Pendiente |\n<!-- decision-register:end -->",
+        ),
+    )
+    write(
+        repository / "doc/requirements/requirements-analysis.md",
+        "# Análisis\n\n### D-1. Algo\n\n### D-2. Otra\n",
+    )
+    plan = PLAN.replace(
+        "| UC-01 | Básico, A2 | U1 | Planificado | E3 |",
+        "| UC-01 | Básico | U1 | Planificado | E3 |\n| UC-01 | A2 | — | Futuro | H5 |",
+    ).replace(
+        "| UC-01 | E1 | U2 | Planificado | E3 |",
+        "| UC-01 | E1 | U2 | Bloqueado | Depende de D-2 |",
+    )
+    write(repository / PLAN_PATH, plan)
 
     result = check(repository)
 
-    assert result.returncode == 1
-    assert "UC-01 has unknown scope 'Quizá'" in result.stdout
+    assert "UC-01" not in result.stdout.replace("U2 has no Planificado flow", "")
+    assert "U2 has no Planificado flow" in result.stdout
 
 
 def test_a_candidate_use_case_is_planned_as_a_proposal_and_designed_as_a_candidate(
@@ -481,7 +553,7 @@ def test_a_candidate_use_case_is_planned_as_a_proposal_and_designed_as_a_candida
         repository / PLAN_PATH,
         PLAN.replace(
             "<!-- e3-coverage:end -->",
-            "| UC-02 | Básico, A1 | U2 | Propuesto |\n<!-- e3-coverage:end -->",
+            "| UC-02 | Básico, A1 | — | Candidato | H5 |\n<!-- e3-coverage:end -->",
         ),
     )
     design = DESIGN.replace(
@@ -523,61 +595,6 @@ def test_a_proposal_is_not_mixed_with_approved_requirements(repository: Path) ->
     assert "BR-01 is both proposed and approved" in result.stdout
     assert "SUP-F01 is both proposed and accepted" in result.stdout
     assert "BR-02 has no strategy in the plan" in result.stdout
-
-
-FUTURE_CANDIDATE = CANDIDATE.replace(
-    "Implementación: ausente.", "Horizonte: futuro. Implementación: ausente."
-)
-FUTURE_DESIGN = DESIGN.replace(
-    "<!-- uc-realization:end -->",
-    "| UC-02 | Propuesta | Candidato |\n<!-- uc-realization:end -->",
-).replace(
-    "<!-- platform-applicability:end -->",
-    "| UC-02 | Futura | Futura | Futura | Futura | — |\n"
-    "<!-- platform-applicability:end -->",
-)
-ROADMAP_UNIT = "| Roadmap | — | — | Fuera de E3 |\n<!-- e3-dependencies:end -->"
-
-
-def test_a_future_candidate_is_planned_in_the_roadmap(repository: Path) -> None:
-    write(repository / "doc/requirements/use-cases/uc-02-future.md", FUTURE_CANDIDATE)
-    write(repository / DESIGN_PATH, FUTURE_DESIGN)
-    subprocess.run(
-        [sys.executable, str(SCRIPT), "--root", str(repository), "--write"],
-        check=False,
-        capture_output=True,
-        timeout=60,
-    )
-    plan = PLAN.replace("<!-- e3-dependencies:end -->", ROADMAP_UNIT)
-
-    write(
-        repository / PLAN_PATH,
-        plan.replace(
-            "<!-- e3-coverage:end -->",
-            "| UC-02 | Básico, A1 | Roadmap | Propuesto |\n<!-- e3-coverage:end -->",
-        ),
-    )
-    result = check(repository).stdout
-    assert "UC-02 Básico must have scope Futuro" in result
-    assert "UC-02 uses scope Futuro only with unit Roadmap" in result
-
-    write(
-        repository / PLAN_PATH,
-        plan.replace(
-            "<!-- e3-coverage:end -->",
-            "| UC-02 | Básico, A1 | U2 | Futuro |\n<!-- e3-coverage:end -->",
-        ),
-    )
-    assert "UC-02 uses scope Futuro only with unit Roadmap" in check(repository).stdout
-
-    write(
-        repository / PLAN_PATH,
-        plan.replace(
-            "<!-- e3-coverage:end -->",
-            "| UC-02 | Básico, A1 | Roadmap | Futuro |\n<!-- e3-coverage:end -->",
-        ),
-    )
-    assert check(repository).returncode == 0
 
 
 @pytest.mark.parametrize(

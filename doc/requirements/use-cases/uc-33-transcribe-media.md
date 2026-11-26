@@ -1,69 +1,76 @@
 # UC-33: Transcribir un medio
 
-- **Objetivo:** el User obtiene el texto hablado de un audio o video, con marcas de tiempo por segmento, como un resultado propio que puede consultar, exportar y reutilizar.
+- **Objetivo:** el User obtiene el texto hablado de un audio o un video, con segmentos y marcas de tiempo, como un resultado que puede consultar, corregir, exportar y reutilizar.
 - **Actor principal:** User
-- **Disparador:** el User pide la transcripción de un resultado existente o de un archivo local.
+- **Disparador:** el User pide la transcripción de un medio local, de un resultado ya obtenido o de un contenido remoto compatible.
 - **Prioridad:** media.
-- **Significativo para la arquitectura:** sí: primera operación que no es una descarga; resultado derivado con identidad propia (BR-55), modelo, recursos y cancelación distintos de los de yt-dlp.
-- **Estado:** candidato (propuesta de la instrucción 2.6.0, pendiente de aprobación del Responsable). Horizonte: futuro. Implementación: ausente.
+- **Significativo para la arquitectura:** sí: primer resultado derivado (BR-55, ADR-0035), con recursos, cancelación y recuperación distintos de los de yt-dlp.
+- **Estado:** aceptado (Responsable, instrucción 2.7.0): el objetivo y su flujo básico están en el alcance del producto. Los flujos alternativos y de excepción son propuestas (instrucciones 2.6.0 y 2.7.0) pendientes de aprobación: aceptar el objetivo no aprueba todos sus flujos, mecanismos, modelos ni runtimes. Implementación: ausente.
 - **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
-- **Origen:** VoiceStudio (`asr_backend.py`, `subprocess_asr_base.py`: motores de transcripción aislados en un proceso hijo que convierte un fallo nativo en un job fallido; historial de transcripciones con límite de 200 entradas, copiar y exportar texto) y VoiceBlueprintPro (derivado de VoiceStudio). Evidencia y nivel en el [análisis de requisitos, §16](../requirements-analysis.md#16-descubrimiento-260-ia-privacidad-y-modelo-comercial).
-- **Independencia:** UC-24 obtiene subtítulos publicados por el sitio sin procesar el audio; aquí el texto se produce a partir del audio. UC-36 da formato de subtítulos a una transcripción.
+- **Origen:** VoiceStudio (`asr_backend.py`, `subprocess_asr_base.py`; historial de transcripciones; exportación de texto) como evidencia de flujos; orientación estratégica aprobada en la instrucción 2.6.0 y objetivo aceptado en la 2.7.0. Evidencia en el [análisis, §16.2 y §17](../requirements-analysis.md#17-consolidación-270).
+- **Independencia:** UC-24 **obtiene** subtítulos o transcripciones que ya publica el sitio; aquí se **generan** a partir del audio. UC-36 convierte una transcripción en subtítulos sincronizados. UC-34 traduce.
 
 ## Breve descripción
 
-El User elige la entrada (un resultado registrado o un archivo local), el idioma hablado (o detección automática) y el modelo. El sistema crea un job de procesamiento, extrae el audio, ejecuta la transcripción por segmentos y registra la transcripción como resultado derivado de la entrada.
+El User elige la entrada: un archivo de audio o video local, un resultado ya obtenido (UC-25) o un contenido remoto compatible, del que basta obtener el audio. Indica el idioma hablado o pide detectarlo, y elige un modelo instalado (UC-39). El sistema produce una transcripción con segmentos y marcas de tiempo y la registra como resultado derivado de su entrada, con su especificación de procesamiento.
 
 ## Precondiciones
 
-- UC-01 completado; al menos un modelo de transcripción disponible (UC-39).
-- La entrada existe y es legible.
+- UC-01 completado; existe al menos un modelo de transcripción utilizable en el equipo (UC-39) o un proveedor configurado por el User.
+- La entrada existe y es legible, o es un contenido remoto compatible.
 
 ## Flujo básico
 
-1. El User elige la entrada, el idioma hablado y el modelo.
-2. El sistema calcula la identidad del resultado derivado ([BR-55](../business-rules.md)) y comprueba si ya existe uno equivalente.
-3. El sistema crea un job de procesamiento con la admisión de recursos de la operación (diseño, §18.4).
-4. El sistema extrae el audio de la entrada con ffmpeg a un resultado intermedio.
-5. El sistema transcribe por segmentos y guarda cada segmento terminado como evidencia recuperable.
-6. El sistema publica la transcripción (texto y segmentos con marcas de tiempo) como resultado del job y la registra con su procedencia: entrada, modelo y versión, parámetros.
+1. El User elige la entrada, el idioma hablado (o la detección) y el modelo.
+2. El sistema calcula la especificación de procesamiento y busca un resultado reutilizable que cumpla las condiciones de [BR-55](../business-rules.md).
+3. Si no lo hay, el sistema crea un job de transcripción admitido según los recursos de la operación (diseño, §18.4).
+4. El sistema prepara la entrada de audio: la extrae del archivo local o del resultado, o la obtiene del contenido remoto sin exigir el video completo.
+5. El sistema transcribe por segmentos y conserva cada segmento terminado como evidencia de recuperación.
+6. El sistema publica la transcripción (texto, segmentos, marcas de tiempo e idioma) como resultado del job, con su procedencia.
 
 ## Flujos alternativos
 
-- **A1. Transcripción equivalente existente** `[estado: ausente]` (paso 2): el sistema ofrece reutilizarla en lugar de procesar de nuevo.
-- **A2. Detección automática del idioma** `[estado: ausente]` (paso 1): el modelo detecta el idioma; el detectado queda registrado con la transcripción.
-- **A3. Reanudar tras una interrupción** `[estado: ausente]` (paso 5): los segmentos ya terminados no se repiten; se continúa desde el primero que falta.
-- **A4. Cancelar** `[estado: ausente]` (paso 5): el job se cancela en el siguiente punto seguro; los segmentos terminados se descartan o se conservan según la política de recuperación, nunca como resultado publicado.
-- **A5. Modelo no instalado** `[estado: ausente]` (paso 1): el sistema ofrece instalarlo con UC-39 antes de crear el job.
+- **A1. Reutilizar una transcripción existente** `[estado: ausente; propuesto]` (paso 2): hay un resultado que cumple BR-55; el sistema lo ofrece y el User decide reutilizarlo o generar otro.
+- **A2. Obtener una transcripción ya publicada** `[estado: ausente; propuesto]` (paso 1): el contenido remoto publica subtítulos o transcripción; el sistema ofrece obtenerla con UC-24 en lugar de generarla.
+- **A3. Detección de idioma** `[estado: ausente; propuesto]` (paso 1): el modelo detecta el idioma; el detectado queda registrado con la transcripción.
+- **A4. Identificación de hablantes** `[estado: ausente; propuesto]` (paso 5): el User pide distinguir hablantes; si el modelo o un componente de diarización lo admite, cada segmento lleva una etiqueta de hablante; si no, el sistema lo indica antes de empezar.
+- **A5. Reanudar tras una interrupción** `[estado: ausente; propuesto]` (paso 5): los segmentos con evidencia válida no se repiten; se continúa desde el primero que falta, sin publicar nada a medias.
+- **A6. Corregir la transcripción** `[estado: ausente; propuesto]` (paso 6): el User edita el texto o las marcas de tiempo de uno o varios segmentos; la corrección crea una nueva revisión del resultado y conserva la anterior.
+- **A7. Reprocesar una selección** `[estado: ausente; propuesto]` (paso 6): el User pide transcribir de nuevo solo algunos segmentos, con otro modelo o parámetros; los demás se conservan y la nueva revisión registra qué segmentos cambiaron.
+- **A8. Exportar** `[estado: ausente; propuesto]` (paso 6): el User exporta la transcripción como texto o en un formato con marcas de tiempo; la exportación es una copia (BR-52).
+- **A9. Cancelar** `[estado: ausente; propuesto]` (paso 5): el job se cancela en el siguiente punto seguro; los segmentos terminados se conservan o descartan según su contrato de recuperación y nunca se publican como resultado completo.
 
 ## Excepciones
 
-- **E1. Recursos insuficientes** `[estado: ausente]` (paso 3): la admisión rechaza o aplaza el job con el recurso que falta (memoria, memoria de la GPU, disco); no se carga un modelo que no cabe.
-- **E2. Fallo del motor** `[estado: ausente]` (paso 5): el motor falla o termina de forma anómala; el job falla con la condición clasificada y el proceso del producto sigue en pie.
+- **E1. Recursos no disponibles** `[estado: ausente; propuesto]` (paso 3): falta o está ocupado un recurso que la operación necesita (memoria, memoria de GPU, disco); la admisión aplaza o rechaza el job con el recurso concreto.
+- **E2. Fallo del motor** `[estado: ausente; propuesto]` (paso 5): el motor falla o termina de forma anómala; el job falla con una condición clasificada y el proceso del producto sigue funcionando.
+- **E3. Entrada sin audio utilizable** `[estado: ausente; propuesto]` (paso 4): la entrada no tiene pista de audio o no se puede decodificar; el job falla con esa condición.
 
 ## Postcondiciones
 
-- Existe una transcripción registrada con la identidad de su entrada, modelo y parámetros, o el job terminó con una condición clasificada.
-- La entrada no se modificó.
+- Existe una transcripción registrada con su procedencia, o el job terminó con una condición clasificada.
+- La entrada no cambió.
 
 ## Requisitos especiales
 
-- Prueba sin modelos: un motor simulado con salida determinista (como `make test` en kimi-k3-in-c).
+- Las pruebas automáticas no necesitan modelos: un motor simulado determinista sustituye al real.
+- La igualdad de petición no implica igualdad binaria del resultado (diseño, §18.2).
 
 ## Reglas, requisitos y restricciones asociados
 
-- [BR-55](../business-rules.md) (propuesta), [BR-53](../business-rules.md); SUP-D03; UC-25, UC-26, UC-39; diseño, §18.
+- [BR-52](../business-rules.md), [BR-55](../business-rules.md); UC-24, UC-25, UC-26, UC-39; diseño, §18.
 
 ## Criterios de aceptación
 
-1. Transcribir dos veces la misma entrada con el mismo modelo y parámetros ofrece reutilizar el resultado.
-2. Una interrupción a mitad no repite los segmentos terminados.
-3. Un fallo del motor no termina el proceso del producto.
-4. La entrada queda intacta.
+1. Una transcripción se registra con su entrada, modelo, versión y parámetros que la afectan.
+2. Una interrupción no repite segmentos con evidencia válida ni publica un resultado incompleto.
+3. Un contenido remoto se transcribe sin exigir el video completo cuando basta el audio.
+4. Una corrección conserva la revisión anterior.
+5. Un fallo del motor no termina el proceso del producto.
 
 ## Escenarios de prueba
 
 | Escenario | Dónde |
 |---|---|
-| Transcripción con un motor simulado, interrupción y reanudación | Desarrollo |
-| Rendimiento con un modelo real en el hardware objetivo | **Windows** |
+| Motor simulado: interrupción, reanudación, corrección y reproceso de una selección | Desarrollo |
+| Rendimiento y calidad con un modelo real en el hardware objetivo | **Windows** |

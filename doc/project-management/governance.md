@@ -15,6 +15,25 @@ Este documento reúne en un solo lugar los artefactos de dirección de proyectos
 | BABOK v3 | Requisitos: elicitación, análisis, trazabilidad, priorización, aprobación | Visión, modelo de casos de uso, especificaciones, reglas de negocio, especificación suplementaria, análisis de requisitos |
 | RUP | Ingeniería: fases, iteraciones, disciplinas de análisis y diseño, implementación y pruebas | Caso de desarrollo, documentos de diseño, ADR, planes de iteración |
 
+**Responsabilidad y autoridad metodológica principal** (instrucción 2.7.0, §6; no implica departamentos ni personas distintas):
+
+| Responsabilidad | Autoridad metodológica principal |
+|---|---|
+| Estrategia de negocio | Gestión del producto y PMBOK |
+| Modelo de negocio | Gestión del producto y análisis de negocio |
+| Alcance del producto | BABOK y gestión del alcance |
+| Requisitos | BABOK y RUP |
+| Arquitectura | Análisis y diseño de RUP |
+| Diseño técnico | RUP y Clean Code |
+| Dirección del proyecto | PMBOK |
+| Publicación y distribución | Despliegue y gestión del producto |
+| Verificación | Pruebas de RUP y gestión de la calidad |
+| Aceptación | Validación del alcance y Responsable del producto |
+
+**Autoridad de una afirmación** (§7 de la instrucción): una **decisión del Responsable** es una disposición expresa suya; una **propuesta técnica**, una alternativa de la ejecución técnica; un **hecho verificado**, algo comprobado con su evidencia; un **supuesto**, algo pendiente de verificar; un **riesgo**, una condición incierta; una **incidencia**, un problema existente; un **defecto**, un incumplimiento demostrado; una **condición externa**, la de una autoridad o dependencia externa; un **requisito aprobado**, un comportamiento aceptado; un **trabajo aprobado**, uno cuya ejecución está autorizada. Aprobar una investigación no aprueba sus conclusiones, y aceptar un objetivo no acepta todas las reglas o tecnologías propuestas para él.
+
+**Límites de autorización:** «no se autoriza implementar X en esta actividad», «X no está aprobado», «X está diferido», «X no es aplicable» y «X está prohibido» son disposiciones distintas. Un límite de autorización de una instrucción nunca se registra como restricción del producto ([análisis, §17.2](../requirements/requirements-analysis.md#172-revisión-de-disposiciones-absolutas)).
+
 PMBOK 8 se usó desde el PDF entregado (386 páginas); se verificaron los siete dominios de desempeño (Gobierno, Alcance, Cronograma, Finanzas, Interesados, Recursos, Riesgo), los procesos de cada dominio, la adaptación (§3), las áreas de enfoque (§4.5) y las consideraciones de gestión del producto (§2.3).
 
 ## 2. Roles y autoridades
@@ -80,7 +99,7 @@ La columna «Adaptación» dice cómo se aplica cada proceso en un proyecto de u
 | Plan Scope Management | Este documento (§5, §6) y el caso de desarrollo |
 | Elicit and Analyze Requirements | Disciplina de requisitos con técnicas de BABOK v3; el análisis de requisitos es el registro |
 | Define Scope | Visión (alcance del producto) y plan de iteración (alcance del proyecto) |
-| Develop Scope Structure | EDT por unidades U1 a U16 y Roadmap en el [plan de E3, §12](iteration-plan-e3.md#12-edt-y-líneas-base) |
+| Develop Scope Structure | EDT por unidades U1 a U16 en el [plan de E3, §12](iteration-plan-e3.md#12-edt-y-líneas-base); la hoja de ruta no es una unidad |
 | Monitor and Control Scope | Tablas de cobertura verificadas automáticamente: cada flujo pendiente tiene una sola unidad y un alcance |
 | Validate Scope | Aceptación de la iteración por el Responsable con los criterios del plan |
 
@@ -150,11 +169,11 @@ Las cinco áreas de enfoque (inicio, planificación, ejecución, seguimiento y c
 
 | Línea base | Artefacto | Contenido |
 |---|---|---|
-| Alcance del producto | Visión y modelo de casos de uso | 30 casos aceptados, las reglas aprobadas y los requisitos aceptados |
+| Alcance del producto | Visión, modelo de casos de uso y [hoja de ruta, §2](../product-management/product-roadmap.md#2-alcance-del-producto) | 38 casos aceptados, las reglas aprobadas y los requisitos aceptados |
 | Candidatos | Modelo de casos de uso, §4.3 | Objetivos documentados pendientes de aprobación |
-| Alcance de publicación propuesto | [Hoja de ruta](../product-management/product-roadmap.md#3-alcance-de-publicación-propuesto) | Propuesta, no aprobada |
+| Alcance de publicación propuesto | [Hoja de ruta](../product-management/product-roadmap.md#4-alcance-propuesto-de-la-primera-entrega-de-windows) | Propuesta, no aprobada |
 | Alcance de la iteración E3 | Plan de E3 (unidades U1 a U16) | Planificado; ejecución no autorizada |
-| Hoja de ruta posterior | Hoja de ruta, unidad Roadmap | Candidatos con «Horizonte: futuro» |
+| Hoja de ruta posterior | [Hoja de ruta, §3](../product-management/product-roadmap.md#3-horizontes) | Horizontes H2 a H9; no es una unidad de trabajo |
 | Decisiones pendientes | Registro de decisiones (§8) | Estado «Pendiente» |
 | Dependencias | Plan de E3, §3 | Grafo de unidades sin ciclos |
 
@@ -173,8 +192,11 @@ Las cinco áreas de enfoque (inicio, planificación, ejecución, seguimiento y c
 
 | Incidencia | Estado |
 |---|---|
-| La evidencia de GreenTuber proviene de APK modificados; no sirve para mecanismos comerciales | Registrada; excluida del análisis comercial ([análisis de requisitos, §16.5](../requirements/requirements-analysis.md#165-mecanismos-comerciales)) |
+| La evidencia de GreenTuber proviene de APK firmados por `TRUMods`, no por el desarrollador | Clasificada por naturaleza y grado; no se atribuye a la versión oficial ([análisis de requisitos, §17.7](../requirements/requirements-analysis.md#177-greentuber-clasificación-de-la-evidencia)) |
 | La versión de Google Play de GreenTuber no está disponible para análisis | Abierta; la capacidad de descarga en esa versión es una declaración del Responsable |
+| El commit `46b897e` se publicó con dos líneas de cuerpo de 73 caracteres (defecto demostrado) | Corregida la causa con hooks y pruebas negativas (`cc6660a`); el commit se conserva sin reescribir ([caso de desarrollo](../process/development-case.md#procedimiento-de-commit-y-publicación-stop-on-error)) |
+| UC-29 A1 contradecía BR-32 y el diseño, §6.2, sobre el destino en la identidad | Corregida: identidad portable y local (UC-29, matriz de modificaciones) |
+| Un clon nuevo no tiene los hooks hasta instalarlos (Git no los instala al clonar) | Abierta como limitación; `scripts/git_hooks.py check` la detecta |
 
 ### 7.3 Cambios
 
@@ -185,6 +207,13 @@ Las cinco áreas de enfoque (inicio, planificación, ejecución, seguimiento y c
 | 2.6.0 | BR-46 a BR-52 pasan a aprobadas con redacción revisada | Aprobado |
 | 2.6.0 | D-22, D-23 y D-24 se resuelven | Aprobado |
 | 2.6.0 | Nuevos candidatos de IA y comerciales con «Horizonte: futuro» | Pendiente de aprobación |
+| 2.7.0 | UC-33 a UC-40 aceptados (objetivo y flujo básico); sus demás flujos quedan propuestos | Aprobado (objetivos) |
+| 2.7.0 | UC-41 reconciliado como «Adquirir acceso a la aplicación»; candidatos UC-42 y UC-43 | Pendiente de aprobación |
+| 2.7.0 | BR-49 delimitada; SUP-D03 sin prohibición general; BR-54 separa preservación y elegibilidad; BR-55 aprobada en su orientación | Aprobado (disposiciones de la instrucción) |
+| 2.7.0 | Retiradas restricciones que eran límites de autorización (§17.2 del análisis) | Aprobado |
+| 2.7.0 | ADR-0035 y ADR-0036 con orientación aceptada y detalles pendientes | Aprobado (orientación) |
+| 2.7.0 | La hoja de ruta deja de ser una unidad; estados de planificación en el verificador | Aprobado |
+| 2.7.0 | Hooks `commit-msg` y `pre-push` con pruebas negativas | Aprobado |
 
 ### 7.4 Lecciones aprendidas
 
@@ -195,6 +224,10 @@ Las cinco áreas de enfoque (inicio, planificación, ejecución, seguimiento y c
 | Analizar flujos y objetivos, no binarios | Corrección del Responsable sobre los APK | La ausencia de bibliotecas nativas en un APK no es un hallazgo |
 | Los APK modificados se analizan estáticamente, sin excluirlos | Corrección del Responsable (2.6.0) | Solo análisis estático; nunca instalar ni ejecutar; sin procedimientos para eludir pagos |
 | En la 2.6.0 se presentaron como hechos deducciones sobre GreenTuber (fork sin monetización, capa «injertada», «builds de Aptoide», facturación activa en las dos versiones) | Corrección del Responsable (2.6.0) | Cada afirmación lleva su fuente (manifiesto, firma, cadena); lo no comprobable se declara «no determinable» |
+| Una similitud de `quick_ratio()` se presentó como coincidencia completa entre VoiceStudio y VoiceBlueprintPro | Instrucción 2.7.0 | Comparación exacta por blobs; ninguna conclusión de procedencia por similitud |
+| Un validador seguido de una tubería devolvió el código de `tail`, no el suyo | Instrucción 2.7.0 | El comando que decide nunca va seguido de una tubería; hooks que hacen obligatoria la validación |
+| Los niveles L0 a L5 mezclaban la naturaleza del recurso con lo que demuestra | Instrucción 2.7.0 | Dos dimensiones: naturaleza y grado de demostración |
+| Se convirtieron límites de autorización en restricciones del producto | Instrucción 2.7.0 | Revisión de disposiciones absolutas por origen y autoridad |
 
 ## 8. Registro de decisiones
 
@@ -227,8 +260,25 @@ Las decisiones se definen y argumentan en el [análisis de requisitos](../requir
 | D-22 | Reemplazo de archivos solo por petición explícita | Requisitos | Aprobada |
 | D-23 | Consumo e IA descompuestos en objetivos distintos | Gestión del producto | Aprobada |
 | D-24 | Modelo comercial y canales separados por responsabilidad | Gestión del producto | Aprobada |
-| D-25 | Periodo inicial: inicio, duración, reinstalación, sin conexión, vencimiento | Gestión del producto | Pendiente |
-| D-26 | Adquisición del modo sin anuncios: modalidad, precio, alcance, restauración, reembolsos | Gestión del producto | Pendiente |
-| D-27 | Canales por plataforma y Windows tras el periodo inicial | Publicación y distribución | Pendiente |
-| D-28 | Inferencia y costes de la IA | Gestión del producto | Pendiente |
+| D-25 | Periodo inicial (duración resuelta): evento, cómputo, persistencia, reinstalación, sin conexión, transición | Gestión del producto | Pendiente |
+| D-26 | Adquisición comercial: precio, modalidad, alcance, restauración, capacidades incluidas | Gestión del producto | Pendiente |
+| D-27 | Windows tras el periodo y distribución, en cinco cuestiones separadas | Estrategia de negocio, Gestión del producto, Requisitos, Arquitectura, Publicación | Pendiente |
+| D-28 | IA y modelo comercial, en seis cuestiones separadas | Alcance, Modelo de negocio, Finanzas, Arquitectura, Cualificación, Diseño técnico | Pendiente |
 <!-- decision-register:end -->
+
+## 9. Control semántico de las decisiones significativas
+
+La fila del registro no basta: cada disposición significativa conserva su origen, su resolución y lo que realmente bloquea, y no excede la autoridad que la originó. Las cuestiones pendientes detalladas de D-25 a D-28 están en el [análisis, §17.9](../requirements/requirements-analysis.md#179-decisiones-comerciales-y-de-ia-pendientes).
+
+| Decisión | Categoría | Disposición del Responsable | Disposición aprobada | Pendiente | Autoridad | Impacto | Trabajo bloqueado | Revisión |
+|---|---|---|---|---|---|---|---|---|
+| D-25 | Comercial | 15 días sin publicidad en todas las plataformas (2.6.0, ratificado en la 2.7.0) | Duración | Evento, cómputo, persistencia, reinstalación, sin conexión, transición | Gestión del producto; Arquitectura (mecanismos) | Contrato de acceso | Ninguno en E3 salvo el punto de extensión de U7 | Antes de diseñar el contrato de acceso |
+| D-26 | Comercial | Modalidad sin publicidad adquirible en Android e iOS | Existencia de la modalidad | Precio, contratación, alcance, restauración, capacidades | Gestión del producto | Adaptadores | Ninguno | Antes de publicar en tiendas |
+| D-27 | Comercial y distribución | Windows sin publicidad; periodo inicial también en Windows | Ausencia de publicidad en Windows | Continuidad, capacidades, operaciones, verificación, canal | Cinco responsabilidades | CLI, GUI, canales | Ninguno en E3 salvo el punto de extensión de U7 | Antes de la primera publicación de Windows |
+| D-28 | IA y negocio | UC-33 a UC-40 aceptados (2.7.0) | Objetivos | Capacidades por modalidad, costes, local o remoto, modelos, runtimes | Seis responsabilidades | Procesamiento | Ninguno en E3 | Antes de asignar H5 a una entrega |
+| BR-49 | Privacidad | Modo privado acotado por comportamientos (2.6.0); delimitado (2.7.0) | Contrato de UC-20 A8 | — | Requisitos | Datos del producto | Ninguno | Al implementar U16 |
+| SUP-D03 | Privacidad | Corregir la prohibición general no aprobada (2.7.0) | Inventario de datos; clases nuevas con su decisión | — | Requisitos | Datos del producto | Ninguno | Por versión |
+| BR-54 | Comercial | Preservación; revisar «nunca detiene» (2.7.0) | Preservación, coherencia e independencia | Elegibilidad al vencer | Requisitos; Gestión del producto | Admisión | Ninguno en E3 salvo el punto de extensión | Con D-25 y D-27 |
+| BR-55 | Identidad | Distinguir identidad, integridad y reutilización (2.7.0) | Orientación | Condiciones por operación | Arquitectura | U3; H5 | Ninguno, si U3 respeta el plan, §12.3 | Al empezar H5 |
+| ADR-0035 | Arquitectura | Orientación aceptada (2.7.0, §46) | Orientación | Representación y recuperación por operación | Arquitectura | U3, U4, U8; H5 | Ninguno | Al empezar H5 |
+| ADR-0036 | Arquitectura | Separación aceptada (2.7.0, §43) | Separación y contrato de acceso | Integración, tecnologías, implementación | Arquitectura | U7; H9 | Ninguno | Con D-25 a D-27 |
