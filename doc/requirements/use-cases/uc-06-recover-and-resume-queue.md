@@ -31,13 +31,14 @@ Tras un cierre inesperado (corte de luz, cierre de la terminal, fallo), el User 
 - **A1. El formato guardado ya no está disponible** (paso 6): el worker reintenta una vez con el format selector original y publica `FormatSelected` con el nuevo formato. Al terminar con éxito, se eliminan los `.part` del formato anterior.
 - **A2. El job no tenía formato elegido** (paso 5): la interrupción ocurrió antes de `FormatSelected`; la descarga empieza de cero con el format selector original.
 - **A3. Archivos parciales borrados por el User** (paso 6): yt-dlp descarga desde el principio.
-- **A4. El cierre ocurrió después de mover el archivo final y antes de registrar `JobCompleted`** (paso 6): el job encuentra su propia reclamación y su archivo; yt-dlp lo da por descargado y el job termina `COMPLETED` sin descargar de nuevo ([ADR-0030](../../notes/adr-0030-final-file-ownership-claims.md)).
+- **A4. El cierre ocurrió después de mover el archivo final y antes de registrar `JobCompleted`** (paso 6): el job encuentra su propia reclamación y su archivo; yt-dlp lo da por descargado y el job termina `COMPLETED` sin descargar de nuevo ([ADR-0030](../../notes/adr-0030-final-file-ownership-claims.md)). **Limitación:** antes, yt-dlp vuelve a extraer la información del sitio; si el sitio restringe o no hay conexión, el job falla aunque su archivo esté completo (T42, cola 5.7-r2; R-25). Ver A11.
 - **A5. La interrupción fue un `Ctrl+C`** (paso 2): igual que un cierre inesperado; los jobs siguen `RUNNING` con sus parciales (UC-05 A6).
 - **A6. La base de datos necesita una migración** (paso 1): se aplica al abrirla; si falla, se deshace y `run` termina con código `1` sin ejecutar ningún job (UC-01 A8).
 - **A7. Base de datos de una versión anterior con un archivo final reclamado por dos o más jobs** (paso 1): los datos no permiten saber quién escribió el archivo. La migración 0004 no da la propiedad a ninguno: todos pasan a `FAILED` (reintentables), sin `output_path`, con un mensaje que nombra el archivo, a todos los jobs implicados y su estado conocido. El archivo no se toca; al reintentar, el job falla hasta que el User lo mueva o lo renombre (UC-03 A7).
 - **A8. Base de datos restaurada de una copia anterior** (paso 1): los jobs nuevos reciben ids de jobs perdidos. Ninguno hereda lo de esos jobs: su owner token (id e instante de creación) no coincide. Un nombre final reclamado por un job perdido hace fallar al job nuevo sin tocar el archivo; una carpeta de parciales de un job perdido se aparta como `.partial/orphan-job-<id>-<instante>`, sin borrar nada, y la descarga empieza de cero. `purge` suelta las reclamaciones de los jobs perdidos; sus archivos siguen protegidos ([ADR-0030](../../notes/adr-0030-final-file-ownership-claims.md)).
 - **A9. Un job `COMPLETED` cuyo archivo final ya no existe** (lo movió o borró el User): la cola no cambia nada; `show` sigue mostrando la ruta guardada. Ningún archivo se crea, se toca ni se borra por ello.
-- **A10. Había una espera del sitio** (propuesto, [UC-11](uc-11-wait-out-a-site-block.md) A6): sigue vigente tras el cierre; `run` avisa al arrancar de la hora de continuación. Las esperas de red no se guardan: `run` comprueba la conexión antes del primer job ([UC-12](uc-12-wait-for-the-network.md) A6).
+- **A10. Había una restricción del sitio con plazo guardado** (propuesto, [UC-11](uc-11-preserve-jobs-under-external-conditions.md) A7; solo si D-2 elige esperar): sigue vigente tras el cierre y `run` avisa al arrancar. Los cortes de conectividad no se guardan: `run` comprueba la conexión antes del primer job (BR-06).
+- **A11. Completar con evidencia local** (paso 4; propuesto, decisión D-9): un job interrumpido con su reclamación y un archivo final con el nombre reclamado se completa sin consultar al sitio si la evidencia local basta ([BR-23](../business-rules.md)): el owner token coincide y el archivo es legible y completo (por ejemplo, ffprobe lo abre y su duración coincide con la guardada). Si la evidencia no basta, sigue A4. Nunca se completa por la sola existencia de un archivo no vacío, ni con un archivo sin reclamación propia.
 
 ## Postcondiciones
 
@@ -57,6 +58,20 @@ Tras un cierre inesperado (corte de luz, cierre de la terminal, fallo), el User 
 
 - La plantilla de salida es determinista entre ejecuciones (la construye el proyecto a partir de datos guardados).
 - La recuperación se ejecuta antes de enviar ningún job.
+
+## Reglas, requisitos y restricciones asociados
+
+- **Reglas:** BR-15, BR-17, BR-19, BR-21; propuesta: BR-23.
+- **Requisitos suplementarios:** SUP-R01, SUP-R10, SUP-C04.
+- **Restricciones:** la reanudación por bytes depende del sitio (`Range`); una carpeta de descargas, una sola cola.
+- **Dependencias:** UC-03; UC-11 (A10).
+
+## Criterios de aceptación
+
+1. Tras un cierre inesperado, ningún job queda `RUNNING` sin worker y ninguno gasta un intento por la recuperación.
+2. Una descarga interrumpida continúa sin repetir los bytes ya descargados, si el sitio acepta `Range`.
+3. Ningún archivo ajeno o sin reclamación propia se toma como resultado de un job.
+4. (Propuesto, A11) Un job con evidencia local suficiente termina `COMPLETED` sin peticiones al sitio.
 
 ## Escenarios de prueba
 

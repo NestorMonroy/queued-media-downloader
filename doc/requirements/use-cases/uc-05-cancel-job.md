@@ -66,6 +66,20 @@ El User cancela uno o varios jobs. Si el job aún no empezó, se cancela de inme
 - `cancel` solo registra job requests; nunca cambia estados directamente.
 - La terminación forzada no deja procesos huérfanos aunque el proceso de `run` muera.
 
+## Reglas, requisitos y restricciones asociados
+
+- **Reglas:** BR-14, BR-16.
+- **Requisitos suplementarios:** SUP-R02, SUP-C04.
+- **Restricciones:** `cancel` solo registra una job request; la aplica el proceso de `run`.
+- **Dependencias:** UC-03, UC-04.
+
+## Criterios de aceptación
+
+1. Un job `PENDING` cancelado pasa a `CANCELLED`; uno `RUNNING`, a `CANCELLED` tras detener su worker.
+2. Tras cancelar, ningún proceso de ffmpeg o deno del job sigue vivo, y sus parciales se conservan.
+3. Cancelar una playlist cancela sus entradas no terminadas.
+4. Un job terminado no cambia (A7).
+
 ## Escenarios de prueba
 
 | Escenario | Dónde se prueba |

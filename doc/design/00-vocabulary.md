@@ -27,15 +27,34 @@ Este documento fija **una palabra por concepto** (principio #8). Todo identifica
 | **output claim** (reclamación) | Archivo exclusivo en `state/output-claims/` con el que un job se declara dueño de un nombre final antes de descargar ([ADR-0030](../notes/adr-0030-final-file-ownership-claims.md)) | lock (no es un bloqueo del sistema operativo), reservation |
 | **owner token** | Identidad de un job en los archivos que reclama: su id y el instante en que se guardó (`Job.owner_token`, `<id>@<created_at>`). Distingue a dos jobs con el mismo id tras restaurar una copia antigua de la base de datos | job id (a secas, para la propiedad) |
 | **site key** (sitio) | Sitio al que pertenece un job: el extractor de yt-dlp que acepta su URL o, si no hay ninguno, su host. Se fija al encolar ([ADR-0031](../notes/adr-0031-site-waits-and-network-waits.md), propuesta) | domain, host (salvo que sea el host) |
-| **site block** (bloqueo del sitio) | El sitio deja de servir contenidos a la sesión o a la IP: comprobación antibots, captcha o límite de peticiones. No es un fallo del job ([UC-11](../requirements/use-cases/uc-11-wait-out-a-site-block.md)) | ban, rate limit (a secas), unavailable |
-| **network outage** (corte de red) | El equipo no tiene conexión: no resuelve nombres o no llega a ningún host ([UC-12](../requirements/use-cases/uc-12-wait-for-the-network.md)) | offline error, network failure (para un fallo aislado) |
-| **defer** (aplazar) | Devolver un job a `PENDING` sin gastar un intento, por un bloqueo del sitio, un corte de red o un disco lleno (`JobDeferred`, [BR-04](../requirements/business-rules.md)) | retry (es una petición del User), postpone, requeue |
-| **disk full** (disco lleno) | No hay espacio para escribir en la unidad de las descargas o del estado ([UC-13](../requirements/use-cases/uc-13-wait-for-disk-space.md), [BR-08](../requirements/business-rules.md)) | out of space (como error del job) |
-| **pause** (pausa) | Estado de la cola en el que `run` no envía jobs; no cambia el estado de ningún job ([UC-14](../requirements/use-cases/uc-14-pause-and-continue-the-queue.md)) | suspend, stop, hold |
+| **site block** (bloqueo del sitio) | El sitio deja de servir contenidos a la sesión o a la IP: comprobación antibots, captcha o límite de peticiones. No es un fallo del job ([UC-11](../requirements/use-cases/uc-11-preserve-jobs-under-external-conditions.md) A1, [BR-01](../requirements/business-rules.md)); en los requisitos, «restricción del sitio» | ban, rate limit (a secas), unavailable |
+| **network outage** (corte de red) | El equipo no tiene conexión: no resuelve nombres o no llega a ningún host ([UC-11](../requirements/use-cases/uc-11-preserve-jobs-under-external-conditions.md) A2, [BR-05](../requirements/business-rules.md)); en los requisitos, «corte de conectividad» | offline error, network failure (para un fallo aislado) |
+| **defer** (aplazar) | Devolver un job a `PENDING` sin gastar un intento, por una condición externa (`JobDeferred`, [BR-04](../requirements/business-rules.md)) | retry (es una petición del User), postpone, requeue |
+| **disk full** (disco lleno) | No hay espacio para escribir en la unidad de las descargas o del estado ([UC-11](../requirements/use-cases/uc-11-preserve-jobs-under-external-conditions.md) A3, [BR-08](../requirements/business-rules.md)); en los requisitos, «almacenamiento insuficiente» | out of space (como error del job) |
+| **pause** (pausa) | Estado de la cola en el que `run` no envía jobs; no cambia el estado de ningún job ([UC-14](../requirements/use-cases/uc-14-control-queue-execution.md)) | suspend, stop, hold |
 | **business rule** (regla de negocio) | Directiva declarativa que gobierna una decisión de un caso de uso, en el [catálogo](../requirements/business-rules.md) | policy (a secas), setting |
 | **site wait** (espera del sitio) | Plazo durante el que `run` no envía jobs de un sitio bloqueado; se guarda en la base de datos | cooldown, ban, pause (a secas) |
 | **request pacing** (ritmo de peticiones) | Pausa entre jobs del mismo sitio para no llegar a su límite | throttling, rate limit (a secas) |
 | **interruption** (interrupción) | `Ctrl+C` durante `run`: detiene la cola sin cancelar ningún job; los jobs en curso conservan su estado y sus parciales y continúan en el siguiente `run` | cancel (no es una cancelación) |
+| **external condition** (condición externa) | Suceso ajeno al contenido que impide descargar: restricción del sitio, corte de conectividad o almacenamiento insuficiente ([UC-11](../requirements/use-cases/uc-11-preserve-jobs-under-external-conditions.md), [catálogo de condiciones de fallo](../requirements/failure-conditions.md)) | environment error, transient error (a secas) |
+
+### 1.0 Conceptos de continuidad
+
+Conceptos distintos que a menudo se confunden. Cada uno tiene un responsable: yt-dlp (dentro de un job) o la cola (entre jobs). Fuente: [análisis de requisitos, §7](../requirements/requirements-analysis.md#7-continuidad-reintentos-y-recuperación).
+
+| Palabra | Significa | Responsable | Estado |
+|---|---|---|---|
+| **retry** (reintento automático) | Repetir una petición o un fragmento tras un fallo transitorio, dentro del mismo job | yt-dlp (`retries`, `fragment_retries`, `extractor_retries`, `file_access_retries`) | Parcial: solo los de extractor y de acceso a archivos están activos (R-24) |
+| **job retry** (reintento del job) | Volver a poner en la cola un job `FAILED` o `CANCELLED` a petición del User (UC-07) | Cola | Vigente |
+| **backoff** (espera creciente) | Aumentar la espera entre reintentos sucesivos | yt-dlp dentro de un job (`retry_sleep_functions`); la cola, entre comprobaciones de una restricción (BR-03) | yt-dlp: sin configurar; cola: propuesto |
+| **request pacing** (ritmo de peticiones) | Ver §1; previene una restricción, no reacciona a ella | yt-dlp dentro de una extracción (`sleep_interval_requests`); la cola entre jobs (BR-02) | Propuesto |
+| **rate limit** (límite de ancho de banda) | Tope de bytes por segundo de una descarga (SUP-P06). No es el límite de peticiones de un sitio | yt-dlp (`ratelimit`) | Propuesto |
+| **deferred execution** (ejecución aplazada) | Un job aplazado espera a que desaparezca una condición externa (BR-04) | Cola | Propuesto |
+| **admission control** (control de admisión) | Decidir antes de enviar un job si puede avanzar: sitio restringido, sin conexión, sin espacio, cola en pausa | Cola | Propuesto |
+| **pause** / **resume** | Ver §1; la cola deja de enviar jobs y vuelve a enviarlos (UC-14) | Cola | Propuesto |
+| **stop** (detención ordenada) | `run` termina al acabar los jobs en curso, sin cancelar ninguno (UC-14 A2) | Cola | Propuesto |
+| **recovery** (recuperación) | Al arrancar, devolver a la cola los jobs `RUNNING` de una ejecución anterior (UC-06, BR-19) | Cola | Vigente |
+| **resume** de una descarga | Continuar desde el `.part` o el `.ytdl` (`continuedl`) | yt-dlp | Vigente |
 
 ### 1.1 Estados terminados, reintentables y cancelables
 

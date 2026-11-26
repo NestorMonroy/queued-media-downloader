@@ -40,7 +40,9 @@ El User obtiene el proyecto, prepara el entorno con uv y comprueba que ffmpeg, f
 - **A6. Configuración no válida** (paso 5): el sistema indica la clave y el valor no válidos y termina con código `2`.
 - **A7. Smart App Control activado** (paso 2 o posteriores): Windows bloquea `uv.exe`, o un binario sin firmar del proyecto, con el mensaje "Una directiva de Control de aplicaciones bloqueó este archivo". El sistema no llega a ejecutarse, así que no puede informar; el User comprueba la precondición ([ADR-0026](../../notes/adr-0026-smart-app-control-precondition.md)).
 - **A8. La base de datos no se puede abrir o una migración falla** (paso 8): la migración se deshace (la base de datos queda en su última versión completa) y se cierra la conexión. `diagnose` muestra la comprobación `database` como fallida, con la causa, y termina con código `2`; los demás comandos indican la ruta y la causa sin traza y terminan con código `1` (si otro proceso la tiene ocupada más allá de `busy_timeout`, `the queue is busy`).
-- **A9. Sin conexión** (propuesto, [UC-12](uc-12-wait-for-the-network.md)): `diagnose` resuelve el nombre de los sitios configurados (por defecto, `www.youtube.com`) sin descargar nada; si falla, muestra la comprobación `network` como aviso, no como fallo, porque el entorno está instalado.
+- **A9. Sin conexión** (propuesto, [UC-11](uc-11-preserve-jobs-under-external-conditions.md) A2): `diagnose` resuelve el nombre de los sitios configurados (por defecto, `www.youtube.com`) sin descargar nada; si falla, muestra la comprobación `network` como aviso, no como fallo, porque el entorno está instalado.
+- **A10. Destino o estado no utilizables** (propuesto): `diagnose` comprueba que `download_directory` y `state_directory` existen, admiten escritura y tienen espacio libre por encima de `min_free_disk_mib` ([BR-08](../business-rules.md)). Si no, muestra la carpeta y la causa. Una carpeta sin permiso es un fallo; poco espacio, un aviso. Origen: la comprobación previa del destino de VoiceStudio.
+- **A11. Proxy en uso** (propuesto, decisión D-7): `diagnose` informa de si las descargas usarán un proxy, configurado o tomado del sistema (yt-dlp usa el del sistema si no se configura otro), sin mostrar credenciales (SUP-SEC01).
 
 ## Postcondiciones
 
@@ -51,6 +53,19 @@ El User obtiene el proyecto, prepara el entorno con uv y comprueba que ffmpeg, f
 
 - Ningún paso requiere Python preinstalado ni permisos de administrador.
 - La verificación completa (con hash) se ejecuta solo cuando hace falta; la comprobación de arranque de `run` reutiliza el estado guardado.
+
+## Reglas, requisitos y restricciones asociados
+
+- **Reglas:** ninguna regla de la cola; A10 usa BR-08 y A11, BR-12.
+- **Requisitos suplementarios:** SUP-U01, SUP-U03, SUP-O02, SUP-C01, SUP-C03, SUP-L02; SUP-SEC01 (A11).
+- **Restricciones:** sin permisos de administrador ni Python preinstalado; Smart App Control desactivado (ADR-0026).
+- **Dependencias:** ninguna; es la precondición de los demás casos de uso.
+
+## Criterios de aceptación
+
+1. Siguiendo solo el README, un equipo limpio con Windows 10/11 x64 queda listo con `diagnose` en código `0`.
+2. Cada comprobación fallida indica una acción concreta y termina con el código de su flujo (A1, A5, A6: `2`; A8: `2` en `diagnose`).
+3. La segunda ejecución de `diagnose` reutiliza el estado guardado de ffmpeg y no recalcula el hash.
 
 ## Escenarios de prueba
 

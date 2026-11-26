@@ -35,7 +35,7 @@ El User ejecuta la cola. El sistema toma un job pendiente, descubre que la URL e
 ## Flujos alternativos
 
 - **A1. Contenido duplicado** (paso 5): ya existe un job `DOWNLOAD` activo con la misma media key. El job queda `SKIPPED` y no se descarga.
-- **A2. Fallo de red, contenido no disponible, restricción geográfica o URL no soportada** (pasos 5 a 10): el worker clasifica el error y publica `JobFailed` con su failure reason. El job pasa a `FAILED`; el resto de la cola continúa. Al terminar, el código de salida es `1`.
+- **A2. Fallo de red, contenido no disponible, restricción geográfica o URL no soportada** (pasos 5 a 10; condiciones y motivos en el [catálogo de condiciones de fallo](../failure-conditions.md)): el worker clasifica el error y publica `JobFailed` con su failure reason. El job pasa a `FAILED`; el resto de la cola continúa. Al terminar, el código de salida es `1`.
 - **A3. Extractor desactualizado** (paso 5 o 7): igual que A2, con `EXTRACTOR_OUTDATED`; el mensaje indica que probablemente haga falta actualizar la versión fijada de yt-dlp.
 - **A4. El worker muere sin publicar un evento final** (pasos 5 a 11): el pool lo detecta, publica `JobFailed(WORKER_CRASHED)` y arranca otro worker.
 - **A5. `--keep-waiting`** (paso 12): el sistema no termina; espera jobs nuevos.
@@ -43,11 +43,19 @@ El User ejecuta la cola. El sistema toma un job pendiente, descubre que la URL e
 - **A7. El nombre final es de otro job, o ya existe un archivo que el job no escribió** (paso 7): plantilla sin `%(id)s`, título recortado, archivo del User o de un job purgado. El worker falla el job con `FILESYSTEM` antes de descargar, sin tocar ese archivo, y el mensaje indica moverlo o usar `%(id)s` ([ADR-0030](../../notes/adr-0030-final-file-ownership-claims.md)).
 - **A8. La descarga no deja un archivo final utilizable** (paso 11): sin ruta, dentro de la carpeta de parciales, inexistente o vacío. El job pasa a `FAILED` con `FILESYSTEM` y la carpeta de parciales se conserva. Un `JobCompleted` de una descarga sin ruta nunca deja el job `COMPLETED` (contrato de `JobCompleted`).
 - **A9. `Ctrl+C`** (pasos 4 a 11): interrupción, no cancelación; ver UC-05 A6.
-- **A11. El Media site bloquea las peticiones** (pasos 4 a 10; propuesto): extendido por [UC-11](uc-11-wait-out-a-site-block.md). Hoy el job falla con `UNAVAILABLE` (A2).
-- **A12. El equipo pierde la conexión** (pasos 4 a 10; propuesto): extendido por [UC-12](uc-12-wait-for-the-network.md). Hoy el job y los siguientes fallan con `NETWORK` (A2).
-- **A13. Se llena el disco** (pasos 6 a 11; propuesto): extendido por [UC-13](uc-13-wait-for-disk-space.md). Hoy el job y los siguientes fallan con `FILESYSTEM` (A2).
-- **A14. El User pausa la cola** (paso 4; propuesto): ver [UC-14](uc-14-pause-and-continue-the-queue.md).
+- **A11. El Media site restringe las peticiones** (pasos 4 a 10; propuesto): extendido por [UC-11](uc-11-preserve-jobs-under-external-conditions.md) A1. Hoy el job falla con `UNAVAILABLE` o `NETWORK` (A2).
+- **A12. El equipo pierde la conexión** (pasos 4 a 10; propuesto): extendido por [UC-11](uc-11-preserve-jobs-under-external-conditions.md) A2. Hoy el job y los siguientes fallan con `NETWORK` (A2).
+- **A13. Se llena el disco** (pasos 6 a 11; propuesto): extendido por [UC-11](uc-11-preserve-jobs-under-external-conditions.md) A3. Hoy el job y los siguientes fallan con `FILESYSTEM` (A2).
+- **A14. El User pausa o detiene la cola** (paso 4; propuesto): ver [UC-14](uc-14-control-queue-execution.md).
+- **A15. Fallo transitorio de la descarga** (pasos 8 a 10): HTTP 5xx, timeout o conexión cortada con un host. yt-dlp reintenta según [BR-07](../business-rules.md) antes de que el job falle con `NETWORK`. **Divergencia hoy:** la librería recibe 0 reintentos HTTP y 0 de fragmentos (R-24); en la campaña T42 un timeout hizo fallar un job a la primera.
 - **A10. Otro programa retiene la base de datos más allá de `busy_timeout`** (pasos 3 a 12): `run` avisa una vez por espera (`The queue is busy; waiting until another program releases it`) y repite la operación hasta que la cola queda libre; los workers siguen con sus jobs. Los comandos cortos, en cambio, terminan sin cambiar nada (UC-02 A3). Un segundo `Ctrl+C` detiene `run` también mientras espera. Observado en la validación en Windows (T42-D12): `run` terminaba con código `1` y dejaba el job `RUNNING`.
+
+## Excepciones
+
+Los fallos del job (A2, A3, A4, A7 y A8) terminan el job sin su objetivo; su tratamiento está en el [catálogo de condiciones de fallo](../failure-conditions.md).
+
+- **E1. Transmisión en directo o programada** (pasos 5 a 10; **sin cualificar**, decisión D-10): hoy el worker la descarga mientras dure, sin límite (R-26). [BR-24](../business-rules.md) exige que no ocupe un worker sin límite.
+- **E2. ffmpeg no supera la verificación de arranque** (paso 2): `run` termina con código `2` sin enviar jobs (ADR-0006).
 
 ## Postcondiciones
 
@@ -59,6 +67,20 @@ El User ejecuta la cola. El sistema toma un job pendiente, descubre que la URL e
 - Ningún proceso de ffmpeg o deno sigue vivo al terminar `run`.
 - Solo el proceso de `run` cambia el estado de los jobs; los workers solo publican job events.
 - El progreso no se escribe en la base de datos.
+
+## Reglas, requisitos y restricciones asociados
+
+- **Reglas:** BR-13, BR-17, BR-22; propuestas: BR-01, BR-05, BR-07, BR-08, BR-24.
+- **Requisitos suplementarios:** SUP-R02, SUP-R03, SUP-R04, SUP-R05, SUP-R11, SUP-P01, SUP-P03, SUP-U02, SUP-C04.
+- **Restricciones:** solo el proceso de `run` cambia el estado de los jobs; el progreso no se guarda en la base de datos.
+- **Dependencias:** UC-01, UC-02; extendido por UC-11 y UC-14; UC-06 al arrancar.
+
+## Criterios de aceptación
+
+1. Con un servidor local, cada job `PENDING` termina `COMPLETED` con su archivo en la carpeta correcta, o `FAILED` con el motivo del catálogo.
+2. Ningún proceso de ffmpeg o deno sigue vivo al terminar `run`.
+3. Un fallo de un job no impide que los siguientes se completen.
+4. Ningún archivo ajeno cambia (tamaño, fecha y SHA-256).
 
 ## Escenarios de prueba
 

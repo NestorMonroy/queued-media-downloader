@@ -25,7 +25,7 @@ El User consulta los jobs de la cola, opcionalmente filtrados por estado o por p
 - **A1. Ningún job coincide** (paso 3): escribe `No jobs`; código `0`.
 - **A2. `--parent`** (paso 2): solo los hijos directos de esa expansión.
 - **A3. `run` escribe a la vez en otra terminal** (paso 2): la lectura funciona (SQLite en modo WAL) y refleja el último estado confirmado.
-- **A4. Jobs que esperan** (propuesto, UC-11 a UC-14): la línea de un job pendiente de un sitio en espera añade el motivo y la hora de continuación, por ejemplo `(waiting: site block until 00:47)`. Si `run` espera a la red o al disco, o la cola está en pausa, la lista empieza con una línea que lo dice.
+- **A4. Jobs aplazados o cola en pausa** (propuesto, UC-11 y UC-14): la línea de un job aplazado añade la condición externa y, si la hay, la hora de continuación, por ejemplo `(deferred: site restriction until 00:47)`. Si la cola está en pausa o una condición afecta a toda la cola, la lista empieza con una línea que lo dice.
 
 ## Excepciones
 
@@ -36,6 +36,18 @@ El User consulta los jobs de la cola, opcionalmente filtrados por estado o por p
 ## Postcondiciones
 
 - La cola no cambia (sí puede aplicarse una migración pendiente al abrir la base de datos, como en cualquier comando).
+
+## Reglas, requisitos y restricciones asociados
+
+- **Reglas:** ninguna.
+- **Requisitos suplementarios:** SUP-F01, SUP-C04.
+- **Restricciones:** solo lectura.
+- **Dependencias:** UC-01.
+
+## Criterios de aceptación
+
+1. `list` nunca cambia la base de datos.
+2. Cada job aparece con su id, estado, tipo e intentos; un filtro por estado solo muestra jobs en ese estado.
 
 ## Escenarios de prueba
 

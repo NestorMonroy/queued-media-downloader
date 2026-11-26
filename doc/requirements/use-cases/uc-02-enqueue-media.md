@@ -29,7 +29,10 @@ El User añade una o varias URLs a la cola, con sus download options. El sistema
 - **A2. `run` en ejecución en otra terminal** (paso 4): la creación funciona igual (SQLite en modo WAL); el proceso de `run` toma el job en su siguiente ciclo.
 - **A3. Base de datos bloqueada más allá de `busy_timeout`** (paso 4): el sistema informa del bloqueo y termina con código `1` sin crear jobs (los jobs de una invocación se crean en una sola transacción).
 - **A4. La base de datos no se puede abrir o una migración falla** (paso 4): como UC-01 A8; ningún job se crea.
-- **A5. URLs de un archivo** (paso 1; propuesto, prioridad baja, [análisis](../unattended-operation-analysis.md) §4.1): `enqueue --from-file FILE` lee una URL por línea, sin líneas vacías ni comentarios `#`. Si alguna línea no es una URL válida, es A1: el sistema indica la línea y no encola ninguna.
+- **A5. URLs de un archivo** (paso 1; propuesto, prioridad baja, [análisis](../requirements-analysis.md) §4.1): `enqueue --from-file FILE` lee una URL por línea, sin líneas vacías ni comentarios `#`. Si alguna línea no es una URL válida, es A1: el sistema indica la línea y no encola ninguna.
+- **A6. Seleccionar entradas de una playlist** (paso 1; propuesto, prioridad media): `--playlist-items 1-5,8` guarda la selección en las download options; la expansión solo crea esas entradas (UC-04 A8). Origen: la selección de entradas de Seal y la opción `--playlist-items` de yt-dlp. La consulta previa (UC-15) muestra las entradas.
+- **A7. Opciones adicionales de descarga** (paso 1; **pendiente de cualificación**): subtítulos, miniatura incrustada, metadatos y capítulos. Seal, Kannagi y yt-dlp las ofrecen; su alcance se decide en el [análisis, §6](../requirements-analysis.md#6-hallazgos-de-las-referencias-y-su-incorporación).
+- **A8. Rango de tiempo** (paso 1; propuesto, prioridad baja): `--section 00:01:00-00:02:30` descarga solo ese tramo, con `download_ranges` de yt-dlp. Origen: los recortes de Seal y la opción `--download-sections` de Kannagi y yt-dlp.
 
 ## Postcondiciones
 
@@ -39,6 +42,19 @@ El User añade una o varias URLs a la cola, con sus download options. El sistema
 
 - `enqueue` no accede a la red: responde de inmediato aunque la conexión sea lenta.
 - `enqueue` solo crea jobs; nunca cambia el estado de jobs existentes ([Parte 2, §2.4](../../design/02-flows-persistence-and-operations.md#24-escritura-desde-varios-procesos)).
+
+## Reglas, requisitos y restricciones asociados
+
+- **Reglas:** ninguna al encolar: los duplicados se detectan al descargar (BR-13).
+- **Requisitos suplementarios:** SUP-F02, SUP-F03, SUP-C04.
+- **Restricciones:** `enqueue` no accede a la red ni cambia jobs existentes.
+- **Dependencias:** UC-01; UC-15 orienta sus opciones.
+
+## Criterios de aceptación
+
+1. Cada URL válida produce un job `EXPANSION` `PENDING` con las download options vigentes en ese momento.
+2. Una URL no válida no crea ningún job de la invocación (código `2`).
+3. `enqueue` responde sin acceder a la red.
 
 ## Escenarios de prueba
 

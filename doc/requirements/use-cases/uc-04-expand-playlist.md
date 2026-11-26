@@ -33,8 +33,9 @@ Durante la ejecución de la cola, un job de expansión resulta ser una playlist 
 - **A3. Entrada no disponible** (privada o eliminada) (paso 4): si el sitio la marca así en la lista (`availability` privada o que pide una cuenta, o los títulos `[Private video]` y `[Deleted video]` de YouTube), el hijo se crea como `SKIPPED`, no como `FAILED`. Si el sitio no la marca (por ejemplo, un video retirado por derechos de autor que la lista sigue enumerando sin datos), la expansión no puede saberlo sin resolver cada entrada, lo que rompería la iteración perezosa (ADR-0009): el hijo se crea `PENDING` y, al descargarlo, falla con `UNAVAILABLE` (UC-03 A2); `run` termina con código 1. Observado en la validación en Windows (T42-D5).
 - **A4. Contenido `multi_video`** (paso 1): se trata como un solo contenido; continúa como UC-03 desde el paso 5.
 - **A5. Cancelación durante la expansión:** ver UC-05. Los hijos ya creados quedan en la cola, salvo que se cancele la playlist entera.
-- **A6. Fallo de red a mitad de la expansión** (paso 2): la expansión pasa a `FAILED`; los hijos ya creados se conservan. Con [UC-12](uc-12-wait-for-the-network.md) (propuesto), un corte de red devuelve la expansión a `PENDING` y `run` espera a la red; con [UC-11](uc-11-wait-out-a-site-block.md), igual ante un bloqueo del sitio. Al reintentarla (UC-07 A3), sus hijos `FAILED` o `CANCELLED` vuelven a la cola, los `COMPLETED` no cambian y las entradas ya existentes se crean como duplicadas `SKIPPED` (A2).
+- **A6. Fallo de red a mitad de la expansión** (paso 2): la expansión pasa a `FAILED`; los hijos ya creados se conservan. Con [UC-11](uc-11-preserve-jobs-under-external-conditions.md) A5 (propuesto), un corte de conectividad o una restricción del sitio devuelven la expansión a `PENDING` en lugar de dejarla `FAILED`. Al reintentarla (UC-07 A3), sus hijos `FAILED` o `CANCELLED` vuelven a la cola, los `COMPLETED` no cambian y las entradas ya existentes se crean como duplicadas `SKIPPED` (A2).
 - **A7. Mensajes tardíos de una expansión cancelada** (paso 4): un lote que llega cuando la expansión ya no está `RUNNING` no crea hijos.
+- **A8. Solo las entradas seleccionadas** (paso 4; propuesto, prioridad media): con una selección en las download options (UC-02 A6), solo se crean hijos para esas entradas; las demás no se registran.
 
 ## Postcondiciones
 
@@ -45,6 +46,19 @@ Durante la ejecución de la cola, un job de expansión resulta ser una playlist 
 
 - La memoria del worker no crece con el número de entradas de la playlist.
 - La plantilla de salida de los hijos la construye el proyecto con el contexto guardado; no se usa `extra_info` de yt-dlp.
+
+## Reglas, requisitos y restricciones asociados
+
+- **Reglas:** BR-13, BR-20.
+- **Requisitos suplementarios:** SUP-P02, SUP-R05.
+- **Restricciones:** la expansión es plana (ADR-0009): no resuelve cada entrada.
+- **Dependencias:** UC-02, UC-03; extendido por UC-11.
+
+## Criterios de aceptación
+
+1. Cada entrada disponible produce un hijo `DOWNLOAD` `PENDING`; una entrada no disponible en la lista produce un hijo `SKIPPED`.
+2. Una entrada cuya media key ya tiene un job activo se crea `SKIPPED` (BR-13).
+3. La memoria no crece con el número de entradas.
 
 ## Escenarios de prueba
 

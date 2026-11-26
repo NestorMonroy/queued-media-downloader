@@ -106,7 +106,7 @@ Igual que en E1 ([ADR-0022](../notes/adr-0022-hybrid-approach-and-task-decomposi
 
 | ID | Tarea | Rol | Terminada cuando | Depende de |
 |---|---|---|---|---|
-| T52 a T61 | **Propuestas para E3** ([análisis](../requirements/unattended-operation-analysis.md), §10): aplazar un job y clasificar el bloqueo (T52); esperas y ritmo por sitio (T53, UC-11); esperar a la red (T54, UC-12); esperar al disco (T55, UC-13); `list`, `show` y `diagnose` (T56); evitar la suspensión (T57, SUP-R08); pausar y continuar, y límite de ancho de banda (T58, UC-14, SUP-P06); medios locales (T59, VUC-05); bloques con comprobación automática y resumen (T60, VUC-04, VUC-08); comprobación del sitio y paquete de evidencia (T61, VUC-06, VUC-07) | Agente | UC-11 a UC-14 y VUC-04 a VUC-08 implementados con sus pruebas; la campaña repetida con los bloques automáticos | D-1 a D-6 |
+| T52 a T65 | **Propuestas para E3** ([análisis](../requirements/requirements-analysis.md#11-trabajo-propuesto), §11), ninguna iniciada: aplazar un job y reconocer las condiciones externas (T52); política de continuidad y control de admisión (T53, UC-11); paridad de reintentos con yt-dlp (T54, BR-07); completar con evidencia local (T55, UC-06 A11); `list`, `show` y `diagnose` (T56); evitar la suspensión (T57, SUP-R08); pausa, continuación y detención, y límite de ancho de banda (T58, UC-14, SUP-P06); medios locales (T59, VUC-05); bloques con comprobación automática y resumen (T60, VUC-04, VUC-08); comprobación del sitio y paquete de evidencia (T61, VUC-06, VUC-07); consulta previa y selección de entradas (T62, UC-15); indicación de si reintentar sirve (T63, SUP-U05); informe de diagnóstico (T64, UC-16); directos y purgar con archivos (T65) | Agente | Cada tarea con sus pruebas, tras aprobarse sus decisiones | D-1 a D-11 |
 | T51 | Corrección de los defectos de la primera ejecución en Windows y validación sin etiquetas: T42-D1 (prueba), T42-D2 (experimento), T42-D3 (yt-dlp 2026.11.23 con el [procedimiento SUP-S01](../process/yt-dlp-update-procedure.md)); `diagnose` informa de yt-dlp y yt-dlp-ejs; `scripts/windows/validation_campaign.ps1` identifica cada ejecución por el commit de `main`; `scripts/check_commit_message.py` dentro del proyecto | Agente | Linux ✔; Windows ✔ (T42-D1, D2 y D3 confirmados, [registro](t42-results.md)) | T50 |
 | T50 | Consolidación del candidato T42: owner token en reclamaciones y parciales (base de datos restaurada), migración 0004 (propiedad sin decidir de un archivo reclamado varias veces), arranque de workers que falla al registrarse, guion y script de la campaña revisados, etiqueta `t42-candidate-1` publicada | Agente | Correcciones con sus pruebas y verificación de desarrollo sobre el commit etiquetado. **Hecha**: Linux ✔; Windows ⏳ (T42) | T49 |
 | T49 | Auditoría integral previa a la aceptación: trazabilidad por requisito, especificación completa de UC-07 a UC-10, aislamiento de las pruebas, propiedad de los archivos finales ([ADR-0030](../notes/adr-0030-final-file-ownership-claims.md)), contrato de `JobCompleted`, migraciones, `Ctrl+C` repetidos, cola ocupada en todos los comandos y preparación de T42 | Agente | Correcciones con sus pruebas, verificación de desarrollo y [informe de la auditoría](pre-acceptance-audit.md). **Hecha**: Linux ✔; deja `READY_FOR_WINDOWS_VALIDATION` | T45–T48 |
@@ -129,7 +129,7 @@ Los slices A, B y C pueden avanzar en paralelo. T33 es el primer punto de decisi
 |---|---|---|
 | D1 | Implementación para Windows del `ProcessTreeTerminator` (ADR-0013 dejó el contrato, no la implementación) | T33, **aprobada**: Job Object por worker y grupos de procesos en POSIX ([ADR-0029](../notes/adr-0029-process-tree-termination-on-windows.md)); validación en Windows en la campaña final |
 | D2 | Una URL de un video dentro de una lista (`watch?v=…&list=…`): descargar solo el video o la lista entera. Por defecto, yt-dlp descarga la lista | T27, **resuelta**: solo el video ([ADR-0027](../notes/adr-0027-video-links-inside-lists.md)) |
-| D-1 a D-6 | Funcionamiento sin vigilancia: cookies o cuentas, `run` espera o termina, ritmo por defecto para YouTube, duración de la espera, espacio libre mínimo, alcance de `pause` ([análisis](../requirements/unattended-operation-analysis.md), §9) | Antes de T52 (E3); **pendiente** |
+| D-1 a D-11 | Modelo de requisitos consolidado: cookies, política de continuidad, ritmo para YouTube, plazo ante una restricción, espacio mínimo, pausa, proxy, actualizar yt-dlp, completar con evidencia local, directos, purgar con archivos ([análisis, §9](../requirements/requirements-analysis.md#9-decisiones-pendientes)) | Antes de T52 (E3); **pendientes** |
 | D3 | Plantilla por defecto de los hijos de una playlist (`playlist_output_template`): carpeta por playlist, índice y longitud | T29, **resuelta**: la del ejemplo de yt-dlp ([ADR-0028](../notes/adr-0028-playlist-child-output-template.md)) |
 
 ---
@@ -346,7 +346,7 @@ Especificaciones completas desde T49 ([UC-07](../requirements/use-cases/uc-07-re
 
 ### 8.1 Trazabilidad por requisito no funcional
 
-Para los casos de uso, la trazabilidad está en las tablas anteriores (escenario → tareas → implementación → pruebas → pendiente en Windows) y en el [modelo de casos de uso, §4](../requirements/use-case-model.md#4-trazabilidad-con-el-diseño) (componentes y módulos). Esta tabla añade los requisitos de la [especificación complementaria](../requirements/supplementary-specification.md); su fuente es esa especificación, y su criterio, el texto del requisito.
+Para los casos de uso, la trazabilidad está en las tablas anteriores (escenario → tareas → implementación → pruebas → pendiente en Windows) y en el [modelo de casos de uso, §6](../requirements/use-case-model.md#6-trazabilidad-con-el-diseño) (componentes y módulos). Esta tabla añade los requisitos de la [especificación complementaria](../requirements/supplementary-specification.md); su fuente es esa especificación, y su criterio, el texto del requisito.
 
 | ID | Componentes y código | Tareas | Pruebas (evidencia) | Verificable en Linux | Necesita Windows | Divergencias y estado |
 |---|---|---|---|---|---|---|
@@ -370,11 +370,19 @@ Para los casos de uso, la trazabilidad está en las tablas anteriores (escenario
 | SUP-S03 Inglés en identificadores, español en docstrings | Todo el código | Continuo | Revisión | Sí | — | — |
 | SUP-S04 Reglas de la cola sin yt-dlp, SQLite ni procesos | `jobs`, `job_queue` | Continuo | `lint-imports` y dobles (Linux ✔) | Sí | — | — |
 | SUP-C01 Windows 10/11 x64, Python ≥3.11 con uv | `pyproject.toml` | E1 | Windows E1 ✔ | No | Paso 1 | — |
-| SUP-C02 yt-dlp 2026.10.26 solo en `yt_dlp_*` | `media_extraction` | E1 | `lint-imports` (Linux ✔) | Sí | — | — |
+| SUP-C02 yt-dlp 2026.11.23 solo en `yt_dlp_*` | `media_extraction` | E1 | `lint-imports` (Linux ✔) | Sí | — | — |
 | SUP-C03 ffmpeg 9.0 LGPL incluido con LFS | `vendor/ffmpeg/` | E1 | `windows` ⏳ (`tests/vendor/`) | No | Pasos 1–3 | — |
 | SUP-C04 Solo `run` cambia estados | `job_queue`, `command_line` | E1, T36, T45 | Linux ✔ | Sí | — | — |
 | SUP-C05 Sin CI | Proceso | — | — | — | — | — |
 | SUP-L01–L03 Licencias | `LICENSE`, `vendor/ffmpeg/` | E1 | Revisión | Sí | — | — |
+| SUP-R11 Paridad de reintentos con yt-dlp | `media_extraction/yt_dlp_parameters.py` | T54 (propuesta) | Ninguna | Sí | — | **Divergencia:** la librería recibe 0 reintentos HTTP y 0 de fragmentos (R-24) |
+| SUP-U04, SUP-U05, SUP-R06, SUP-R07, SUP-R09, SUP-R10, SUP-P05, SUP-P06 | — | T52 a T58, T63 (propuestas) | Ninguna | Sí | Corte de red y disco lleno reales | **Ausentes:** propuestos |
+| SUP-R08 Sin suspensión con jobs en curso | — | T57 (propuesta) | Ninguna | No | Sí | **Ausente** |
+| SUP-P07 Espacio por job | — | Medición | Ninguna | En parte | Campaña | **Pendiente de medición** |
+| SUP-SEC01, SUP-SEC02 Sin credenciales ni multimedia en salidas | — | T64 (propuesta) | Ninguna | Sí | — | **Ausentes;** SUP-SEC01 condicionado a D-1 y D-7 |
+| SUP-O01, SUP-O02 Log rotado, `diagnose` | `command_line/log_file.py`, `diagnostics` | E1, T51 | Linux ✔ | Sí | Paso 2 | — |
+| SUP-O03 Diagnóstico y evidencia comparten mecanismo | — | T61, T64 (propuestas) | Ninguna | Sí | — | **Ausente** |
+| SUP-V01 a SUP-V03 Validación reproducible | `tests/` | Continuo; T59, T60 | Linux ✔ en parte | Sí | — | **Parcial:** faltan las condiciones externas y el juez independiente |
 
 ### 8.2 Clasificación de las pruebas (2026-11-26, `main` tras la actualización de yt-dlp)
 

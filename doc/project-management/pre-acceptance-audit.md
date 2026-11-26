@@ -123,7 +123,7 @@ Base nueva; actualización desde las versiones 1 y 2 con conservación exacta de
 
 - **Requisitos no funcionales:** cada uno, con su verificabilidad en Linux y lo que necesita de Windows, en el [plan de E2, §8.1](iteration-plan-e2.md#81-trazabilidad-por-requisito-no-funcional). SUP-P04 sigue **pendiente** (se fija en la campaña, paso 13).
 - **Riesgos:** lista revisada (versión 1.2). Los riesgos que dependen de Windows (R-02, R-04, R-05, R-06, R-10, R-14, R-17) siguen abiertos o *Mitigado (Linux)*; ninguno se cerró con evidencia de Linux. Nuevos: R-15 a R-18.
-- **Pruebas:** clasificación en el [plan de E2, §8.2](iteration-plan-e2.md#82-clasificación-de-las-pruebas-2026-11-26). Las 3 pruebas `network` se ejecutaron una vez: fallan por el proxy del entorno (`403 Forbidden` al conectar con YouTube), no por el producto; quedan como *no ejecutables aquí*.
+- **Pruebas:** clasificación en el [plan de E2, §8.2](iteration-plan-e2.md#82-clasificación-de-las-pruebas-2026-11-26-main-tras-la-actualización-de-yt-dlp). Las 3 pruebas `network` se ejecutaron una vez: fallan por el proxy del entorno (`403 Forbidden` al conectar con YouTube), no por el producto; quedan como *no ejecutables aquí*.
 
 ## 10. Proceso RUP (§15) y preparación de T42 (§16)
 

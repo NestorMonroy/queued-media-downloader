@@ -1,10 +1,14 @@
 # Modelo de casos de uso de la validación en Windows
 
-- **Versión:** 1.0 (propuesta)
+- **Versión:** 1.1 (propuesta; revisada en la consolidación del modelo de requisitos)
 - **Fecha:** 2026-11-26
-- **Origen:** [análisis del funcionamiento sin vigilancia](../requirements/unattended-operation-analysis.md), §2.2 y §3.2
+- **Origen:** [análisis de requisitos](../requirements/requirements-analysis.md), §2.2 y §3.2
 - **Herramienta actual:** `scripts/windows/validation_campaign.ps1`; [guion de la campaña](../project-management/windows-validation-campaign.md)
-- **Reglas:** VBR-01 a VBR-03 del [catálogo de reglas](../requirements/business-rules.md)
+- **Reglas:** VBR-01 a VBR-04 del [catálogo de reglas](../requirements/business-rules.md)
+- **Principios** (SUP-V01 a SUP-V03):
+  - lo que no depende de Windows ni de un sitio real se prueba antes con pytest, fixtures y el servidor local; la campaña solo confirma lo que exige Windows;
+  - quien actúa no juzga: el veredicto lo emite una comprobación automática sobre la evidencia guardada (VBR-04);
+  - cada condición del [catálogo de condiciones de fallo](../requirements/failure-conditions.md) que se pueda simular tiene su bloque o su prueba.
 
 En la sesión de validación del 2026-11-25, el Evaluador pasó un 51 % del tiempo esperando la siguiente instrucción. La causa raíz es que la validación no tiene un oráculo automático y sus pasos dependen de YouTube y de la red aunque no los prueben. Este modelo trata la herramienta de validación como una solución con sus propios casos de uso (BABOK 10.47): un caso de uso de negocio para el proceso y casos de uso del sistema para la herramienta.
 
@@ -137,6 +141,12 @@ flowchart LR
   - **A2. El bloque prueba el sitio real:** antes del paso 2 incluye VUC-06; si el sitio no está disponible, el bloque queda **bloqueado por el entorno** sin enviar peticiones (VBR-03).
   - **A3. Una comprobación falla:** el bloque sigue con las comprobaciones independientes y termina como **falla**, con la evidencia de cada una.
   - **A4. El bloque ya se ejecutó en esta ejecución:** la herramienta crea una cola nueva con sufijo (`-r2`) sin borrar nada.
+- **Excepciones:**
+  - **E1. La herramienta falla antes de comprobar** (orden inexistente, error del guion): el bloque queda **sin resultado**, nunca como pasado; el error se guarda en la evidencia.
+- **Criterios de aceptación:**
+  1. El resultado de cada bloque lo emite la comprobación automática (VBR-04).
+  2. Ningún bloque local envía peticiones a internet.
+  3. Repetir un bloque no borra la evidencia anterior.
 - **Garantías:**
   - **De éxito:** el resultado del bloque y su evidencia, sin intervención del Analista.
   - **Mínima:** ningún dato real del User cambia; ninguna carpeta se borra.
@@ -155,9 +165,11 @@ flowchart LR
      - una playlist (feed) con una entrada repetida en otra, para los duplicados.
   3. La herramienta los sirve en `127.0.0.1` y muestra las URLs.
 - **Flujos alternativos:**
-  - **A1. Simular un corte de red:** el servidor se detiene y se vuelve a arrancar a mitad de una descarga, para UC-12.
+  - **A1. Simular condiciones:** a mitad de una descarga, el servidor se detiene y vuelve a arrancar (corte de conectividad, UC-11 A2), responde HTTP 429 o 403 o el texto de una restricción (UC-11 A1, BR-01), responde 5xx una vez y después bien (reintentos de yt-dlp, BR-07) o corta la conexión (UC-03 A15).
   - **A2. Puerto ocupado:** usa otro puerto libre y lo muestra.
+  - **A3. Transmisión en directo simulada** (si D-10 lo pide): un manifiesto HLS que no termina.
 - **Garantía mínima:** solo escucha en la dirección local; no escribe fuera de la carpeta de la ejecución.
+- **Nota:** el mismo servidor es un fixture de pytest en el entorno de desarrollo; la campaña lo reutiliza (SUP-V01).
 
 ### VUC-06 Comprobar el acceso al sitio real
 
@@ -176,6 +188,7 @@ flowchart LR
 - **Objetivo:** entregar al Analista toda la evidencia de la ejecución en un archivo pequeño, sin escribir comandos.
 - **Actor principal:** Evaluador. **Secundario:** Analista.
 - **Disparador:** termina la ejecución o un grupo de bloques.
+- **Relación:** comparte la recogida y la limpieza de datos sensibles con el informe de diagnóstico del producto (UC-16, SUP-O03); no las duplica.
 - **Flujo básico:**
   1. El Evaluador ejecuta `Save-ValidationArchive`.
   2. La herramienta incluye el resumen (VUC-08).
@@ -207,5 +220,5 @@ flowchart LR
 | VUC-04 | Espera de instrucciones; pasos repetidos por errores del guion | T60 |
 | VUC-05 | Pasos 6 a 12 bloqueados por YouTube o la red | T59 |
 | VUC-06 | Comprobaciones manuales del sitio; peticiones a un sitio que bloquea | T61 |
-| VUC-07 | Comandos de empaquetado escritos a mano | T61 |
+| VUC-07 | Comandos de empaquetado escritos a mano | T61, compartida con T64 (UC-16) |
 | VUC-08 | Interpretar consolas pegadas | T60 |

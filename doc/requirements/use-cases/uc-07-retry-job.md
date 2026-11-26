@@ -62,6 +62,19 @@ El User vuelve a poner en la cola jobs que fallaron o que canceló. Como `cancel
 - `retry` solo crea job requests; nunca cambia estados ([Parte 2, §2.4](../../design/02-flows-persistence-and-operations.md#24-escritura-desde-varios-procesos)).
 - Reintentar nunca descarga de nuevo un contenido `COMPLETED` ni crea descargas duplicadas.
 
+## Reglas, requisitos y restricciones asociados
+
+- **Reglas:** BR-14, BR-15, BR-17, BR-21.
+- **Requisitos suplementarios:** SUP-C04, SUP-U05 (propuesto).
+- **Restricciones:** `retry` solo registra una job request; la aplica el proceso de `run`.
+- **Dependencias:** UC-03, UC-06.
+
+## Criterios de aceptación
+
+1. Un job `FAILED` o `CANCELLED` reintentado vuelve a `PENDING` con `attempt_count` incrementado.
+2. La descarga continúa desde sus parciales.
+3. Un job no reintentable no cambia (A2).
+
 ## Escenarios de prueba
 
 | Escenario | Dónde se prueba |

@@ -54,12 +54,29 @@ El Responsable del proyecto decidió implementar en E2 los casos de uso restante
 | Requisitos | Modelo de casos de uso y especificaciones | [requirements/](../requirements/use-case-model.md) | Antes de la iteración que implementa cada caso de uso |
 | Requisitos | Especificación complementaria | [requirements/supplementary-specification.md](../requirements/supplementary-specification.md) | Si aparece un requisito transversal |
 | Requisitos | Glosario | [design/00-vocabulary.md](../design/00-vocabulary.md) | Antes de usar un concepto nuevo |
+| Requisitos | Reglas de negocio y sus parámetros | [requirements/business-rules.md](../requirements/business-rules.md) | Al decidir o cambiar una regla |
+| Requisitos | Catálogo de condiciones de fallo | [requirements/failure-conditions.md](../requirements/failure-conditions.md) | Al encontrar una condición nueva o cambiar su tratamiento |
+| Requisitos | Análisis de requisitos (evidencia, referencias, decisiones pendientes) | [requirements/requirements-analysis.md](../requirements/requirements-analysis.md) | Al analizar un cambio de requisitos |
+| Requisitos | Modelo de casos de uso de la validación | [process/validation-use-case-model.md](validation-use-case-model.md) | Si cambia la campaña de Windows |
 | Análisis y diseño | Documento de arquitectura | [design/](../design/01-architecture.md) | Al cambiar la estructura o un flujo |
 | Análisis y diseño | Decisiones de arquitectura (ADR) | [notes/](../notes/README.md) | En cada decisión; las aceptadas no se editan |
 | Gestión del proyecto | Lista de riesgos | [project-management/risk-list.md](../project-management/risk-list.md) | Al cerrar cada iteración |
 | Gestión del proyecto | Plan de iteración (slices, tareas y camino crítico) | `project-management/iteration-plan-<id>.md` | Al empezar cada iteración; se completa con su evaluación al cerrarla |
 | Entorno | Caso de desarrollo | Este documento | Si cambia el proceso |
 | Implementación y pruebas | Código, pruebas y configuración | `queued_media_downloader/`, `tests/`, `pyproject.toml` | Continuo |
+
+### Requisitos: RUP con técnicas de BABOK v3
+
+La disciplina de Requisitos de RUP produce los artefactos de la tabla; BABOK v3 aporta las técnicas con las que se elaboran:
+- **Elicitación y análisis:** análisis de documentos (10.18), benchmarking de proyectos de referencia (10.4), descomposición funcional (10.22), análisis de interfaces (10.24) y análisis de causa raíz (10.40).
+- **Especificación:** casos de uso y escenarios (10.47), con el formato común del [modelo, §2](../requirements/use-case-model.md#2-formato-de-los-casos-de-uso); reglas de negocio separadas de los flujos y de sus parámetros (10.9); requisitos no funcionales con criterio verificable (10.30); glosario (10.21).
+- **Decisión y priorización:** modelado de decisiones (10.16) con alternativas y recomendación, sin aprobarlas en el análisis; priorización (10.33).
+- **Verificación:** características de BABOK 7.2 y criterios de aceptación (10.1) en cada caso de uso.
+
+Reglas del modelo:
+- un solo modelo canónico: los hallazgos de una referencia se integran en sus artefactos, nunca en catálogos paralelos con identificadores propios;
+- los identificadores de los casos de uso no se renumeran; un caso de uso retirado conserva su id, que no se reutiliza;
+- cada concepto tiene una sola autoridad, y los demás documentos la enlazan.
 
 No se usan: modelo de negocio, caso de negocio, modelo de análisis separado del diseño, plan de despliegue separado (el despliegue es el README) ni plan de gestión de configuración separado (lo cubre [ADR-0020](../notes/adr-0020-repository-branching-and-lfs.md)).
 

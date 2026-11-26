@@ -30,6 +30,7 @@ El User borra de la cola los jobs `COMPLETED` y/o `CANCELLED`. Los archivos desc
 - **A2. Playlist con alguna entrada que aún requiere trabajo** (paso 3): `PENDING`, `RUNNING`, `CANCELLATION_REQUESTED`, `FAILED`, o un estado no elegido (por ejemplo, una entrada `CANCELLED` con `--completed`). La playlist se conserva, con esas entradas, y se informa (`Kept job N: its playlist has unfinished entries`). Sus entradas en los estados elegidos sí se borran.
 - **A3. Nada que purgar** (paso 6): `Purged 0 jobs`; código `0`.
 - **A4. `run` en ejecución en otra terminal** (paso 4): el borrado espera hasta `busy_timeout` (SQLite en modo WAL); los jobs en curso no son purgables.
+- **A5. Purgar y borrar los archivos propios** (propuesto, decisión D-11): `purge --delete-files` borra además el archivo final de cada job purgado, solo si el job lo escribió y conserva su reclamación con su owner token ([BR-17](../business-rules.md)). Pide confirmación con el número de archivos y su tamaño total. Un archivo movido, ajeno o sin reclamación no se toca. Origen: Seal (borrar el registro con su archivo).
 
 ## Excepciones
 
@@ -56,6 +57,19 @@ El User borra de la cola los jobs `COMPLETED` y/o `CANCELLED`. Los archivos desc
 - `FAILED` no se purga: se reintenta (UC-07) o se conserva para diagnóstico.
 - Un job `SKIPPED` suelto (un contenido encolado dos veces, UC-03 A1) no se purga; solo los `SKIPPED` que pertenecen a una playlist purgada.
 - Tras purgar, el id de un job no se reutiliza (migración 0003).
+
+## Reglas, requisitos y restricciones asociados
+
+- **Reglas:** BR-17, BR-18.
+- **Requisitos suplementarios:** SUP-C04.
+- **Restricciones:** `FAILED` no se purga; los ids no se reutilizan.
+- **Dependencias:** UC-08 (para decidir qué purgar).
+
+## Criterios de aceptación
+
+1. Sin opciones, se purgan los `COMPLETED` y `CANCELLED`, salvo las playlists conservadas (A2).
+2. Ningún archivo final cambia (BR-18), salvo con A5 y solo los propios.
+3. Con la base de datos ocupada, no se borra nada (E1).
 
 ## Escenarios de prueba
 
