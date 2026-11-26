@@ -29,10 +29,24 @@ Tras un cierre inesperado (corte de luz, cierre de la terminal, fallo), el User 
 - **A1. El formato guardado ya no está disponible** (paso 6): el worker reintenta una vez con el format selector original y publica `FormatSelected` con el nuevo formato. Al terminar con éxito, se eliminan los `.part` del formato anterior.
 - **A2. El job no tenía formato elegido** (paso 5): la interrupción ocurrió antes de `FormatSelected`; la descarga empieza de cero con el format selector original.
 - **A3. Archivos parciales borrados por el User** (paso 6): yt-dlp descarga desde el principio.
+- **A4. El cierre ocurrió después de mover el archivo final y antes de registrar `JobCompleted`** (paso 6): el job encuentra su propia reclamación y su archivo; yt-dlp lo da por descargado y el job termina `COMPLETED` sin descargar de nuevo ([ADR-0030](../../notes/adr-0030-final-file-ownership-claims.md)).
+- **A5. La interrupción fue un `Ctrl+C`** (paso 2): igual que un cierre inesperado; los jobs siguen `RUNNING` con sus parciales (UC-05 A6).
+- **A6. La base de datos necesita una migración** (paso 1): se aplica al abrirla; si falla, se deshace y `run` termina con código `1` sin ejecutar ningún job (UC-01 A8).
+- **A7. Base de datos de una versión anterior con un archivo final reclamado por dos jobs** (paso 1): la migración 0003 se lo deja al job de id menor y pasa los demás a `FAILED`, reintentables.
 
 ## Postcondiciones
 
 - **Éxito:** ningún job queda en `RUNNING` sin un worker; las descargas interrumpidas continúan sin repetir lo ya descargado.
+- **Fallo (A6):** la cola no cambia.
+
+## Transiciones
+
+`RUNNING → PENDING` y `CANCELLATION_REQUESTED → CANCELLED` al recuperar; después, las de UC-03.
+
+## Restricciones
+
+- La reanudación por bytes depende de que el sitio acepte `Range` y de que yt-dlp conserve el `.part`; si no, la descarga empieza de cero (A3).
+- Con dos colas (dos `state_directory`) sobre la misma carpeta de descargas, la propiedad de los archivos finales no se garantiza ([ADR-0030](../../notes/adr-0030-final-file-ownership-claims.md), restricciones).
 
 ## Requisitos especiales
 
@@ -48,3 +62,5 @@ Tras un cierre inesperado (corte de luz, cierre de la terminal, fallo), el User 
 | Reanudación real: interrumpir una descarga del servidor HTTP local y continuar | Cualquier sistema |
 | Formato no disponible (A1) con `FakeMediaSource` | Cualquier sistema |
 | Cierre forzado de `run` en Windows y reanudación | **Windows**, al cerrar la iteración |
+| A4: cierre tras mover el archivo; el mismo job lo reconoce como suyo | Cualquier sistema |
+| A6 y A7: migración fallida deshecha; base de E1 con un archivo reclamado dos veces | Cualquier sistema |

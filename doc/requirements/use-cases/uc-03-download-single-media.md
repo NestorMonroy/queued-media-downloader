@@ -38,11 +38,14 @@ El User ejecuta la cola. El sistema toma un job pendiente, descubre que la URL e
 - **A4. El worker muere sin publicar un evento final** (pasos 5 a 11): el pool lo detecta, publica `JobFailed(WORKER_CRASHED)` y arranca otro worker.
 - **A5. `--keep-waiting`** (paso 12): el sistema no termina; espera jobs nuevos.
 - **A6. Reciclado** (paso 11): el worker alcanzó `max_jobs_per_worker`; termina limpiamente y el pool arranca un reemplazo.
+- **A7. El nombre final es de otro job, o ya existe un archivo que el job no escribió** (paso 7): plantilla sin `%(id)s`, título recortado, archivo del User o de un job purgado. El worker falla el job con `FILESYSTEM` antes de descargar, sin tocar ese archivo, y el mensaje indica moverlo o usar `%(id)s` ([ADR-0030](../../notes/adr-0030-final-file-ownership-claims.md)).
+- **A8. La descarga no deja un archivo final utilizable** (paso 11): sin ruta, dentro de la carpeta de parciales, inexistente o vacío. El job pasa a `FAILED` con `FILESYSTEM` y la carpeta de parciales se conserva. Un `JobCompleted` de una descarga sin ruta nunca deja el job `COMPLETED` (contrato de `JobCompleted`).
+- **A9. `Ctrl+C`** (pasos 4 a 11): interrupción, no cancelación; ver UC-05 A6.
 
 ## Postcondiciones
 
-- **Éxito:** archivo final en `download_directory`; job `COMPLETED` con `output_path` y `selected_format_id`.
-- **Fallo:** job `FAILED` con failure reason y mensaje; los archivos parciales quedan para reanudar (UC-06).
+- **Éxito:** archivo final en `download_directory` (en su subcarpeta `audio` con `--audio-only`, o en la carpeta de su playlist); job `COMPLETED` con `output_path` y `selected_format_id`; la carpeta de parciales del job se borra; el job conserva la reclamación de su nombre final.
+- **Fallo:** job `FAILED` con failure reason y mensaje; los archivos parciales quedan para reanudar (UC-06); si no dejó archivo final, suelta la reclamación de su nombre. Ningún archivo de otro job cambia.
 
 ## Requisitos especiales
 
@@ -60,3 +63,5 @@ El User ejecuta la cola. El sistema toma un job pendiente, descubre que la URL e
 | Descarga de extremo a extremo contra un servidor HTTP local, con unión por ffmpeg | Cualquier sistema (ffmpeg del sistema) y **Windows** (ffmpeg incluido) |
 | Memoria máxima del proceso principal, del worker y de ffmpeg | **Windows**, al cerrar la iteración |
 | Descarga real de un video de YouTube (con deno) | **Windows**, manual |
+| A7: el archivo final de otro job o del User no cambia (tamaño, fecha y SHA-256); dos jobs a la vez por un nombre | Cualquier sistema |
+| A7 con mayúsculas, separadores, rutas de más de 260 caracteres y archivos abiertos | **Windows** (pruebas `windows`, campaña paso 11) |

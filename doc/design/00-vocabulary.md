@@ -24,6 +24,24 @@ Este documento fija **una palabra por concepto** (principio #8). Todo identifica
 | **format selector** | Expresión de yt-dlp que elige formatos (`bv*+ba/b`) | format (a secas), quality |
 | **selected format** | Formato concreto que yt-dlp eligió para un job | chosen format, format code |
 | **failure reason** | Clasificación de dominio de un fallo | error type, error code |
+| **output claim** (reclamación) | Archivo exclusivo en `state/output-claims/` con el que un job se declara dueño de un nombre final antes de descargar ([ADR-0030](../notes/adr-0030-final-file-ownership-claims.md)) | lock (no es un bloqueo del sistema operativo), reservation |
+| **interruption** (interrupción) | `Ctrl+C` durante `run`: detiene la cola sin cancelar ningún job; los jobs en curso conservan su estado y sus parciales y continúan en el siguiente `run` | cancel (no es una cancelación) |
+
+### 1.1 Estados terminados, reintentables y cancelables
+
+Tres preguntas distintas sobre un job status, con respuestas distintas (`Job.is_finished`, `Job.can_be_retried`, `CancelJob`):
+
+| Job status | Terminado | Reintentable (`retry`) | Cancelable (`cancel`) | Purgable sin opciones (`purge`) |
+|---|---|---|---|---|
+| `PENDING` | No | No | Sí: pasa a `CANCELLED` (UC-05 A1) | No |
+| `RUNNING` | No | No | Sí: `CANCELLATION_REQUESTED` (UC-05) | No |
+| `CANCELLATION_REQUESTED` | No | No | Sin cambios (ya se está cancelando) | No |
+| `COMPLETED` | Sí | No | Sin cambios (A7) | Sí |
+| `FAILED` | Sí | **Sí** | Sin cambios (A7): conserva su failure reason; se reintenta, no se cancela | No |
+| `CANCELLED` | Sí | **Sí** | Sin cambios (A7) | Sí |
+| `SKIPPED` | Sí | No | Sin cambios (A7) | Solo con su playlist; un `SKIPPED` suelto (UC-03 A1) no se purga (restricción de UC-10) |
+
+Una playlist (`EXPANSION`) se purga solo si todas sus entradas son purgables con las opciones elegidas o son `SKIPPED`; si no, se conserva con sus entradas pendientes de trabajo (UC-10 A2).
 
 ## 2. Conceptos de ejecución
 

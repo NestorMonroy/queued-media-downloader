@@ -37,6 +37,7 @@ El User obtiene el proyecto, prepara el entorno con uv y comprueba que ffmpeg, f
 - **A5. Binario corrupto** (paso 7): el SHA-256 no coincide con el registrado en `SOURCE.md` o el binario no responde a `-version`. El sistema lo indica y termina con código `2`.
 - **A6. Configuración no válida** (paso 5): el sistema indica la clave y el valor no válidos y termina con código `2`.
 - **A7. Smart App Control activado** (paso 2 o posteriores): Windows bloquea `uv.exe`, o un binario sin firmar del proyecto, con el mensaje "Una directiva de Control de aplicaciones bloqueó este archivo". El sistema no llega a ejecutarse, así que no puede informar; el User comprueba la precondición ([ADR-0026](../../notes/adr-0026-smart-app-control-precondition.md)).
+- **A8. La base de datos no se puede abrir o una migración falla** (paso 8): la migración se deshace (la base de datos queda en su última versión completa) y se cierra la conexión. `diagnose` muestra la comprobación `database` como fallida, con la causa, y termina con código `2`; los demás comandos indican la ruta y la causa sin traza y terminan con código `1` (si otro proceso la tiene ocupada más allá de `busy_timeout`, `the queue is busy`).
 
 ## Postcondiciones
 
@@ -56,5 +57,6 @@ El User obtiene el proyecto, prepara el entorno con uv y comprueba que ffmpeg, f
 | Detección de puntero de Git LFS (A1, A2) | Cualquier sistema |
 | Caché del hash por tamaño y fecha | Cualquier sistema |
 | Configuración no válida (A6) | Cualquier sistema |
+| Migraciones: base nueva, actualización desde cada versión (1, 2), conservación de datos, integridad referencial e índices, migración fallida deshecha (A8) | Cualquier sistema |
 | `ffmpeg.exe` y `ffprobe.exe` incluidos arrancan con sus DLL | **Windows** |
 | Flujo completo desde un clon nuevo | **Windows**, manual, al cerrar la iteración |

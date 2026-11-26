@@ -30,12 +30,34 @@ El User cancela uno o varios jobs. Si el job aún no empezó, se cancela de inme
 - **A3. El job termina antes de ver la bandera** (paso 5): llega `JobCompleted` y el job queda `COMPLETED`.
 - **A4. Cancelar una playlist** (paso 2): se registra `CANCEL` para la expansión y para cada hijo no terminado.
 - **A5. `run` no está en ejecución** (paso 3): la job request se procesa al arrancar el siguiente `run`.
-- **A6. `Ctrl+C` durante `run`:** el sistema deja de enviar jobs y detiene los jobs en curso con el mismo mecanismo que la cancelación (pasos 5 y A2), pero sin cancelarlos: siguen `RUNNING`, con sus archivos parciales. Un segundo `Ctrl+C` termina los workers de inmediato. `run` termina con código `130`, y los jobs interrumpidos se recuperan y se reanudan en el siguiente `run` (UC-06; interrupción recuperable, [ADR-0029](../../notes/adr-0029-process-tree-termination-on-windows.md)).
-- **A7. Job ya terminado** (`COMPLETED`, `SKIPPED`, `CANCELLED`): la job request se marca procesada sin cambios y se informa al User.
+- **A6. `Ctrl+C` durante `run` (interrupción, no cancelación):** el sistema deja de enviar jobs y detiene los jobs en curso con el mismo mecanismo que la cancelación (pasos 5 y A2), pero **sin cancelarlos**: siguen `RUNNING`, con sus archivos parciales, y no se registra ninguna job request. Un segundo `Ctrl+C` termina el árbol de cada worker de inmediato; los siguientes se ignoran hasta que `run` sale. `run` termina con código `130`, y los jobs interrumpidos se recuperan y se reanudan en el siguiente `run` (UC-06; interrupción recuperable, [ADR-0029](../../notes/adr-0029-process-tree-termination-on-windows.md)).
+- **A7. Job ya terminado** (`COMPLETED`, `FAILED`, `SKIPPED`, `CANCELLED`): no se registra job request; `cancel` informa al User de que el job ya terminó. Si el job terminó entre el registro y el procesamiento, `run` marca la job request procesada sin cambios. Un job `FAILED` conserva su failure reason: no se cancela, se reintenta (UC-07). Ver la tabla de estados terminados, reintentables y cancelables del [vocabulario, §1.1](../../design/00-vocabulary.md#11-estados-terminados-reintentables-y-cancelables).
+- **A8. Job `CANCELLATION_REQUESTED`** (paso 4): ya se está cancelando; la job request se marca procesada sin cambios.
+
+## Excepciones
+
+- **E1. Job inexistente** (paso 2): `cancel` indica qué id no existe, no registra ninguna job request de esa invocación y termina con código `2`.
+- **E2. Base de datos bloqueada más allá de `busy_timeout`** (paso 2): `cancel` informa del bloqueo y termina con código `1` sin registrar nada.
+- **E3. La terminación forzada falla** (A2): se registra en el log, el job queda `CANCELLED` igualmente y el pool sustituye al worker; la prueba de Windows comprueba que no quedan procesos (campaña, paso 6).
+
+## Contrato del comando
+
+| Entrada | Efecto | Código |
+|---|---|---|
+| `cancel ID...` con jobs no terminados | Una job request `CANCEL` por job (y por cada hijo no terminado de una playlist), en una sola transacción | `0` |
+| Algún id terminado | Se informa por cada uno; los demás se registran | `0` |
+| Algún id inexistente | Nada se registra | `2` |
+| Base de datos bloqueada | Nada se registra | `1` |
 
 ## Postcondiciones
 
-- **Éxito:** job `CANCELLED` (o `COMPLETED` en A3); ningún proceso de ffmpeg o deno del job sigue vivo; los archivos parciales se conservan para un posible reintento.
+- **Éxito:** job `CANCELLED` (o `COMPLETED` en A3); ningún proceso de ffmpeg o deno del job sigue vivo; los archivos parciales se conservan para un posible reintento. Si el job no dejó su archivo final, suelta la reclamación de su nombre ([ADR-0030](../../notes/adr-0030-final-file-ownership-claims.md)); tras una terminación forzada (A2) la suelta `retry` o `purge`.
+- **Interrupción (A6):** jobs en curso `RUNNING`, con sus parciales; ninguna job request registrada; código `130`.
+- **Fallo (E1, E2):** ningún cambio en la cola.
+
+## Transiciones
+
+`PENDING → CANCELLED` (A1); `RUNNING → CANCELLATION_REQUESTED → CANCELLED` (flujo básico, A2); `CANCELLATION_REQUESTED → COMPLETED` (A3); `CANCELLATION_REQUESTED → CANCELLED` al recuperar tras un cierre (UC-06). Ninguna desde un estado terminado.
 
 ## Requisitos especiales
 
@@ -51,3 +73,5 @@ El User cancela uno o varios jobs. Si el job aún no empezó, se cancela de inme
 | Paso a terminación forzada tras el plazo (A2) con `FakeProcessTreeTerminator` | Cualquier sistema |
 | `WindowsProcessTreeTerminator` termina un proceso hijo y su descendiente | **Windows** |
 | Cancelar mientras ffmpeg une archivos: no quedan procesos | **Windows**, al cerrar la iteración |
+| A6 con `Ctrl+C` repetidos: código 130, sin traza, job `RUNNING` y reanudable | Cualquier sistema (POSIX con `SIGINT` real); **Windows** en la campaña (evento de consola) |
+| A7 con `FAILED`, `SKIPPED` y `CANCELLED` procesados por `run`: el job no cambia | Cualquier sistema |

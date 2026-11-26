@@ -35,7 +35,16 @@ Regla de equilibrio: se fija de antemano **lo que es caro cambiar** (alcance, ar
 | Iteración | Casos de uso | Riesgos |
 |---|---|---|
 | E1 | UC-01, UC-02, UC-03 (flujo básico) | R-01, R-02, R-03, R-12 |
-| E2 | UC-04, UC-05, UC-06; flujos alternativos de UC-03 | R-02, R-04, R-05, R-06, R-10 |
+| E2 | UC-04, UC-05, UC-06; flujos alternativos de UC-03; **UC-07 a UC-10** (ajuste, abajo) | R-02, R-04, R-05, R-06, R-10, R-14 |
+
+### Ajuste de 2026-11-25: UC-07 a UC-10 entran en E2
+
+El Responsable del proyecto decidió implementar en E2 los casos de uso restantes y validar Windows en una sola campaña final (T42), en lugar de evaluar E2 primero. Consecuencias sobre este caso de desarrollo:
+
+- **Construcción** ya no tiene que implementar UC-07 a UC-10; conserva el procedimiento de actualización de yt-dlp, el README verificado en Windows y lo que deje abierto la evaluación de E2.
+- **El hito de Elaboración** (arquitectura del ciclo de vida) y la **capacidad operativa** de UC-07 a UC-10 se deciden con la misma campaña: un defecto en Windows de un caso de uso no significativo no bloquea el hito de arquitectura, pero sí su aceptación (§3, estados del producto).
+- **La evaluación de cierre** (§3) se hace una sola vez, sobre un commit identificado, con la campaña de [windows-validation-campaign.md](../project-management/windows-validation-campaign.md); las correcciones que provoque siguen el procedimiento de regresión de esa guía.
+- La evidencia de Windows de E1 (2026-11-23) se conserva como evidencia de E1; **no** valida la build actual, que cambió desde entonces, y la campaña la repite.
 
 ## 2. Artefactos
 
@@ -65,12 +74,10 @@ No se usan: modelo de negocio, caso de negocio, modelo de análisis separado del
 ### Comprobaciones locales antes de integrar en `main`
 
 ```text
-uv run ruff format --check
-uv run ruff check
-uv run mypy
-uv run lint-imports
-uv run pytest
+uv run python scripts/run_checks.py
 ```
+
+Ejecuta, en orden, `ruff format --check .`, `ruff check .`, `mypy`, `lint-imports` y `pytest`, conserva la salida y el código de salida de cada uno y se detiene en el primero que falla (stop-on-error), con su código. No se usan tuberías ni truncados que oculten el código de salida real. Si alguna falla, no se hace commit, merge ni publicación.
 
 ### Cierre de cada iteración (evaluación)
 
@@ -81,10 +88,22 @@ uv run pytest
 5. Actualizar la lista de riesgos y registrar las decisiones nuevas como ADR.
 6. Escribir la evaluación en el plan de la iteración; el Responsable del proyecto decide si la iteración se cierra.
 
+### Estados del producto: cinco conceptos distintos
+
+| Estado | Qué significa | Quién lo establece y con qué evidencia |
+|---|---|---|
+| **Implementación completa** (`IMPLEMENTATION_COMPLETE`) | Todos los escenarios de los casos de uso del alcance están implementados | Agente de implementación; matriz del plan de la iteración |
+| **Verificación de desarrollo** (`DEVELOPMENT_VERIFICATION_PASSED`) | Las cinco comprobaciones pasan en el entorno de desarrollo (Linux), con las pruebas que no requieren Windows ni red | Agente de implementación; salida de `scripts/run_checks.py` sobre un commit identificado |
+| **Validación en la plataforma** (`WINDOWS_VALIDATION_PENDING` / `..._PASSED`) | Las pruebas `windows` y los pasos manuales pasan en Windows 10/11 x64 sobre el commit evaluado | Evaluador en Windows; registro de resultados de la campaña. La evidencia de Linux **nunca** cuenta como validación en Windows |
+| **Evaluación de la iteración** | Comparación de los resultados con los criterios del plan, riesgos y decisiones actualizados | Agente de implementación redacta; Responsable del proyecto decide el cierre |
+| **Aceptación final** (`FINAL_ACCEPTANCE_PENDING` / `..._ACCEPTED`) | El Responsable del proyecto acepta el producto de la iteración | Responsable del proyecto, solo con los resultados reales de Windows |
+
+Una prueba no ejecutada nunca cuenta como satisfactoria; se informa como pendiente o no ejecutable, con su motivo.
+
 ### Definición de terminado (por cambio)
 
 - El cambio tiene pruebas escritas antes del código.
-- Las cinco comprobaciones locales pasan.
+- Las cinco comprobaciones locales pasan (`scripts/run_checks.py`), y ninguna prueba toca los datos reales del usuario (la sesión de pruebas falla si cambia algún archivo del estado, de las descargas o de `config.toml` reales).
 - Los nombres nuevos están en el vocabulario.
 - Si el cambio toma una decisión de arquitectura, hay un ADR.
 

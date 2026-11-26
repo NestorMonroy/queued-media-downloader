@@ -31,11 +31,13 @@ Durante la ejecución de la cola, un job de expansión resulta ser una playlist 
 - **A3. Entrada no disponible** (privada o eliminada) (paso 4): el hijo se crea como `SKIPPED`, no como `FAILED`.
 - **A4. Contenido `multi_video`** (paso 1): se trata como un solo contenido; continúa como UC-03 desde el paso 5.
 - **A5. Cancelación durante la expansión:** ver UC-05. Los hijos ya creados quedan en la cola, salvo que se cancele la playlist entera.
-- **A6. Fallo de red a mitad de la expansión** (paso 2): la expansión pasa a `FAILED`; los hijos ya creados se conservan. Al reintentarla (UC-07), los duplicados quedan `SKIPPED` (A2).
+- **A6. Fallo de red a mitad de la expansión** (paso 2): la expansión pasa a `FAILED`; los hijos ya creados se conservan. Al reintentarla (UC-07 A3), sus hijos `FAILED` o `CANCELLED` vuelven a la cola, los `COMPLETED` no cambian y las entradas ya existentes se crean como duplicadas `SKIPPED` (A2).
+- **A7. Mensajes tardíos de una expansión cancelada** (paso 4): un lote que llega cuando la expansión ya no está `RUNNING` no crea hijos.
 
 ## Postcondiciones
 
-- **Éxito:** la expansión está `COMPLETED` y existe un job hijo por cada playlist entry; el estado de la playlist se deriva de sus hijos.
+- **Éxito:** la expansión está `COMPLETED`, sin `output_path` (una expansión no produce archivos), y existe un job hijo por cada playlist entry; el estado de la playlist se deriva de sus hijos.
+- **Fallo:** la expansión está `FAILED`; los hijos creados se conservan con su estado.
 
 ## Requisitos especiales
 

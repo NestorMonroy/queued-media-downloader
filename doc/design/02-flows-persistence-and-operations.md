@@ -185,6 +185,8 @@ sequenceDiagram
 ```
 
 - **Dos postprocessors de registro:** `SelectedFormatRecorder` (`when='before_dl'`) y `FinalPathRecorder` (`when='after_move'`). La ruta final puede diferir de la plantilla tras unir o convertir.
+- **Reclamación del nombre final antes de descargar:** `OutputOwnershipGuard` (`when='before_dl'`, el primero) reclama la ruta final sin extensión en `state/output-claims/`. Si es de otro job, o si ya hay un archivo con ese nombre que el job no escribió, el job falla con `FILESYSTEM` sin tocar nada: yt-dlp ejecuta `fixup` y los postprocessors incluso sobre un archivo "ya descargado" ([ADR-0030](../notes/adr-0030-final-file-ownership-claims.md)).
+- **Contrato de `JobCompleted`:** un job `DOWNLOAD` lo publica solo con la ruta de su archivo final, movido fuera de su carpeta de parciales y con contenido; un job `EXPANSION`, sin ruta. `Job.complete` lo comprueba y el `JobEventApplier` convierte un evento que lo incumpla en `FAILED`.
 - **Progreso limitado en el worker:** como máximo un `DownloadProgressed` cada `progress_interval_seconds` por job; el último (`finished`) siempre se publica. yt-dlp llama al hook en cada bloque recibido.
 - **Parámetros fijos en cada `YoutubeDL`:** `ffmpeg_location`, `js_runtimes`, `cachedir`, `paths`, `outtmpl`, `trim_file_name`, `continuedl=True`, `noprogress=True`, `color="never"`, `logger` propio, `file_access_retries`.
 
@@ -438,8 +440,9 @@ Así, `cancel` y `retry` funcionan mientras `run` se ejecuta en otra terminal, s
 
 - Scripts SQL numerados en `job_storage/migrations/`, nombrados por lo que hacen (`0001_create_jobs.sql`, `0002_...`).
 - La versión aplicada se guarda en `PRAGMA user_version`.
-- Al abrir la base de datos se aplican, en orden y en una transacción, las migraciones con número mayor que `user_version`.
-- Una migración publicada no se modifica; los cambios van en una nueva.
+- Al abrir la base de datos se aplican, en orden y cada una en su transacción, las migraciones con número mayor que `user_version`.
+- **Si una migración falla,** se deshace su transacción (la base de datos queda en la última versión completa, sin cambios a medias), se cierra la conexión y el comando termina con el error. Así no queda el archivo retenido (en Windows impediría moverlo o borrarlo).
+- Una migración publicada no se modifica; los cambios van en una nueva. **Única excepción:** una migración que no se puede aplicar en algunas bases de datos se corrige si en las que ya la aplicaron produce el mismo esquema y los mismos datos. Se usó una vez: la 0003 fallaba con una base de datos de E1 en la que dos jobs reclamaban el mismo archivo (R-14), y la cola ya no se podía abrir; ahora el job de id menor conserva el archivo y los demás pasan a `FAILED` ([ADR-0030](../notes/adr-0030-final-file-ownership-claims.md)). En una base de datos sin esos duplicados la corrección no cambia nada.
 
 ---
 
@@ -488,7 +491,7 @@ Los comandos usan los mismos verbos que los casos de uso, para que haya una sola
 
 | Comando | Caso de uso |
 |---|---|
-| `enqueue URL... [--format SELECTOR] [--audio-only] [--download-directory DIR]` | `enqueue_media` |
+| `enqueue URL... [--format SELECTOR] [--audio-only] [--playlist] [--download-directory DIR]` | `enqueue_media` |
 | `run [--worker-count N] [--keep-waiting]` | `recover_interrupted_jobs` + `run_queue` |
 | `list [--status STATUS] [--parent JOB_ID]` | `list_jobs` |
 | `show JOB_ID` | `show_job` |
@@ -502,9 +505,10 @@ Los comandos usan los mismos verbos que los casos de uso, para que haya una sola
 - **`run` verifica ffmpeg antes de ejecutar ningún job** ([ADR-0006](../notes/adr-0006-ffmpeg-resolution-and-verification.md)). Si no hay uno utilizable, termina con código `2`; si lo hay, muestra cuál usa y su versión.
 
 - **`--keep-waiting`** (antes `--watch`): `run` no termina al vaciarse la cola y espera jobs nuevos. El nombre dice lo que hace.
-- **`Ctrl+C` durante `run`:** deja de enviar jobs, solicita la cancelación de los jobs en curso y termina sus workers tras `cancellation_grace_seconds`. Un segundo `Ctrl+C` termina de inmediato. Los jobs interrumpidos se recuperan en el siguiente `run`.
+- **`Ctrl+C` durante `run` (interrupción, no cancelación; UC-05 A6):** deja de enviar jobs y pide a los workers que detengan los jobs en curso con el mecanismo de la cancelación, pero **sin cancelarlos**: siguen `RUNNING`, con sus archivos parciales, y tras `cancellation_grace_seconds` se termina el árbol de los workers que no se detuvieron. Un segundo `Ctrl+C` termina el árbol de cada worker de inmediato. Los siguientes se ignoran hasta que `run` sale, para que ninguno corte el apagado a medias. `run` termina con código `130` y el siguiente `run` recupera los jobs y reanuda sus descargas (UC-06).
+- **`purge`:** sin opciones, borra los jobs `COMPLETED` y `CANCELLED`; con `--completed` o `--cancelled`, solo ese estado. Nunca borra archivos finales; sí las carpetas de parciales y las reclamaciones de los jobs borrados. Conserva una playlist si borrarla arrastraría entradas que aún requieren trabajo (UC-10).
 - **Librería:** `argparse` (biblioteca estándar).
-- **Código de salida:** `0` si todo terminó bien, `1` si algún job falló, `2` por error de uso o de configuración.
+- **Código de salida:** `0` si todo terminó bien, `1` si algún job falló, `2` por error de uso o de configuración, `130` si `run` se interrumpió con `Ctrl+C`.
 
 ### 4.2 Configuración
 
@@ -513,7 +517,7 @@ Los comandos usan los mismos verbos que los casos de uso, para que haya una sola
 | Clave | Por defecto | Uso |
 |---|---|---|
 | `download_directory` | `%USERPROFILE%\Downloads\queued-media-downloader` | Destino de las descargas |
-| `state_directory` | `<proyecto>\state` | Base de datos, caché de yt-dlp y estado de verificación de ffmpeg |
+| `state_directory` | `<proyecto>\state` | Base de datos, log, caché de yt-dlp, estado de verificación de ffmpeg y reclamaciones de nombres finales (`output-claims/`) |
 | `worker_count` | `1` | Tamaño del pool |
 | `max_jobs_per_worker` | `20` | Reciclado de workers |
 | `cancellation_grace_seconds` | `10` | Espera antes de terminar un worker que no confirma la cancelación |
@@ -545,6 +549,8 @@ Los comandos usan los mismos verbos que los casos de uso, para que haya una sola
 - **TDD sin integración continua** ([ADR-0021](../notes/adr-0021-tdd-and-windows-validation-without-ci.md)): `uv run pytest` en el ciclo diario; `uv run pytest -m windows` en un entorno Windows al cerrar cada iteración.
 - **Windows probado en cualquier sistema** siempre que sea posible: `multiprocessing.get_context("spawn")` para los workers y `pathlib.PureWindowsPath` para las reglas de rutas. Solo el Job Object y los binarios de ffmpeg requieren las pruebas `windows`.
 - **Marcadores de pytest:** `network` y `windows`. Por defecto se ejecutan las pruebas que no requieren ni red ni Windows.
+- **Aislamiento de los datos reales:** toda prueba recibe su propia carpeta de estado, carpeta de descargas y `config.toml` (fixture `isolated_environment`, autouse en `tests/conftest.py`). Además, la sesión toma antes y después una huella (tamaño, fecha y SHA-256) de cada archivo del estado real, de la carpeta de descargas real y de `config.toml`, y falla si alguno se creó, se borró o cambió. Un `config.toml` en la raíz del proyecto detiene la sesión, porque las pruebas que lanzan `run` en otro proceso lo leerían.
+- **Verificaciones con stop-on-error:** `uv run python scripts/run_checks.py` ejecuta formato, linter, tipos, reglas de importación y pruebas en orden, conserva la salida y el código de cada una y se detiene en la primera que falla, con su código.
 - **Descargas sin internet:** servidor HTTP local con medios generados con ffmpeg; las descargas reales son verificaciones manuales.
 - **Dobles de prueba** en `tests/doubles/`: `InMemoryJobStore`, `InMemoryJobRequestInbox`, `ScriptedWorkerPool` (publica una secuencia de job events predefinida), `FakeMediaSource` y `FakeProcessTreeTerminator`.
 - **Estructura de cada prueba:** *Arrange, Act, Assert*, un solo concepto comprobado por prueba y principios FIRST ([guías](../reference/clean-code-guidelines/principle/aaa.md)).

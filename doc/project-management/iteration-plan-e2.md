@@ -84,7 +84,7 @@ Igual que en E1 ([ADR-0022](../notes/adr-0022-hybrid-approach-and-task-decomposi
 | T36 | Comando `cancel` y `JobRequestInbox` sobre la tabla `job_requests`; A5 (sin `run` activo) y A7 (job terminado) | Agente | Pruebas del comando y de la bandeja. **Hecha**: Linux ✔ | — |
 | T37 | `RunQueue` procesa las job requests en cada vuelta: A1 (`PENDING`), flujo básico (`RUNNING`) y A4 (playlist con sus hijos) | Agente | Pruebas con `ScriptedWorkerPool`. **Hecha**, con la cancelación cooperativa en el worker (hilo de cancelación y `JobCancelledError`): Linux ✔ | T36, T28 |
 | T38 | Hilo de cancelación en el worker y `DownloadCancelled` en el hook de progreso; A2 (terminación forzada tras `cancellation_grace_seconds`) y A3 (termina antes de verlo) | Agente | Cancelar contra el servidor local, también durante la unión, sin procesos huérfanos. **Hecha**: Linux ✔ (yt-dlp real contra el servidor lento; job sin avances con un hijo, en lugar de una unión real); la cancelación durante una unión real con ffmpeg, en la campaña (paso 6) | T35, T37 |
-| T39 | `Ctrl+C` en `run` (A6): el primero cancela los jobs en curso, el segundo termina los workers | Agente | Prueba con una señal al proceso de `run`. **Hecha**: el primero detiene los jobs **sin cancelarlos** (siguen `RUNNING` y se reanudan, como pide A6 y ADR-0029); el segundo termina los árboles ya; código 130. Linux ✔ (señales reales); Windows ⏳ (paso 7) | T38, T31 |
+| T39 | `Ctrl+C` en `run` (A6): el primero detiene los jobs en curso sin cancelarlos, el segundo termina los workers (el enunciado original decía "cancela"; se corrigió al implementar, de acuerdo con ADR-0029) | Agente | Prueba con una señal al proceso de `run`. **Hecha**: el primero detiene los jobs **sin cancelarlos** (siguen `RUNNING` y se reanudan, como pide A6 y ADR-0029); el segundo termina los árboles ya; código 130. Linux ✔ (señales reales); Windows ⏳ (paso 7) | T38, T31 |
 
 ### 4.6 Slice E: operación de la cola
 
@@ -106,6 +106,7 @@ Igual que en E1 ([ADR-0022](../notes/adr-0022-hybrid-approach-and-task-decomposi
 
 | ID | Tarea | Rol | Terminada cuando | Depende de |
 |---|---|---|---|---|
+| T49 | Auditoría integral previa a la aceptación: trazabilidad por requisito, especificación completa de UC-07 a UC-10, aislamiento de las pruebas, propiedad de los archivos finales ([ADR-0030](../notes/adr-0030-final-file-ownership-claims.md)), contrato de `JobCompleted`, migraciones, `Ctrl+C` repetidos, cola ocupada en todos los comandos y preparación de T42 | Agente | Correcciones con sus pruebas, verificación de desarrollo y [informe de la auditoría](pre-acceptance-audit.md). **Hecha**: Linux ✔; deja `READY_FOR_WINDOWS_VALIDATION` | T45–T48 |
 | T42 | Campaña final de validación en Windows (§7), incluida la medición de memoria que viene de E1 y el experimento de T33 | Evaluador | Los criterios de la sección 5 cumplidos; SUP-P04 fijado; matriz de la §8 con evidencia real; lista de riesgos actualizada | Todas, incluido el slice F |
 
 ### 4.8 Camino crítico
@@ -213,12 +214,21 @@ Se amplía con cada tarea. Cada uno se verifica en la campaña.
 
 ## 8. Matriz de casos de uso: implementación y validación
 
-Estado al 2026-11-25, tras T48: **todos los escenarios de UC-01 a UC-10 están implementados y probados en Linux**. Lo que falta es la validación en Windows, en la campaña (§7). Se actualiza con la evidencia de la campaña.
+Estado al 2026-11-26, tras la auditoría previa a la aceptación (T49): **todos los escenarios de UC-01 a UC-10 están implementados y probados en Linux**. Lo que falta es la validación en Windows, en la campaña (§7). Se actualiza con la evidencia de la campaña.
+
+| Estado del producto ([caso de desarrollo, §3](../process/development-case.md#estados-del-producto-cinco-conceptos-distintos)) | Valor | Evidencia |
+|---|---|---|
+| Implementación | `IMPLEMENTATION_COMPLETE` | Esta matriz |
+| Verificación de desarrollo | `DEVELOPMENT_VERIFICATION_PASSED` | `scripts/run_checks.py` sobre el commit publicado (§8.3) |
+| Validación en Windows | `WINDOWS_VALIDATION_PENDING` | Campaña T42 sin ejecutar |
+| Evaluación de E2 | Pendiente | §6, tras la campaña |
+| Aceptación final | `FINAL_ACCEPTANCE_PENDING` | Decisión del Responsable con los resultados de Windows |
 
 Leyenda de pruebas:
 - **Linux ✔:** automatizada y ejecutada con éxito en el entorno de desarrollo.
 - **Windows ⏳:** escrita o prevista para Windows y aún **no ejecutada**. No cuenta como satisfactoria.
-- **Windows E1 ✔:** ejecutada con éxito en la evaluación de E1, en Windows 11; se repite en la campaña.
+- **Windows E1 ✔:** ejecutada con éxito en la evaluación de E1 (2026-11-23), en Windows 11, sobre la build de E1. Se conserva como evidencia de E1; **no valida la build actual** y se repite en la campaña.
+- **No ejecutable aquí:** escrita, pero el entorno de desarrollo no la permite (por ejemplo, el proxy rechaza YouTube); se ejecuta en la campaña.
 
 La aceptación final de todos los escenarios queda **pendiente** de la campaña (§7).
 
@@ -232,6 +242,7 @@ La aceptación final de todos los escenarios queda **pendiente** de la campaña 
 | A3 Plataforma no soportada | E1 | Hecha | Linux ✔ | — |
 | A4 ffmpeg desde `PATH` | E1 | Hecha | Linux ✔ | Paso 2 |
 | A6 Configuración no válida | E1 | Hecha | Linux ✔; Windows E1 ✔ | — |
+| A8 Base de datos que no se abre o migración fallida | T49 | Hecha: rollback, cierre de la conexión y error sin traza (código 1; `diagnose` la marca fallida) | Linux ✔ (migración rota simulada, archivo que no es SQLite, actualización desde las versiones 1 y 2) | Paso 2 (esquema 3) |
 | A7 Smart App Control | T19 | Documentada (ADR-0026) | Windows E1 ✔ (detectado y documentado) | Paso 1 |
 
 ### UC-02 Encolar contenido
@@ -241,7 +252,7 @@ La aceptación final de todos los escenarios queda **pendiente** de la campaña 
 | Flujo básico, `--audio-only`, `--format`, `--playlist` | E1, T23, T43 | Hecha | Linux ✔; Windows E1 ✔ (sin `--playlist`) | Paso 5 con `--playlist` |
 | A1 URL no válida | E1 | Hecha | Linux ✔ | — |
 | A2 `run` en otra terminal | E1 | Hecha (WAL) | Linux ✔ | Paso 5 con dos terminales |
-| A3 Base de datos bloqueada | T41 | Hecha: código 1, ningún job creado | Linux ✔ (bloqueo real de otra conexión) | Paso 5 |
+| A3 Base de datos bloqueada | T41, T49 | Hecha: código 1, ningún job creado; también en `cancel`, `retry` y `purge` (T49) | Linux ✔ (bloqueo real de otra conexión) | Paso 5.7 |
 
 ### UC-03 Descargar un contenido
 
@@ -254,6 +265,8 @@ La aceptación final de todos los escenarios queda **pendiente** de la campaña 
 | A4 Worker muere sin evento final | E1 (T20), T35 | Hecha; sus descendientes se terminan antes de sustituirlo (T35) | Linux ✔ | Pasos 5 y 6 |
 | A5 `--keep-waiting` | T40 | Hecha; se termina con `Ctrl+C` | Linux ✔ (dos procesos reales) | Paso 5 |
 | A6 Reciclado de workers | T41 | Hecha (`max_jobs_per_worker`, 20 por defecto) | Linux ✔ (procesos reales) | Paso 5 y memoria (paso 13) |
+| A7 Nombre final de otro job o archivo ajeno | T49 (ADR-0030) | Hecha: reclamación antes de descargar; falla con `FILESYSTEM` sin tocar el archivo | Linux ✔ (huella de tamaño, fecha y SHA-256; dos jobs a la vez); `windows` ⏳ (mayúsculas, separadores, ruta larga, archivo abierto) | Paso 11 (obligatorio) |
+| A8 Descarga sin archivo final utilizable; contrato de `JobCompleted` | T32, T49 | Hecha: `FAILED` con `FILESYSTEM`; `Job.complete` exige ruta a una descarga y ninguna a una expansión | Linux ✔ | — |
 
 ### UC-04 Expandir una playlist
 
@@ -278,8 +291,9 @@ La aceptación final de todos los escenarios queda **pendiente** de la campaña 
 | A3 Termina antes de ver la bandera | T37 | Hecha: `JobCompleted` gana; cualquier otro final confirma la cancelación | Linux ✔ | — |
 | A4 Playlist con sus hijos | T36, T37 | Hecha: registro (T36); en `run`, también los hijos creados después y sin nuevos hijos de un lote tardío (T37) | Linux ✔ | Paso 5 |
 | A5 Sin `run` activo | T36, T37 | Hecha | Linux ✔ | — |
-| A6 `Ctrl+C` | T39 | Hecha: el primero detiene la cola y deja los jobs para reanudarse; el segundo termina ya; el worker y sus hijos ignoran `Ctrl+C` | Linux ✔ (`SIGINT` real al proceso de `run`, reanudación con `Range`) | Paso 7 (en Windows es un evento de consola que llega a todos los procesos) |
-| A7 Job terminado | T36, T37 | Hecha en `cancel` y en `run` | Linux ✔ | — |
+| A6 `Ctrl+C` | T39, T49 | Hecha: el primero detiene la cola y deja los jobs para reanudarse; el segundo termina ya; los siguientes se ignoran hasta que `run` sale (T49); el worker y sus hijos ignoran `Ctrl+C` | Linux ✔ (`SIGINT` real al proceso de `run`, uno, dos y seis seguidos; reanudación con `Range`) | Paso 7, casos a–f (en Windows es un evento de consola que llega a todos los procesos) |
+| A7 Job terminado (`COMPLETED`, `FAILED`, `SKIPPED`, `CANCELLED`) | T36, T37, T49 | Hecha en `cancel` y en `run`; un `FAILED` conserva su motivo | Linux ✔ | — |
+| A8 Job `CANCELLATION_REQUESTED` | T37 | Hecha (sin cambios) | Linux ✔ | — |
 
 ### UC-06 Recuperar la cola y reanudar descargas
 
@@ -292,15 +306,25 @@ La aceptación final de todos los escenarios queda **pendiente** de la campaña 
 | Propiedad de los parciales y del archivo final (R-14) | T44 | Hecha | Linux ✔ (nombres truncados, plantilla sin `%(id)s`, archivo final compartido) | Paso 11 |
 | A2 Sin formato guardado | E1, T32 | Hecha | Linux ✔ | — |
 | A3 Parciales borrados por el User | T32 | Hecha (yt-dlp descarga de cero) | Linux ✔ (sin `.part`) | — |
+| A4 Cierre tras mover el archivo final | T44, T49 | Hecha: el job reconoce su reclamación y su archivo | Linux ✔ | Paso 8 |
+| A6 Migración pendiente o fallida al arrancar | T49 | Hecha (rollback; `run` no ejecuta nada) | Linux ✔ | Paso 2 |
+| A7 Base de E1 con un archivo reclamado por dos jobs | T49 | Hecha (migración 0003 corregida) | Linux ✔ | — |
 
 ### UC-07 a UC-10
 
 | Caso de uso | Tareas | Implementación | Pruebas | Pendiente en Windows |
 |---|---|---|---|---|
-| UC-07 Reintentar un job | T45 | Hecha (`retry`, `--all-failed`; conserva formato y parciales para reanudar) | Linux ✔ | Paso 5 |
-| UC-08 Listar jobs | T46 | Hecha | Linux ✔ | Paso 12 |
-| UC-09 Ver un job | T47 | Hecha | Linux ✔ | Paso 5 |
-| UC-10 Purgar jobs terminados | T48 | Hecha | Linux ✔ | Paso 5 |
+Especificaciones completas desde T49 ([UC-07](../requirements/use-cases/uc-07-retry-job.md), [UC-08](../requirements/use-cases/uc-08-list-jobs.md), [UC-09](../requirements/use-cases/uc-09-show-job.md), [UC-10](../requirements/use-cases/uc-10-purge-finished-jobs.md)).
+
+| Caso de uso y escenario | Tareas | Implementación | Pruebas | Pendiente en Windows |
+|---|---|---|---|---|
+| UC-07 flujo básico, A1 `--all-failed`, A2 no reintentable, E1–E2 | T45 | Hecha (conserva formato y parciales para reanudar) | Linux ✔ | Paso 5.6 |
+| UC-07 A3 playlist e idempotencia (A4) | T45, T49 | Hecha: entradas `FAILED`/`CANCELLED` sí, `COMPLETED` no; peticiones repetidas, un intento | Linux ✔ | Paso 5.6 |
+| UC-07 E3 base de datos ocupada | T49 | Hecha | Linux ✔ | Paso 5.7 |
+| UC-08 filtros, cola vacía, E1–E2 | T46 | Hecha | Linux ✔ | Paso 12 |
+| UC-09 job, hijo, fallo, playlist, E1 | T47 | Hecha | Linux ✔ | Paso 5.2 |
+| UC-10 flujo básico (sin opciones: `COMPLETED` y `CANCELLED`), A1, A2 y combinaciones | T48, T49 | Hecha | Linux ✔ | Paso 5.6 |
+| UC-10 parciales y reclamaciones; E1 sin cambios con la base ocupada | T48, T49 | Hecha: primero la base de datos, después los parciales y las reclamaciones huérfanas | Linux ✔ | Pasos 5.6, 5.7 y 11 |
 
 ### Riesgos y dependencias abiertos
 
@@ -310,4 +334,54 @@ La aceptación final de todos los escenarios queda **pendiente** de la campaña 
 | R-04 Árbol de procesos | UC-03 A4, UC-05 A2, UC-06 | T34 y T35 hechas (Linux ✔); pasos 3, 4, 6 y 8 de la campaña |
 | R-05 Reanudación | UC-06 | §5.1 automatizado en T35 (Linux ✔) y paso 8 |
 | R-06 Iteración perezosa | UC-04 | Prueba `network` y paso 13 |
-| R-14 Nombres compartidos entre jobs | UC-03, UC-06 | T44 (hecha, Linux ✔) y paso 11 |
+| R-14 Nombres compartidos entre jobs | UC-03, UC-06 | T44 y T49/ADR-0030 (hechas, Linux ✔) y paso 11 |
+| R-10 Antivirus y rutas largas | UC-03, UC-06 | Pruebas `windows` de T49 y paso 11 |
+| R-17 `Ctrl+C` repetidos | UC-05 A6 | T49 (Linux ✔) y paso 7 f |
+
+### 8.1 Trazabilidad por requisito no funcional
+
+Para los casos de uso, la trazabilidad está en las tablas anteriores (escenario → tareas → implementación → pruebas → pendiente en Windows) y en el [modelo de casos de uso, §4](../requirements/use-case-model.md#4-trazabilidad-con-el-diseño) (componentes y módulos). Esta tabla añade los requisitos de la [especificación complementaria](../requirements/supplementary-specification.md); su fuente es esa especificación, y su criterio, el texto del requisito.
+
+| ID | Componentes y código | Tareas | Pruebas (evidencia) | Verificable en Linux | Necesita Windows | Divergencias y estado |
+|---|---|---|---|---|---|---|
+| SUP-F01 Salida en inglés | `command_line` | E1 | Pruebas de los comandos (Linux ✔) | Sí | Consola (paso 12) | — |
+| SUP-F02 Códigos de salida | `command_line/exit_code.py`, `command_parser.py` | E1, T39, T49 | Linux ✔ | Sí | Paso 3 y 7 | **Divergencia documentada:** se añadió `130` (interrupción) y `1` por cola ocupada o base de datos inutilizable en todos los comandos; actualizado en el diseño, §4.1 |
+| SUP-F03 Precedencia de la configuración | `configuration/settings_loader.py` | E1 | Linux ✔ | Sí | — | — |
+| SUP-U01 Mensajes con la acción | Todos | E1, T49 | Linux ✔ (LFS, configuración, cola ocupada, nombre final) | Sí | Paso 2 | — |
+| SUP-U02 Progreso limitado | `media_extraction/progress_event_translator.py` | E1 | Linux ✔ | Sí | — | — |
+| SUP-U03 Instalación en cuatro comandos | README | E1 | Windows E1 ✔ | No | Paso 1 | — |
+| SUP-R01 Cierre sin perder jobs | `job_queue/recover_interrupted_jobs.py`, `media_extraction` | T31, T32, T35, T44 | Linux ✔ (§5.1 automatizado) | Sí, en parte | Pasos 7, 8 (obligatorio) | — |
+| SUP-R02 Sin procesos huérfanos | `workers/*process_tree_terminator.py` | T33–T35 | Linux ✔ (grupos de procesos); `windows` ⏳ (Job Object) | Solo POSIX | Pasos 3, 4, 6, 7, 8 | Mitigado (Linux) |
+| SUP-R03 Un fallo no detiene la cola | `job_queue/run_queue.py` | E1 | Linux ✔ | Sí | — | — |
+| SUP-R04 Worker caído detectado y sustituido | `workers/process_worker_pool.py` | E1, T35 | Linux ✔ | Sí | Paso 5 | — |
+| SUP-R05 Sin descargas duplicadas | `job_storage` (índice), `job_queue` | E1, T28, T49 | Linux ✔ (también reintento de playlist) | Sí | Paso 5.1, 5.2 | — |
+| SUP-P01 1 worker por defecto | `configuration` | E1 | Linux ✔ | Sí | — | — |
+| SUP-P02 Memoria del worker no crece con la playlist | `media_extraction/yt_dlp_expansion.py` | T25–T27 | Linux ✔ (servidor local); `network` no ejecutable aquí | En parte | Paso 13 | Abierto (R-06) |
+| SUP-P03 Progreso fuera de la base de datos | `job_queue/job_event_applier.py` | E1 | Linux ✔ | Sí | — | — |
+| SUP-P04 Presupuesto de memoria | — | E1 (trasladado) | Ninguna | No | Paso 13 | **Pendiente:** se fija con la medición de la campaña |
+| SUP-S01 Actualización de yt-dlp documentada | ADR-0002 | E1 | Pruebas de contrato (Linux ✔) | Sí | — | — |
+| SUP-S02 Reglas de importación, formato, linter y tipos | Todo el código | Continuo | `scripts/run_checks.py` (Linux ✔) | Sí | Paso 3 | — |
+| SUP-S03 Inglés en identificadores, español en docstrings | Todo el código | Continuo | Revisión | Sí | — | — |
+| SUP-S04 Reglas de la cola sin yt-dlp, SQLite ni procesos | `jobs`, `job_queue` | Continuo | `lint-imports` y dobles (Linux ✔) | Sí | — | — |
+| SUP-C01 Windows 10/11 x64, Python ≥3.11 con uv | `pyproject.toml` | E1 | Windows E1 ✔ | No | Paso 1 | — |
+| SUP-C02 yt-dlp 2026.10.26 solo en `yt_dlp_*` | `media_extraction` | E1 | `lint-imports` (Linux ✔) | Sí | — | — |
+| SUP-C03 ffmpeg 9.0 LGPL incluido con LFS | `vendor/ffmpeg/` | E1 | `windows` ⏳ (`tests/vendor/`) | No | Pasos 1–3 | — |
+| SUP-C04 Solo `run` cambia estados | `job_queue`, `command_line` | E1, T36, T45 | Linux ✔ | Sí | — | — |
+| SUP-C05 Sin CI | Proceso | — | — | — | — | — |
+| SUP-L01–L03 Licencias | `LICENSE`, `vendor/ffmpeg/` | E1 | Revisión | Sí | — | — |
+
+### 8.2 Clasificación de las pruebas (2026-11-26)
+
+543 pruebas recogidas en el commit publicado:
+
+| Clase | Número | Estado |
+|---|---|---|
+| Ejecutables en Linux (sin `windows` ni `network`) | 530 | **Ejecutadas y pasadas** en el entorno de desarrollo (`scripts/run_checks.py`) |
+| `windows` | 10 | **No ejecutadas** (requieren Windows): 4 del terminador, 3 de la build de ffmpeg, 3 de reclamaciones de nombres finales. Campaña, paso 3 |
+| `network` | 3 | **Ejecutadas una vez, no ejecutables aquí:** fallan porque el proxy del entorno rechaza YouTube (`403 Forbidden`), no por el producto; no cuentan como pasadas ni como fallos del producto. Campaña, paso 3 |
+
+Las 530 incluyen, en Linux, pruebas que en Windows se omiten por diseño (4 de `Ctrl+C` con señales POSIX, 2 del localizador de ffmpeg con un script POSIX y 1 de nombres que distinguen mayúsculas): su equivalente en Windows son el paso 7 y las pruebas `windows` de reclamaciones.
+
+### 8.3 Verificación de desarrollo
+
+La última ejecución de `uv run python scripts/run_checks.py -- -q -m "not network and not windows"` sobre el commit publicado: formato, linter, tipos, reglas de importación y pruebas pasan (código 0 en cada una). La sesión de pruebas no detectó cambios en los datos reales del usuario.

@@ -15,7 +15,7 @@ El User añade una o varias URLs a la cola, con sus download options. El sistema
 
 ## Flujo básico
 
-1. El User ejecuta `uv run queued-media-downloader enqueue URL... [--format SELECTOR] [--audio-only] [--download-directory DIR]`.
+1. El User ejecuta `uv run queued-media-downloader enqueue URL... [--format SELECTOR] [--audio-only] [--playlist] [--download-directory DIR]`.
 2. El sistema construye las download options combinando los argumentos con la configuración (argumentos > variables de entorno > `config.toml` > valores por defecto).
 3. El sistema valida cada URL (forma de URL) y las download options.
 4. Para cada URL, el sistema crea un job `EXPANSION` en estado `PENDING` con sus download options fijadas.
@@ -25,7 +25,8 @@ El User añade una o varias URLs a la cola, con sus download options. El sistema
 
 - **A1. URL no válida** (paso 3): el sistema indica cuál es, no crea ningún job de esa invocación y termina con código `2`.
 - **A2. `run` en ejecución en otra terminal** (paso 4): la creación funciona igual (SQLite en modo WAL); el proceso de `run` toma el job en su siguiente ciclo.
-- **A3. Base de datos bloqueada más allá de `busy_timeout`** (paso 4): el sistema informa del bloqueo y termina con código `1` sin crear jobs.
+- **A3. Base de datos bloqueada más allá de `busy_timeout`** (paso 4): el sistema informa del bloqueo y termina con código `1` sin crear jobs (los jobs de una invocación se crean en una sola transacción).
+- **A4. La base de datos no se puede abrir o una migración falla** (paso 4): como UC-01 A8; ningún job se crea.
 
 ## Postcondiciones
 

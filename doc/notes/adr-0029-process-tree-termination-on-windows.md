@@ -234,3 +234,7 @@ Alternativas descartadas: `psutil` (dependencia nueva; no cubre la muerte de `ru
 | `terminate_tree` falla (Windows, plazo agotado) | Se registra el error y se termina al menos el worker con `kill()` |
 
 Pruebas con procesos reales (Linux ✔; en la campaña, también en Windows): el hijo de un worker caído muere antes del reemplazo; `terminate_worker_running` termina el worker y su hijo y deja el pool listo; el apagado termina el árbol de un worker colgado; registro antes de cualquier job y liberación al final; un registro fallido no deja workers vivos; y el escenario obligatorio de la §5.1 del plan.
+
+## Seguimiento de T49: `Ctrl+C` repetidos (2026-11-26)
+
+Un tercer `Ctrl+C` volvía a lanzar `KeyboardInterrupt` en mitad de la terminación inmediata de los árboles, y uno posterior a restaurar el manejador mataba `run` con una traza: cualquiera de los dos podía dejar un worker vivo. Ahora, tras el segundo `Ctrl+C`, los siguientes se ignoran hasta que `run` sale; el manejador abarca también el arranque y el apagado del pool, y un `Ctrl+C` durante el apagado ordenado pasa a terminar cada árbol. Linux ✔ (`SIGINT` real); en Windows, donde `Ctrl+C` es un evento de consola, se valida en la campaña (paso 7, caso f).

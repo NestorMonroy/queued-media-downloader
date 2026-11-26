@@ -124,3 +124,8 @@ Pruebas: `test_download_with_a_non_zero_return_code_is_not_completed`, `test_fai
 - La carpeta `.partial` aparece en la carpeta de descargas; en Windows no se oculta por empezar con un punto.
 - `purge` (T48) debe borrar la carpeta de parciales de los jobs que purga: con ids que no se reutilizan, nadie más la borraría.
 - La propiedad de los archivos ya no depende del bloqueo de archivos de Windows.
+
+## Seguimiento de T49: reclamación del nombre final y migraciones (2026-11-26)
+
+- El índice `unique_output_path` detectaba la colisión cuando el segundo job ya había tratado el archivo del primero como "ya descargado". La propiedad del archivo final se decide ahora antes de descargar, con una reclamación exclusiva ([ADR-0030](adr-0030-final-file-ownership-claims.md)); el índice queda como segunda defensa.
+- Una migración fallida se deshace y su conexión se cierra; la 0003 se corrigió para poder aplicarse a una base de E1 con un archivo reclamado por dos jobs (diseño, Parte 2, §2.5).

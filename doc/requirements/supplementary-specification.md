@@ -13,7 +13,7 @@ Requisitos que no pertenecen a un caso de uso concreto, organizados según FURPS
 | ID | Requisito | Origen |
 |---|---|---|
 | SUP-F01 | La salida de la línea de comandos y los logs están en inglés | [ADR-0011](../notes/adr-0011-code-conventions.md) |
-| SUP-F02 | Códigos de salida: `0` todo correcto, `1` algún job falló, `2` error de uso o de configuración | [Parte 2, §4.1](../design/02-flows-persistence-and-operations.md#41-comandos) |
+| SUP-F02 | Códigos de salida: `0` todo correcto, `1` algún job falló o la cola está ocupada o no se puede abrir, `2` error de uso o de configuración, `130` `run` interrumpido con `Ctrl+C` (decisión del Responsable, T49) | [Parte 2, §4.1](../design/02-flows-persistence-and-operations.md#41-comandos) |
 | SUP-F03 | La configuración se toma de argumentos, variables de entorno `QUEUED_MEDIA_DOWNLOADER_*`, `config.toml` y valores por defecto, en ese orden de prioridad | [Parte 2, §4.2](../design/02-flows-persistence-and-operations.md#42-configuración) |
 
 ## Usabilidad
@@ -41,7 +41,7 @@ Requisitos que no pertenecen a un caso de uso concreto, organizados según FURPS
 | SUP-P01 | Concurrencia por defecto: 1 worker; configurable | [ADR-0008](../notes/adr-0008-process-based-worker-pool.md) |
 | SUP-P02 | La memoria de un worker no crece con el número de entradas de una playlist | [ADR-0009](../notes/adr-0009-playlist-expansion-into-jobs.md) |
 | SUP-P03 | El progreso de las descargas no se escribe en la base de datos | [Parte 1, §5](../design/01-architecture.md#5-job-events) |
-| SUP-P04 | **Presupuesto de memoria** (proceso principal + 1 worker, sin contar ffmpeg ni deno): **a fijar en E1** a partir de la medición en Windows. Referencia de la medición en Linux: ~38 MB por proceso con yt-dlp cargado | Medición del análisis (`scripts/measure_footprint.py`, espacio de trabajo `yt-dlp-gui-clone`) |
+| SUP-P04 | **Presupuesto de memoria** (proceso principal + 1 worker, sin contar ffmpeg ni deno): **pendiente**: se fija con la medición en Windows de la campaña T42 (paso 13; trasladada desde E1). Referencia de la medición en Linux: ~38 MB por proceso con yt-dlp cargado | Medición del análisis (`scripts/measure_footprint.py`, espacio de trabajo `yt-dlp-gui-clone`) |
 
 ## Mantenibilidad
 

@@ -1,8 +1,8 @@
 # Modelo de casos de uso
 
 - **Fase RUP:** Inicio
-- **Versión:** 1.0 (borrador para revisión)
-- **Fecha:** 2026-11-23
+- **Versión:** 1.1 (auditoría previa a la aceptación, T49)
+- **Fecha:** 2026-11-26
 - **Términos:** [vocabulario](../design/00-vocabulary.md)
 
 ---
@@ -88,17 +88,19 @@ UC-03 y UC-04 los inicia el User con `run`; ambos se ejecutan dentro de la cola 
 | UC-04 | Expandir una playlist | `run` | **Sí:** iteración perezosa, duplicados, jobs hijos | [Completa](use-cases/uc-04-expand-playlist.md) |
 | UC-05 | Cancelar un job | `cancel` | **Sí:** cancelación cooperativa y forzada, process tree | [Completa](use-cases/uc-05-cancel-job.md) |
 | UC-06 | Recuperar la cola y reanudar descargas | `run` | **Sí:** recuperación, `.part`, `selected_format_id` | [Completa](use-cases/uc-06-recover-and-resume-queue.md) |
-| UC-07 | Reintentar un job | `retry` | No | Breve (abajo) |
-| UC-08 | Listar jobs | `list` | No | Breve (abajo) |
-| UC-09 | Ver un job | `show` | No | Breve (abajo) |
-| UC-10 | Purgar jobs terminados | `purge` | No | Breve (abajo) |
+| UC-07 | Reintentar un job | `retry` | No | [Completa](use-cases/uc-07-retry-job.md) |
+| UC-08 | Listar jobs | `list` | No | [Completa](use-cases/uc-08-list-jobs.md) |
+| UC-09 | Ver un job | `show` | No | [Completa](use-cases/uc-09-show-job.md) |
+| UC-10 | Purgar jobs terminados | `purge` | No | [Completa](use-cases/uc-10-purge-finished-jobs.md) |
 
-### Especificaciones breves
+Las especificaciones de UC-07 a UC-10 se completaron en la auditoría previa a la aceptación (T49), al entrar esos casos de uso en E2. Se conserva el resumen original:
+
+### Especificaciones breves (versión 1.0)
 
 - **UC-07 Reintentar un job.** El User indica uno o varios jobs `FAILED` o `CANCELLED` (o todos los fallidos con `--all-failed`). El sistema registra una job request `RETRY`; al procesarla, el job vuelve a `PENDING` e incrementa `attempt_count`. Un job `SKIPPED` o `COMPLETED` no se puede reintentar.
 - **UC-08 Listar jobs.** El User consulta los jobs, opcionalmente filtrados por estado o por playlist padre. El sistema muestra id, tipo, estado, título y motivo de fallo, sin modificar nada.
 - **UC-09 Ver un job.** El User consulta un job concreto. El sistema muestra todos sus datos; si es una playlist, también el resumen de sus hijos por estado.
-- **UC-10 Purgar jobs terminados.** El User elimina de la base de datos los jobs `COMPLETED` y/o `CANCELLED`. Los archivos descargados no se tocan.
+- **UC-10 Purgar jobs terminados.** El User elimina de la base de datos los jobs `COMPLETED` y/o `CANCELLED` (sin opciones, ambos). Los archivos descargados no se tocan.
 
 ---
 
@@ -112,4 +114,8 @@ UC-03 y UC-04 los inicia el User con `run`; ambos se ejecutan dentro de la cola 
 | UC-04 | `job_queue`, `workers`, `media_extraction`, `job_storage` | `job_queue/run_queue.py` |
 | UC-05 | `job_queue`, `workers`, `job_storage` | `job_queue/cancel_job.py`, `job_queue/run_queue.py` |
 | UC-06 | `job_queue`, `media_extraction`, `job_storage` | `job_queue/recover_interrupted_jobs.py`, `job_queue/run_queue.py` |
-| UC-07 a UC-10 | `job_queue`, `job_storage` | `retry_job.py`, `list_jobs.py`, `show_job.py`, `purge_finished_jobs.py` |
+| UC-07 | `job_queue`, `job_storage` | `job_queue/retry_job.py`, `job_queue/run_queue.py` |
+| UC-08, UC-09 | `job_queue`, `job_storage` | `job_queue/list_jobs.py` (`ListJobs`, `ShowJob`) |
+| UC-10 | `job_queue`, `job_storage`, `media_extraction` (parciales y reclamaciones) | `job_queue/purge_finished_jobs.py` |
+
+La trazabilidad por requisito (requisito, criterio, componentes, tareas, código, pruebas, evidencia, divergencias y pendientes en Windows) está en el [plan de E2, §8](../project-management/iteration-plan-e2.md#8-matriz-de-casos-de-uso-implementación-y-validación).

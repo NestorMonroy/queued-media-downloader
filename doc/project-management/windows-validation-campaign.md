@@ -4,8 +4,17 @@
 - **Procedimiento y criterios:** [plan de E2, §7](iteration-plan-e2.md#7-campaña-final-de-validación-en-windows) y [§5](iteration-plan-e2.md#5-criterios-de-evaluación).
 - **Qué se valida:** cada escenario de la [matriz de la §8](iteration-plan-e2.md#8-matriz-de-casos-de-uso-implementación-y-validación) marcado *Windows ⏳*.
 - **Duración estimada:** medio día.
+- **Versión del guion:** 2.0 (auditoría previa a la aceptación, T49, 2026-11-26).
+- **Commit evaluado:** el que señala la etiqueta `t42-candidate-1` (o la `t42-candidate-N` vigente, §Corrección y regresión). El Responsable del proyecto la crea sobre `main` cuando la verificación de desarrollo pasa, y la anota aquí con su hash completo antes de la campaña: `t42-candidate-1 = <hash>`.
 
 El Evaluador sigue los pasos en orden y anota cada resultado en el [registro](#registro-de-resultados) como **pasa**, **falla** o **no ejecutado** (con el motivo). Un paso no ejecutado nunca se anota como satisfactorio. No corrige el código: si un paso falla, guarda la salida y continúa con los pasos que no dependan de él. Cada fallo se convierte después en una tarea con su prueba de regresión, y el paso se repite.
+
+## Criterios de aceptación de la campaña
+
+- **Pasa** la campaña si todos los pasos pasan, o si cada fallo está clasificado (§Clasificación de defectos) como *no bloqueante* y el Responsable del proyecto acepta expresamente la desviación.
+- **Falla** si algún paso marcado **obligatorio** falla (pasos 3, 6, 7, 8 y 11) o si hay un defecto *bloqueante* sin corregir.
+- Cada paso indica su resultado esperado (**Se espera**). Un paso sin ejecutar se anota *no ejecutado*, con el motivo, y no cuenta como satisfactorio.
+- La aceptación final la decide el Responsable del proyecto con el registro completo; la evidencia de Linux o de E1 no la sustituye.
 
 ## Requisitos previos
 
@@ -13,8 +22,34 @@ El Evaluador sigue los pasos en orden y anota cada resultado en el [registro](#r
 - Smart App Control desactivado ([ADR-0026](../notes/adr-0026-smart-app-control-precondition.md)).
 - Git con Git LFS y uv instalados.
 - Una carpeta de trabajo nueva. Todas las órdenes se ejecutan en PowerShell, en la carpeta del clon, salvo que se indique otra cosa.
+- Ningún `config.toml` en la carpeta del clon (la suite se detiene si lo encuentra).
 
 Para ver el estado de la cola en cualquier momento: `uv run queued-media-downloader list`.
+
+## Entorno aislado
+
+La campaña **nunca** usa ni borra la cola, la configuración ni la carpeta de descargas reales del Evaluador. Cada bloque usa una cola nueva en `C:\qmd-t42\<bloque>`, con las variables de entorno que el programa ya admite:
+
+```powershell
+. .\scripts\windows\t42_campaign.ps1     # carga las funciones de ayuda
+New-CampaignQueue "5.1"                  # estado y descargas en C:\qmd-t42\5.1
+```
+
+Se usa una cola aislada en los pasos 2 y 5 a 12 (en el 5, una por bloque; en el 7, una por caso). `New-CampaignQueue` crea `C:\qmd-t42\<bloque>\state` y `C:\qmd-t42\<bloque>\downloads` (si ya existían, se detiene sin borrar nada) y fija `QUEUED_MEDIA_DOWNLOADER_STATE_DIRECTORY` y `QUEUED_MEDIA_DOWNLOADER_DOWNLOAD_DIRECTORY` en la sesión de PowerShell. Las rutas de este guion (`state\`, `.partial\job-1`, `audio\`) se refieren a esa cola. Al terminar, `C:\qmd-t42` se conserva como evidencia.
+
+## Automatización
+
+`scripts/windows/t42_campaign.ps1` automatiza lo repetitivo y deja la evidencia en `C:\qmd-t42\evidence`:
+
+| Función | Qué hace |
+|---|---|
+| `Test-CampaignCommit "<hash>"` | Comprueba que el clon está limpio y en el commit evaluado; si no, se detiene |
+| `Save-CampaignEnvironment` | Guarda versiones de Windows, Python, uv, git, git-lfs y el hash del commit |
+| `New-CampaignQueue "<bloque>"` | Cola aislada (sección anterior) |
+| `Invoke-CampaignSuites` | Paso 3: ejecuta `scripts/run_checks.py`, `pytest -m windows` y `pytest -m network`, cada uno con su salida completa en un archivo y su código de salida, sin tuberías que lo oculten |
+| `Save-CampaignProcesses "<nombre>"` | Guarda `Get-Process ffmpeg, ffprobe, deno, python` (pasos 6 a 8) |
+
+El script **no se ha ejecutado en el entorno de desarrollo** (Linux): su primera ejecución forma parte de la campaña, y un fallo del script se clasifica como defecto de herramienta de la campaña, no del producto.
 
 ## Pasos
 
@@ -23,33 +58,40 @@ Para ver el estado de la cola en cualquier momento: `uv run queued-media-downloa
 ```powershell
 git clone https://github.com/NestorMonroy/queued-media-downloader.git
 cd queued-media-downloader
+git checkout t42-candidate-1
 git lfs pull
 uv sync
+. .\scripts\windows\t42_campaign.ps1
+Test-CampaignCommit "<hash anotado arriba>"
+Save-CampaignEnvironment
 ```
 
-**Se espera:** los cuatro comandos terminan sin errores y `vendor\` contiene los binarios reales, no punteros de LFS.
+**Se espera:** los comandos terminan sin errores, `Test-CampaignCommit` confirma el commit y `vendor\` contiene los binarios reales, no punteros de LFS.
 
 ### Paso 2. Dependencias (UC-01, pasos 4 a 9; A1, A4, A5)
 
 ```powershell
+New-CampaignQueue "2"
 uv run queued-media-downloader diagnose
 ```
 
 **Se espera:** `[ OK ]` en ffmpeg (la build incluida), ffprobe, deno y la base de datos (versión de esquema 3), y `Environment ready`.
 
-### Paso 3. Suites automatizadas (criterios 1 y 2)
+### Paso 3. Suites automatizadas (criterios 1 y 2; obligatorio)
 
 ```powershell
-uv run ruff format --check .
-uv run ruff check .
-uv run mypy
-uv run lint-imports
-uv run pytest
+Invoke-CampaignSuites
+```
+
+Equivale a ejecutar, cada uno con su código de salida:
+
+```powershell
+uv run python scripts/run_checks.py          # formato, linter, tipos, importaciones y pytest (stop-on-error)
 uv run pytest -m windows
 uv run pytest -m network
 ```
 
-**Se espera:** todo pasa. Anotar, para cada `pytest`, el número de pruebas **pasadas, fallidas y omitidas por separado**. Las pruebas `windows` incluyen las 10 del terminador de árboles de procesos (`tests/workers/test_process_tree_terminator.py`); la suite normal incluye en Windows la prueba de interrupción real de la §5.1 (`tests/job_queue/test_real_interruption_recovery.py`). Las dos pruebas de `Ctrl+C` con señales POSIX se omiten en Windows: su equivalente es el paso 7.
+**Se espera:** todo pasa. Anotar, para cada `pytest`, el número de pruebas **pasadas, fallidas y omitidas por separado**, y que la sesión no informa `REAL USER DATA CHANGED`. Las 10 pruebas `windows` son: 4 del terminador de árboles de procesos (`tests/workers/test_process_tree_terminator.py`), 3 de la build de ffmpeg incluida (`tests/vendor/`) y 3 de reclamaciones de nombres finales (`tests/media_extraction/test_output_claims.py`: mayúsculas y separadores, archivo existente con otra capitalización, ruta de más de 260 caracteres con un archivo abierto). La suite normal incluye en Windows la prueba de interrupción real de la §5.1 (`tests/job_queue/test_real_interruption_recovery.py`) y las pruebas del terminador parametrizadas para la plataforma. Se omiten en Windows, por diseño, las 4 pruebas de `Ctrl+C` con señales POSIX (equivalente: paso 7), 2 del localizador de ffmpeg con un script POSIX y 1 de nombres que distinguen mayúsculas.
 
 ### Paso 4. Experimento de T33 (ADR-0029)
 
@@ -61,7 +103,7 @@ uv run python scripts/experiments/process_tree_termination.py --json doc/notes/e
 
 ### Paso 5. Casos de uso
 
-Antes de cada bloque, partir de una cola vacía: borrar la carpeta `state\` del clon y la carpeta de descargas (`$HOME\Downloads\queued-media-downloader`).
+Antes de cada bloque, partir de una cola vacía y aislada: `New-CampaignQueue "<número del bloque>"`. No borrar ninguna carpeta real.
 
 **5.1 Video con unión de audio y video, como solo audio y duplicado (UC-02, UC-03; A1)**
 
@@ -127,14 +169,14 @@ uv run queued-media-downloader list
 En una terminal, abrir la base de datos y retener un bloqueo de escritura:
 
 ```powershell
-uv run python -c "import sqlite3,time; c=sqlite3.connect('state/queue.sqlite3'); c.execute('BEGIN IMMEDIATE'); print('locked'); time.sleep(30)"
+uv run python -c "import os,sqlite3,time; c=sqlite3.connect(os.path.join(os.environ['QUEUED_MEDIA_DOWNLOADER_STATE_DIRECTORY'],'queue.sqlite3')); c.execute('BEGIN IMMEDIATE'); print('locked'); time.sleep(30)"
 ```
 
 Mientras dice `locked`, en otra terminal: `uv run queued-media-downloader enqueue "<URL>"`.
 
-**Se espera:** tras unos 5 s, `the queue is busy … no job was queued`, código `1`, y `list` sin el job nuevo.
+**Se espera:** tras unos 5 s, `the queue is busy … no job was queued`, código `1`, y `list` sin el job nuevo. Repetir, mientras dure el bloqueo, con `cancel 1`, `retry 1` y `purge`: **se espera** `the queue is busy … nothing was changed`, código `1`, y la cola sin cambios.
 
-### Paso 6. Procesos tras cancelar (UC-05 A2; R-04)
+### Paso 6. Procesos tras cancelar (UC-05 A2; R-04; obligatorio)
 
 Encolar un video largo con unión de audio y video. Con `run` en marcha, en otra terminal, ejecutar `cancel 1` **mientras ffmpeg une los archivos** (la consola de `run` muestra la fase de unión). Después:
 
@@ -144,7 +186,7 @@ Get-Process ffmpeg, deno, python -ErrorAction SilentlyContinue
 
 **Se espera:** el job queda `CANCELLED` como mucho 10 s después (`cancellation_grace_seconds`); no queda ningún ffmpeg ni deno del job; el `.part` o las partes `.f<id>` se conservan en `.partial\job-1`.
 
-### Paso 7. Cierres de `run` (UC-05 A6; UC-06)
+### Paso 7. Cierres de `run` (UC-05 A6; UC-06; obligatorio)
 
 Con un video largo descargándose en cada caso, y comprobando después procesos (paso 6) y estado (`list`):
 
@@ -155,6 +197,7 @@ Con un video largo descargándose en cada caso, y comprobando después procesos 
 | c | `Ctrl+C` durante la unión de ffmpeg | ffmpeg no aborta por el `Ctrl+C`: el job sigue `RUNNING` y se reanuda, no queda `FAILED` |
 | d | Cerrar la ventana de la terminal | Ningún proceso queda (Job Object); el siguiente `run` dice `Recovered 1 interrupted job` |
 | e | `Stop-Process -Force` sobre el proceso `python` de `run` | Igual que d |
+| f | Cinco o más `Ctrl+C` seguidos y rápidos | Código 130, sin traza de Python; como mucho un aviso `Already stopping; please wait`; ningún proceso queda; el job sigue `RUNNING` y el siguiente `run` lo reanuda |
 
 ### Paso 8. Interrupción real y reanudación (§5.1, obligatorio)
 
@@ -168,7 +211,7 @@ Con un video largo descargándose en cada caso, y comprobando después procesos 
 Interrumpir una descarga (paso 7, caso a). Con `run` parado, forzar un formato que ya no exista:
 
 ```powershell
-uv run python -c "import sqlite3; c=sqlite3.connect('state/queue.sqlite3'); c.execute(\"UPDATE jobs SET selected_format_id='999999' WHERE id=1\"); c.commit()"
+uv run python -c "import os,sqlite3; c=sqlite3.connect(os.path.join(os.environ['QUEUED_MEDIA_DOWNLOADER_STATE_DIRECTORY'],'queue.sqlite3')); c.execute(\"UPDATE jobs SET selected_format_id='999999' WHERE id=1\"); c.commit()"
 uv run queued-media-downloader run
 uv run queued-media-downloader show 1
 ```
@@ -185,7 +228,7 @@ Para cada archivo descargado en los pasos 5 a 9:
 
 **Se espera:** cada archivo se abre y tiene duración y tamaño coherentes con el original.
 
-### Paso 11. Aislamiento entre jobs (R-14)
+### Paso 11. Aislamiento entre jobs y propiedad de los archivos finales (R-14, ADR-0030; obligatorio)
 
 Con una plantilla sin `%(id)s` que haga coincidir los nombres:
 
@@ -196,7 +239,14 @@ uv run queued-media-downloader run --worker-count 2
 Remove-Item Env:QUEUED_MEDIA_DOWNLOADER_SINGLE_MEDIA_OUTPUT_TEMPLATE
 ```
 
-**Se espera:** un job `COMPLETED` y el otro `FAILED` con `already belongs to another job`; ninguno `COMPLETED` con el archivo del otro; el reintento de uno nunca borra los parciales del otro.
+**Se espera:** un job `COMPLETED` y el otro `FAILED` con `FILESYSTEM` y un mensaje que nombra al dueño (`belongs to job N`); ninguno `COMPLETED` con el archivo del otro; el reintento de uno nunca borra los parciales del otro.
+
+Después, en la misma cola:
+
+1. Anotar tamaño, fecha y hash del archivo completado: `Get-FileHash <archivo>; Get-Item <archivo> | Select Length, LastWriteTimeUtc`.
+2. Copiar a mano un archivo cualquiera como `VIDEO.MP4` (otra capitalización) en una cola nueva y encolar una URL con la misma plantilla. **Se espera:** `FAILED`, `already exists and was not written by this job`, y el archivo intacto.
+3. Abrir el archivo completado con un reproductor y, mientras está abierto, encolar otro contenido con la misma plantilla y ejecutar `run`. **Se espera:** `FAILED` sin tocarlo.
+4. `purge` y volver a encolar uno de los dos contenidos. **Se espera:** `FAILED` (`already exists`); el archivo, con el mismo tamaño, fecha y hash del punto 1.
 
 ### Paso 12. Estado persistido
 
@@ -212,7 +262,9 @@ Usar el script del [paso 6 del guion de E1](evaluation-guide-e1.md#paso-6-medici
 
 ## Registro de resultados
 
-| Paso | Resultado (pasa / falla / no ejecutado) | Evidencia | Observaciones |
+Commit evaluado: `t42-candidate-__` = `____________________` · Fecha: ________ · Evaluador: ________
+
+| Paso | Resultado (pasa / falla / no ejecutado) | Evidencia | Observaciones (defectos `T42-D<n>`) |
 |---|---|---|---|
 | 1 | | | |
 | 2 | | | |
@@ -220,13 +272,34 @@ Usar el script del [paso 6 del guion de E1](evaluation-guide-e1.md#paso-6-medici
 | 4 | | `t33-windows-results.json` | |
 | 5.1 – 5.7 | | | |
 | 6 | | Salida de `Get-Process` | |
-| 7 a – e | | | |
+| 7 a – f | | | |
 | 8 | | Tamaño del `.part` antes y después | |
 | 9 | | Salida de `show 1` | |
 | 10 | | Salida de `ffprobe` | |
 | 11 | | | |
 | 12 | | Salida de `list` | |
 | 13 | | Picos por proceso | |
+
+## Clasificación de defectos
+
+Cada fallo se registra con un identificador `T42-D<n>`, el paso, la salida guardada y esta clasificación:
+
+| Campo | Valores |
+|---|---|
+| **Origen** | *Producto, específico de Windows* (no se reproduce en Linux); *Producto, general* (se reproduce en Linux: la verificación de desarrollo no lo cubría); *Prueba* (la prueba es incorrecta, el producto no); *Entorno* (red, antivirus, permisos, Smart App Control); *Herramienta de la campaña* (`t42_campaign.ps1`, este guion); *Documentación* |
+| **Gravedad** | *Bloqueante*: pérdida o modificación de datos del User, procesos huérfanos, un job que queda en un estado incorrecto, un paso obligatorio que no se puede completar; *Mayor*: un escenario de un caso de uso no funciona, con alternativa; *Menor*: mensajes, formato, documentación |
+| **Escenario afectado** | Caso de uso y flujo (por ejemplo, UC-05 A6) y requisito (por ejemplo, SUP-R02) |
+
+Un defecto de *Entorno* se repite en un entorno corregido antes de clasificarlo como del producto. Ningún defecto se cierra sin la evidencia de su repetición.
+
+## Corrección y regresión
+
+1. El Agente de implementación crea una tarea por defecto del producto o de prueba, en su propia rama.
+2. Escribe primero la prueba de regresión: automatizada en Linux si el defecto se reproduce allí; si es específico de Windows, una prueba `windows` (no ejecutable en desarrollo: se anota así, nunca como satisfactoria).
+3. Corrige, ejecuta `scripts/run_checks.py` con stop-on-error e integra en `main` sin forzar nada.
+4. El Responsable del proyecto crea la etiqueta siguiente, `t42-candidate-N`, sobre el nuevo commit.
+5. El Evaluador repite, sobre ese commit: el paso 3 completo, los pasos donde aparecieron los defectos y los pasos que dependen del código cambiado (el Agente los indica en la tarea). El resto de los resultados se conserva si el cambio no los afecta.
+6. El registro guarda los resultados de cada candidato por separado; la aceptación se decide sobre el último.
 
 ## Después de la campaña
 

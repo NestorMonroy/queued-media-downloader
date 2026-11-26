@@ -33,6 +33,7 @@ Cada decisión se registra en un archivo con: contexto, opciones consideradas, d
 | [0027](adr-0027-video-links-inside-lists.md) | Un enlace a un video dentro de una lista descarga solo el video | Aceptada |
 | [0028](adr-0028-playlist-child-output-template.md) | Plantilla de salida de los hijos de una playlist | Aceptada |
 | [0029](adr-0029-process-tree-termination-on-windows.md) | Implementación de `ProcessTreeTerminator` (D1) | Aceptada; validación en Windows pendiente |
+| [0030](adr-0030-final-file-ownership-claims.md) | Propiedad de los archivos finales mediante reclamaciones | Aceptada; validación en Windows pendiente |
 
 ## Convenciones de este registro
 
