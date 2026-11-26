@@ -220,6 +220,8 @@ uv run queued-media-downloader purge --completed; $LASTEXITCODE
 
 **Se espera:** cada orden, tras unos 5 s, `the queue is busy … no job was queued` (`enqueue`) o `… nothing was changed` (las demás), y `1`. Al terminar el bloqueo, `list` igual que antes: 1 `CANCELLED`, 2 `COMPLETED`, 3 `PENDING`.
 
+Tomar el bloqueo solo con `run` terminado. Con `run` en marcha, el caso es otro (UC-03 A10): **se espera** que `run` muestre `The queue is busy; waiting until another program releases it`, siga cuando termina el bloqueo y deje los jobs `COMPLETED`.
+
 ### Paso 6. Procesos tras cancelar (UC-05 A2; R-04; obligatorio)
 
 Encolar un video largo con unión de audio y video. Con `run` en marcha, en otra terminal, ejecutar `cancel 1` **mientras ffmpeg une los archivos** (la consola de `run` muestra la fase de unión). Después:

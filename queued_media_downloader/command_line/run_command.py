@@ -1,6 +1,7 @@
 """Comando run: ejecuta la cola hasta que no queden jobs pendientes (UC-03)."""
 
 import argparse
+import logging
 import sys
 from pathlib import Path
 
@@ -31,7 +32,15 @@ from queued_media_downloader.job_queue import (
     RunQueue,
     RunQueueResult,
 )
+from queued_media_downloader.job_storage import (
+    BusyQueueWaiting,
+    BusyQueueWaitingJobRequestInbox,
+    BusyQueueWaitingJobStore,
+)
 from queued_media_downloader.workers import ProcessTreeTerminationError
+
+BUSY_QUEUE_NOTICE = "The queue is busy; waiting until another program releases it"
+logger = logging.getLogger(__name__)
 
 # Cómo se presenta cada origen de ffmpeg al arrancar la cola.
 FFMPEG_SOURCE_DESCRIPTIONS = {
@@ -124,9 +133,16 @@ def _run_queue(
     """
     with (
         logging_to_file(settings.state_directory) as log_path,
-        open_job_store_and_inbox(settings.state_directory) as (job_store, inbox),
+        open_job_store_and_inbox(settings.state_directory) as (
+            sqlite_job_store,
+            sqlite_inbox,
+        ),
         open_worker_pool(settings, ffmpeg_installation.ffmpeg_location) as worker_pool,
     ):
+        # run no abandona la cola si otro programa la retiene (T42-D12).
+        waiting = BusyQueueWaiting(_report_busy_queue)
+        job_store = BusyQueueWaitingJobStore(sqlite_job_store, waiting)
+        inbox = BusyQueueWaitingJobRequestInbox(sqlite_inbox, waiting)
         try:
             # Antes de enviar ningún job (UC-06): nada queda RUNNING sin worker.
             _report_recovery(RecoverInterruptedJobs(job_store).execute())
@@ -152,6 +168,12 @@ def _run_queue(
             worker_pool.shut_down(immediately=True)
             raise
     return run_result, log_path
+
+
+def _report_busy_queue() -> None:
+    """Avisa de que run espera a la cola, para que no parezca colgado."""
+    logger.warning(BUSY_QUEUE_NOTICE)
+    print(BUSY_QUEUE_NOTICE, flush=True)
 
 
 def _report_recovery(recovery_result: RecoveryResult) -> None:

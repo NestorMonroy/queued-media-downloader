@@ -376,11 +376,11 @@ Para los casos de uso, la trazabilidad está en las tablas anteriores (escenario
 
 ### 8.2 Clasificación de las pruebas (2026-11-26, `main` tras la actualización de yt-dlp)
 
-568 pruebas recogidas:
+572 pruebas recogidas:
 
 | Clase | Número | Estado |
 |---|---|---|
-| `PASSED` (satisfactorias) | 554 | Ejecutadas y pasadas en el entorno de desarrollo (`scripts/run_checks.py`), todas las que no requieren Windows ni red |
+| `PASSED` (satisfactorias) | 558 | Ejecutadas y pasadas en el entorno de desarrollo (`scripts/run_checks.py`), todas las que no requieren Windows ni red |
 | `FAILED_PRODUCT_DEFECT` (fallidas por defectos del producto) | 0 | — |
 | `WINDOWS_PENDING` en Linux; pasadas en Windows | 10 (16 seleccionadas en Windows) | 4 del terminador (Job Object), 3 de la build de ffmpeg, 3 de reclamaciones de nombres finales; en Windows se seleccionan además las 6 del terminador de la plataforma. **Pasaron en Windows** sobre `5f30151` y sobre `f3e041a`. Siguen pendientes de validación real SUP-P04 y los pasos manuales 5.2 a 13 |
 | `BLOCKED_BY_ENVIRONMENT` (bloqueadas por el ambiente) | 4 | Las pruebas `network` (3 de expansión de YouTube y la regresión de T42-D3): el proxy del entorno de desarrollo responde HTTP 403. En Windows, sobre `f3e041a` (yt-dlp 2026.11.23), **pasaron las 4** |
@@ -388,4 +388,4 @@ Para los casos de uso, la trazabilidad está en las tablas anteriores (escenario
 
 ### 8.3 Verificación de desarrollo
 
-`uv run python scripts/run_checks.py` sobre el `main` publicado: formato, linter, tipos (también de `scripts/`), reglas de importación y pruebas pasan (código 0 en cada una; 554 pruebas). La sesión de pruebas no detectó cambios en los datos reales del usuario. La evidencia de Windows y su vigencia están en el [registro de resultados](t42-results.md).
+`uv run python scripts/run_checks.py` sobre el `main` publicado: formato, linter, tipos (también de `scripts/`), reglas de importación y pruebas pasan (código 0 en cada una; 558 pruebas). La sesión de pruebas no detectó cambios en los datos reales del usuario. La evidencia de Windows y su vigencia están en el [registro de resultados](t42-results.md).
