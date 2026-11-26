@@ -22,6 +22,7 @@ from queued_media_downloader.job_storage import (
     JobRequestInbox,
     JobStore,
     JobStoreLockedError,
+    JobStoreUnavailableError,
 )
 from queued_media_downloader.job_storage.sqlite_connection import open_database
 from queued_media_downloader.job_storage.sqlite_job_request_inbox import (
@@ -77,7 +78,7 @@ def open_job_store(state_directory: Path) -> Iterator[JobStore]:
     """Abre el job store de state_directory y cierra su conexión al terminar."""
     state_directory.mkdir(parents=True, exist_ok=True)
     with _translating_locked_database():
-        connection = open_database(state_directory / DATABASE_FILE_NAME)
+        connection = _open_queue_database(state_directory)
         try:
             yield SqliteJobStore(connection)
         finally:
@@ -91,11 +92,29 @@ def open_job_store_and_inbox(
     """Abre el job store y la bandeja de job requests sobre una sola conexión."""
     state_directory.mkdir(parents=True, exist_ok=True)
     with _translating_locked_database():
-        connection = open_database(state_directory / DATABASE_FILE_NAME)
+        connection = _open_queue_database(state_directory)
         try:
             yield SqliteJobStore(connection), SqliteJobRequestInbox(connection)
         finally:
             connection.close()
+
+
+def _open_queue_database(state_directory: Path) -> sqlite3.Connection:
+    """Abre y migra la base de datos de la cola.
+
+    Raises:
+        JobStoreLockedError: Si otro proceso la tiene ocupada.
+        JobStoreUnavailableError: Si no se puede abrir o una migración falla
+            (open_database ya deshizo la migración y cerró la conexión).
+    """
+    database_path = state_directory / DATABASE_FILE_NAME
+    try:
+        return open_database(database_path)
+    except sqlite3.DatabaseError as database_error:
+        if LOCKED_DATABASE_MESSAGE in str(database_error):
+            raise
+        message = f"cannot open the queue database {database_path}: {database_error}"
+        raise JobStoreUnavailableError(message) from database_error
 
 
 @contextmanager

@@ -7,6 +7,7 @@ from queued_media_downloader.job_storage.job_store import (
     JobNotFoundError,
     JobStore,
     JobStoreLockedError,
+    JobStoreUnavailableError,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "JobRequestInbox",
     "JobStore",
     "JobStoreLockedError",
+    "JobStoreUnavailableError",
 ]

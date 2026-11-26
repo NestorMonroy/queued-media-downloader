@@ -45,6 +45,14 @@ class JobStoreLockedError(Exception):
     """
 
 
+class JobStoreUnavailableError(Exception):
+    """La base de datos de la cola no se puede abrir o migrar.
+
+    Por ejemplo, el archivo no es una base de datos o una migración falló; en
+    ese caso se deshizo y la base de datos sigue en su última versión completa.
+    """
+
+
 class JobStore(Protocol):
     """Guarda y recupera los jobs de la cola."""
 
