@@ -41,7 +41,7 @@ El User obtiene el proyecto, prepara el entorno con uv y comprueba que ffmpeg, f
 - **A7. Smart App Control activado** (paso 2 o posteriores): Windows bloquea `uv.exe`, o un binario sin firmar del proyecto, con el mensaje "Una directiva de Control de aplicaciones bloqueó este archivo". El sistema no llega a ejecutarse, así que no puede informar; el User comprueba la precondición ([ADR-0026](../../notes/adr-0026-smart-app-control-precondition.md)).
 - **A8. La base de datos no se puede abrir o una migración falla** (paso 8): la migración se deshace (la base de datos queda en su última versión completa) y se cierra la conexión. `diagnose` muestra la comprobación `database` como fallida, con la causa, y termina con código `2`; los demás comandos indican la ruta y la causa sin traza y terminan con código `1` (si otro proceso la tiene ocupada más allá de `busy_timeout`, `the queue is busy`).
 - **A9. Sin conexión** (propuesto, [UC-11](uc-11-preserve-jobs-under-external-conditions.md) A2): `diagnose` resuelve el nombre de los sitios configurados (por defecto, `www.youtube.com`) sin descargar nada; si falla, muestra la comprobación `network` como aviso, no como fallo, porque el entorno está instalado.
-- **A10. Destino o estado no utilizables** (propuesto): `diagnose` comprueba que `download_directory` y `state_directory` existen, admiten escritura y tienen espacio libre por encima de `min_free_disk_mib` ([BR-08](../business-rules.md)). Si una carpeta aún no existe, el espacio se mide en la unidad de su antecesor existente más cercano. Si no, muestra la carpeta y la causa. Una carpeta sin permiso es un fallo; poco espacio, un aviso. Origen: la comprobación previa del destino de VoiceStudio y la medición del espacio de VoiceBlueprintPro.
+- **A10. Destino o estado no utilizables** (propuesto): `diagnose` comprueba que `download_directory` y `state_directory` existen, admiten escritura y tienen espacio libre por encima del margen configurado ([BR-28](../business-rules.md)), con la misma comprobación que hace `run` antes de enviar un job ([UC-17](uc-17-preserve-work-under-storage-failures.md) paso 2). Si una carpeta aún no existe, el espacio se mide en la unidad de su antecesor existente más cercano. Si no, muestra la carpeta y la causa. Una carpeta sin permiso es un fallo; poco espacio, un aviso. Origen: la comprobación previa del destino de VoiceStudio y la medición del espacio de VoiceBlueprintPro.
 - **A11. Proxy en uso** (propuesto, decisión D-7): `diagnose` informa de si las descargas usarán un proxy, configurado o tomado del sistema (yt-dlp usa el del sistema si no se configura otro), sin mostrar credenciales (SUP-SEC01).
 
 ## Postcondiciones
@@ -56,7 +56,7 @@ El User obtiene el proyecto, prepara el entorno con uv y comprueba que ffmpeg, f
 
 ## Reglas, requisitos y restricciones asociados
 
-- **Reglas:** ninguna regla de la cola; A10 usa BR-08 y A11, BR-12.
+- **Reglas:** ninguna regla de la cola; A10 usa BR-27 y BR-28; A11, BR-12.
 - **Requisitos suplementarios:** SUP-U01, SUP-U03, SUP-O02, SUP-C01, SUP-C03, SUP-L02; SUP-SEC01 (A11).
 - **Restricciones:** sin permisos de administrador ni Python preinstalado; Smart App Control desactivado (ADR-0026).
 - **Dependencias:** ninguna; es la precondición de los demás casos de uso.

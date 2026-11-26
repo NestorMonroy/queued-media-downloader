@@ -45,7 +45,8 @@
 | Cancelar descargas en cualquier momento | [UC-05](use-cases/uc-05-cancel-job.md) |
 | Recuperar la cola y reanudar descargas tras un cierre | [UC-06](use-cases/uc-06-recover-and-resume-queue.md) |
 | Reintentar, listar, ver y purgar jobs | [Modelo de casos de uso](use-case-model.md) |
-| Preservar los jobs ante una restricción del sitio, un corte de conectividad o falta de espacio (propuesto) | [UC-11](use-cases/uc-11-preserve-jobs-under-external-conditions.md) |
+| Preservar los jobs ante una restricción del sitio o un corte de conectividad (propuesto) | [UC-11](use-cases/uc-11-preserve-jobs-under-external-conditions.md) |
+| Preservar el trabajo ante fallos de almacenamiento (espacio, cuota, permisos, unidad ausente, archivos retenidos), con prevención y reacción (propuesto) | [UC-17](use-cases/uc-17-preserve-work-under-storage-failures.md) |
 | Pausar, continuar o detener de forma ordenada la cola desde cualquier terminal (propuesto) | [UC-14](use-cases/uc-14-control-queue-execution.md) |
 | Elegir la calidad con un preajuste (`1080p`, `720p`…) sin escribir un format selector (propuesto) | [UC-02](use-cases/uc-02-enqueue-media.md) A9 |
 | Consultar la cola desde scripts con salida JSON (propuesto) | [UC-08](use-cases/uc-08-list-jobs.md) A5, [UC-09](use-cases/uc-09-show-job.md) A5 |

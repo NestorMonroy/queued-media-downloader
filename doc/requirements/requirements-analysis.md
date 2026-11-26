@@ -1,7 +1,7 @@
 # Análisis de requisitos: continuidad, condiciones externas y referencias
 
 - **Fase RUP:** Elaboración (consolidación del modelo de requisitos tras la campaña T42)
-- **Versión:** 3.1 (2026-11-26; añade YTDownload-2026 y VoiceBlueprintPro). 3.0 (2026-11-26). La versión 2.0 se titulaba «funcionamiento sin vigilancia y validación sin esperas»; esta integra el análisis de los proyectos de referencia en el modelo canónico y deja abiertas las decisiones.
+- **Versión:** 3.2 (2026-11-26; condiciones de almacenamiento separadas en UC-17 y análisis del acceso con proxy y cookies). 3.1 (añade YTDownload-2026 y VoiceBlueprintPro). 3.0 (2026-11-26). La versión 2.0 se titulaba «funcionamiento sin vigilancia y validación sin esperas»; esta integra el análisis de los proyectos de referencia en el modelo canónico y deja abiertas las decisiones.
 - **Responsabilidad:** razonamiento y evidencia del modelo de requisitos. Los requisitos están en sus artefactos: [modelo de casos de uso](use-case-model.md), [reglas de negocio](business-rules.md), [especificación complementaria](supplementary-specification.md), [catálogo de condiciones de fallo](failure-conditions.md) y [modelo de validación](../process/validation-use-case-model.md).
 - **Técnicas (BABOK v3):** ver §5.2.
 
@@ -125,7 +125,7 @@ Cada suceso tiene su fila, con sus atributos, en el [catálogo de condiciones de
 |---|---|
 | El sitio restringe la sesión (antibots, captcha, límite de peticiones, HTTP 429) | UC-11 A1; BR-01 |
 | El equipo pierde la conectividad | UC-11 A2; BR-05 |
-| Se llena la unidad de las descargas o del estado | UC-11 A3; BR-08 |
+| Falla el almacenamiento: espacio, cuota, permisos, carpeta inexistente, unidad ausente, uso compartido | UC-17; BR-08, BR-25 a BR-28 ([catálogo, §3](failure-conditions.md#3-almacenamiento-y-archivos)) |
 | Fallo transitorio con un host (5xx, timeout) | UC-03 A15; BR-07 (divergencia R-24) |
 | El equipo se suspende | SUP-R08; al despertar, UC-11 A2 |
 | Cierre o corte de luz | UC-06 |
@@ -145,10 +145,17 @@ La versión 2.0 propuso UC-11 (esperar a que el sitio levante un bloqueo), UC-12
 |---|---|---|
 | UC-11 Esperar a que el sitio levante un bloqueo | Preservar los jobs ante una restricción externa | UC-11 A1 |
 | UC-12 Esperar a la red | Administrar las interrupciones de conectividad | UC-11 A2 |
-| UC-13 Esperar espacio en disco | Preservar el trabajo ante almacenamiento insuficiente | UC-11 A3 |
+| UC-13 Esperar espacio en disco | Preservar el trabajo ante fallos de almacenamiento | UC-17 (nuevo identificador) |
 | UC-14 Pausar y continuar la cola | Controlar temporalmente la ejecución | UC-14, con detención ordenada (A2) |
 
-UC-12 y UC-13 se retiran y sus identificadores no se reutilizan. Los tres primeros compartían actor, disparador (un suceso externo durante `run`), flujo y garantías; su diferencia es la regla de reconocimiento y el alcance, que BABOK 10.47 modela como escenarios de un mismo caso de uso.
+UC-12 y UC-13 se retiran y sus identificadores no se reutilizan.
+
+**Revisión del almacenamiento (2026-11-26).** Al consolidar, el almacenamiento quedó como un escenario de UC-11 con una sola regla de espacio mínimo. Esa reducción no se sostiene:
+- las condiciones tienen naturalezas distintas: espacio, cuota, permisos, disponibilidad de la unidad y uso compartido. Solo algunas se resuelven esperando; otras requieren una acción del User ([catálogo, §3.1](failure-conditions.md#31-condiciones));
+- una comprobación previa no garantiza la descarga: la condición puede aparecer a mitad del job, así que hacen falta escenarios preventivos y reactivos;
+- yt-dlp pierde o esconde el error original en varios caminos, y la identificación debe recorrer toda la cadena de causas (§3.2 del catálogo, R-28).
+
+El almacenamiento vuelve a tener su propio caso de uso, UC-17, con identificador nuevo. UC-11 conserva el sitio y la conectividad, y los dos comparten el aplazamiento (BR-04) y la política de continuidad (D-2). Los tres primeros compartían actor, disparador (un suceso externo durante `run`), flujo y garantías; su diferencia es la regla de reconocimiento y el alcance, que BABOK 10.47 modela como escenarios de un mismo caso de uso.
 
 ## 5. Referencias analizadas y técnicas
 
@@ -218,12 +225,12 @@ Cada hallazgo se cualifica en una sola categoría y tiene un único destino en e
 | Archivos | Nombres seguros y recortados | S: `restrict-filenames`; Y: `trim_file_name` | UC existente | `max_filename_length` | Vigente |
 | Archivos | Archivo de descargas (`--download-archive`) | S: `DOWNLOAD_ARCHIVE` | Decisión arquitectónica | ADR-0012: duplicados por media key | Excluido por ADR |
 | Archivos | Fecha del archivo | K: modificada, de subida o de creación; V: desactiva `updatetime` (#642) | Capacidad técnica | Y 2026.11.23 la desactiva por defecto | Vigente (sin cambio de fecha) |
-| Archivos | Comprobación previa del destino | V: `ingest_pipeline` (#1225) | Flujo alternativo | UC-01 A10; catálogo, §3 | Propuesto |
+| Archivos | Comprobación previa del destino | V: `ingest_pipeline` (#1225) | Flujo alternativo | UC-17 pasos 2 y 3, A1 a A3; UC-01 A10; BR-28 | Propuesto |
 | Archivos | Borrar el registro con su archivo | S: historial; V: `delete_batch_job`; D: `delete_download` con vista previa y confirmación, pero borra la carpeta de salida entera con `shutil.rmtree` | Flujo alternativo | UC-10 A5 | Propuesto (D-11) |
 | Fallos | Taxonomía con indicación de si reintentar sirve | V: `core/failure.py` (`_HINTS`) | Requisito suplementario | SUP-U05; catálogo de condiciones | Propuesto |
 | Fallos | Antibots nunca se reintenta | V: `test_yt_bot_check_2034.py` | Regla | BR-01, BR-03 | Propuesto |
 | Fallos | Límite de peticiones y captcha | V no los reconoce; Y: `raise_no_formats(expected=True)` | Regla | BR-01 (los incluye) | Propuesto |
-| Fallos | Disco lleno por `errno` o `winerror` en toda la cadena | V: `is_disk_full_error` | Regla | BR-08 | Propuesto |
+| Fallos | Disco lleno por `errno` o `winerror` en toda la cadena | V y B: `is_disk_full_error` (`__cause__`, `__context__`); Y: los cinco caminos del [catálogo, §3.2](failure-conditions.md#32-cómo-llega-la-información-la-cadena-de-causas) | Regla | BR-08, BR-25 | Propuesto; hoy divergente (R-28) |
 | Fallos | Reintentos de red propios (2, a 2 y 4 s) | V y B: `yt_download_sync` | Capacidad técnica | BR-07: se delega en yt-dlp | Sustituido |
 | Fallos | Cambiar de cliente de YouTube ante 403 o DRM | V: `_YT_PLAYER_CLIENTS` | Exclusión | §6.3 | Excluido |
 | Fallos | Regresión con el texto literal reportado | V: pruebas con los dos apóstrofos | Capacidad de validación | SUP-V03 | Propuesto |
@@ -245,7 +252,7 @@ Cada hallazgo se cualifica en una sola categoría y tiene un único destino en e
 | Windows | Vigilancia del proceso padre | V: `parent_liveness.py` | Capacidad técnica | ADR-0013 (`KILL_ON_JOB_CLOSE`) | Vigente |
 | Windows | Sin ventanas de consola | V: `CREATE_NO_WINDOW` | Capacidad técnica | Programa de consola; los workers son del mismo proceso | No aplica |
 | Windows | yt-dlp sin depender de stdout ni stderr | V: `test_dub_download_stdio.py` | UC existente | `noprogress`, `logger` | Vigente |
-| Windows | Archivo bloqueado un instante | V: `fs_retry.py` (~4 s) | UC existente | `file_access_retries` | Vigente |
+| Windows | Archivo bloqueado un instante | V: `fs_retry.py` (~4 s); Y: `wrap_file_access` reintenta `EACCES`, que en Windows reúne los errores 5, 32 y 33 | UC existente | `file_access_retries`; BR-26, UC-17 A6 | Vigente; al agotarse, `UNKNOWN` (R-28) |
 | Validación | Separar a quien actúa de quien juzga | V: `tests/probe` («No LLM ever sits on the verdict path») | Capacidad de validación | VBR-04, SUP-V02 | Propuesto |
 | Directos | Transmisiones en directo | Y: `is_live`, `wait_for_video` | Excepción | UC-03 E1 | Sin cualificar (D-10) |
 | Integridad | Verificar el archivo final | F: `ffprobe`; ninguna referencia lo hace tras descargar | Regla | BR-23, UC-06 A11 | Propuesto (D-9) |
@@ -255,8 +262,8 @@ Cada hallazgo se cualifica en una sola categoría y tiene un único destino en e
 | Consulta | Buscar en la cola por título o URL | D: `search_downloads`; S: historial | Flujo alternativo | UC-08 A6 | Propuesto, prioridad baja |
 | Integración | Servidor MCP para agentes, lectura de transcripciones y descripciones | D: `infrastructure/mcp/`, 10 herramientas | Exclusión | §6.3 | Excluido |
 | Seguridad | Archivo de credenciales creado ya con permisos restringidos | B: `core/user_env.py` (`_opener_0600`) | Requisito suplementario | SUP-SEC03 | Propuesto (condicionado a D-1 y D-7) |
-| Archivos | Espacio libre de una carpeta que aún no existe | B: `disk_free_bytes` sube al antecesor existente | Flujo alternativo | UC-01 A10 | Propuesto |
-| Fallos | Volumen no confiable (`winerror` 448), bloqueo prolongado por sincronización | V y B: `WINDOWS_UNTRUSTED_MOUNT`, `VIDEO_DOWNLOAD_OS_ERROR` | Excepción | [Catálogo de condiciones](failure-conditions.md), §3 | Propuesto |
+| Archivos | Espacio libre de una carpeta que aún no existe | B: `disk_free_bytes` sube al antecesor existente | Regla | BR-28; UC-01 A10, UC-17 | Propuesto |
+| Fallos | Volumen no confiable (`winerror` 448), bloqueo prolongado por sincronización | V y B: `WINDOWS_UNTRUSTED_MOUNT`, `VIDEO_DOWNLOAD_OS_ERROR` | Flujo alternativo | UC-17 A3 y A6; BR-26, BR-27 | Propuesto |
 | Validación | Pruebas sin red separadas de las comprobaciones reales, que siguen pendientes hasta ejecutarse | D: `smoke_*.py` frente a «opt-in real validation gates»; marca `e2e` | Capacidad de validación | Clasificación de las pruebas ([plan de E2, §8.2](../project-management/iteration-plan-e2.md#82-clasificación-de-las-pruebas-2026-11-26-main-tras-la-actualización-de-yt-dlp)), VBR-02 | Vigente |
 
 ### 6.2 Lo que tenemos y las referencias no
@@ -316,7 +323,7 @@ Las referencias que usan la librería pasan los reintentos de forma explícita: 
 | Reintento del job | Cola, a petición del User (UC-07) | Vigente |
 | Espera creciente entre reintentos | yt-dlp dentro del job; la cola entre comprobaciones de una restricción (BR-03) | Pendiente (D-2, D-4) |
 | Ritmo de peticiones | yt-dlp dentro de una extracción; la cola entre jobs (BR-02) | Propuesto (D-3) |
-| Aplazamiento y control de admisión | Cola (BR-04, UC-11) | Propuesto |
+| Aplazamiento y control de admisión | Cola (BR-04, BR-09, BR-28; UC-11, UC-17) | Propuesto |
 | Pausa, continuación y detención | Cola (UC-14) | Propuesto (D-6) |
 | Recuperación tras un cierre | Cola (UC-06, BR-19) | Vigente; A11 propuesto (D-9) |
 | Reanudar una descarga desde sus parciales | yt-dlp (`continuedl`) | Vigente |
@@ -324,6 +331,51 @@ Las referencias que usan la librería pasan los reintentos de forma explícita: 
 ### 7.3 Política de continuidad ante una condición externa
 
 Ninguna referencia espera un plazo largo: Seal y VoiceStudio fallan el trabajo e informan; Kannagi repite con cookies. Eso indica lo que hacen, no que esperar sea incorrecto. Las alternativas están en D-2.
+
+### 7.4 Acceso: proxy y cookies en una cola persistente
+
+Ninguna decisión está tomada (D-1, D-7). Esta sección separa las necesidades de las soluciones, porque en una cola persistente la configuración de acceso vive más que un comando: se encola hoy y se descarga mañana, en varios workers a la vez y tras un cierre.
+
+**Necesidades distintas que suelen mezclarse:**
+
+| Necesidad | Qué resuelve | Qué no resuelve |
+|---|---|---|
+| Compatibilidad con la red del sistema | El equipo solo sale por un proxy o una VPN configurados en Windows | Una restricción del sitio |
+| Proxy explícito | Una salida distinta de la del sistema, o la del sistema no se detecta | Igual |
+| Conexión directa | Ignorar un proxy del sistema que no sirve para el sitio (`proxy: ""` en yt-dlp) | — |
+| Acceso autorizado con cuenta | Contenido privado, con restricción de edad o solo para miembros, cuando el User tiene derecho a verlo | No es un medio para saltar una restricción del sitio (BR-12) |
+| Diagnóstico de conectividad | Saber si falla la red, el proxy o el TLS interceptado | — |
+
+**Comportamiento de las referencias y de yt-dlp:**
+
+| Fuente | Proxy | Cookies |
+|---|---|---|
+| yt-dlp 2026.11.23 | `proxy` global de la instancia; sin valor, `urllib.request.getproxies()` (variables de entorno y registro de Windows); `""` fuerza conexión directa; `geo_verification_proxy` aparte | `cookiefile` se lee al crear la instancia y **se reescribe al cerrarla** (`YoutubeDL.save_cookies`); `cookiesfrombrowser` lee la base del navegador en cada instancia. En Windows, Chrome y Edge cifran las cookies con un esquema (`v20`) que `cookies.py` no descifra, y la base no se puede copiar con el navegador abierto (aviso que enlaza el issue #7271); Firefox no tiene esa limitación |
+| Seal | Opción global | Perfiles por sitio capturados con WebView |
+| Kannagi | Opción global | Modos «cuando haga falta», «preguntar», «siempre», «nunca»; repite con `--cookies-from-browser` al detectar «sign» y «confirm» |
+| VoiceStudio, VoiceBlueprintPro | Variables del archivo de entorno del usuario, con diagnóstico de SOCKS sin soporte y de TLS interceptado | `cookies.txt` por importación: formato Netscape, como mucho 1 MB, copia temporal con permisos 0600 borrada al terminar, al fallar o al cancelar |
+| YTDownload-2026 | Opción global; su guía recomienda el proxy del sistema y una salida estable | Su guía recomienda una cuenta técnica, `cookies-from-browser` y la misma IP para la sesión y la descarga |
+
+**Dimensiones en una cola persistente:**
+
+| Dimensión | Proxy | Cookies |
+|---|---|---|
+| Alcance | Global (todas las descargas) o por sitio; por job solo si hay una necesidad real | Por sitio: las cookies de un sitio nunca se envían a otro (yt-dlp ya las filtra por dominio) |
+| Configuración por job | Guardar el proxy en las download options lo fijaría a jobs que pueden ejecutarse días después con otra red; se prefiere resolverlo al enviar el job | Igual: el job guarda, como mucho, que necesita acceso con cuenta, nunca las cookies |
+| Persistencia | En la configuración (`config.toml` o variable de entorno), no en la base de datos | Archivo del User fuera de la base de datos; nunca copiado a la cola |
+| Caducidad | No caduca | Las sesiones caducan y el sitio las rota: un job aplazado puede encontrarlas caducadas al continuar |
+| Concurrencia | Sin efecto | yt-dlp reescribe `cookiefile` al cerrar cada instancia: con varios workers, el último en cerrar gana y puede perder cookies renovadas. Necesita una copia por worker o por job, de solo lectura para el original |
+| Recuperación | Sin efecto | Tras un cierre, una copia temporal puede quedar en disco: se borra al arrancar (UC-06) |
+| Aislamiento | — | Copia temporal por worker en la carpeta del estado, borrada al terminar el job (como VoiceStudio) |
+| Información sensible | La URL del proxy puede llevar usuario y contraseña | Las cookies equivalen a una contraseña |
+| Exclusión de logs y evidencia | En modo detallado, yt-dlp escribe el mapa de proxies (`Proxy map`, `YoutubeDL.print_debug_header`): el log debe ocultar las credenciales (SUP-SEC01) | Nunca en el log, `diagnose`, el informe (UC-16) ni la evidencia (SUP-SEC01); archivo restringido al usuario (SUP-SEC03) |
+| Ciclo de vida | Se lee al enviar cada job | Importar o señalar el archivo; copiar por job; borrar la copia; avisar de caducidad cuando el sitio pide iniciar sesión otra vez |
+| Diagnóstico | `diagnose` dice si hay proxy y de dónde viene, sin credenciales (UC-01 A11) | `diagnose` dice si hay cookies configuradas y para qué sitios, nunca su contenido |
+
+**Conclusiones para las decisiones (sin aprobarlas):**
+- El proxy del sistema ya funciona sin hacer nada (yt-dlp lo usa); lo que falta es verlo en `diagnose` y ocultar sus credenciales.
+- `cookies-from-browser` es poco fiable en el destino del producto (Windows con Chrome o Edge), y el modo «repetir con cookies al ver el error» de Kannagi convierte las cookies en un medio para saltar una restricción, contrario a BR-12.
+- Si se adoptan cookies, la forma compatible con una cola persistente es un archivo explícito del User, por sitio, copiado por job y nunca reescrito.
 
 ## 8. Estado futuro, prioridad y verificación
 
@@ -343,7 +395,7 @@ Ninguna referencia espera un plazo largo: Seal y VoiceStudio fallan el trabajo e
 | Prioridad | Elementos |
 |---|---|
 | **Alta** | UC-11, BR-07 (paridad de reintentos), VUC-04, VUC-05 |
-| **Media** | UC-06 A11, UC-15, UC-02 A6 y A9, UC-08 A5, UC-09 A5, SUP-R08, SUP-U05, VUC-06 a VUC-08 |
+| **Media** | UC-17, UC-06 A11, UC-15, UC-02 A6 y A9, UC-08 A5, UC-09 A5, SUP-R08, SUP-U05, VUC-06 a VUC-08 |
 | **Baja** | UC-14, UC-16, UC-02 A5 y A8, UC-08 A6, UC-10 A5, SUP-P06 |
 | **Pendiente de cualificación** | UC-02 A7, el candidato «Actualizar yt-dlp» (D-8) |
 
@@ -360,12 +412,12 @@ Ninguna referencia espera un plazo largo: Seal y VoiceStudio fallan el trabajo e
 
 ## 9. Decisiones pendientes
 
-Ninguna está aprobada. La recomendación es la del analista; decide el Responsable.
+Ninguna está aprobada (D-1 a D-12). La recomendación es la del analista; decide el Responsable.
 
 ### D-1. Cookies o cuenta del sitio
 
 - **Contexto y necesidad:** un contenido que pide una cuenta, o una restricción del sitio que persiste, solo se resuelven con una sesión iniciada.
-- **Alternativas:** (a) sin cookies; (b) `cookies.txt` explícito y efímero (V); (c) cookies del navegador (`--cookies-from-browser`); (d) cookies solo cuando el error lo pide (K: modos WhenNeeded, Ask, Always, Never).
+- **Alternativas:** (a) sin cookies; (b) `cookies.txt` explícito y efímero (V); (c) cookies del navegador (`--cookies-from-browser`); (d) cookies solo cuando el error lo pide (K: modos WhenNeeded, Ask, Always, Never). Análisis por dimensiones en §7.4: yt-dlp reescribe `cookiefile` al cerrar, lo que obliga a una copia por job, y no descifra las cookies recientes de Chrome y Edge en Windows.
 - **Evidencia:** la wiki de yt-dlp avisa de que la cuenta puede ser bloqueada; ADR-0004 dejó sin verificar las cookies de Chrome en Windows; V y B las borran tras cada uso; D recomienda una cuenta técnica separada y la misma IP para la sesión y la descarga.
 - **A favor de (b):** acceso legítimo controlado por el User, sin leer el navegador. **En contra:** el User debe exportarlas; riesgo para su cuenta.
 - **Restricciones y riesgos:** BR-12; R-27 (fuga de credenciales); SUP-SEC01 y SUP-SEC03.
@@ -397,11 +449,15 @@ Ninguna está aprobada. La recomendación es la del analista; decide el Responsa
 - **Evidencia:** insuficiente; ningún valor está respaldado (§3 del catálogo de reglas: parámetros pendientes).
 - **Recomendación:** decidir D-2 primero; el valor se fija con evidencia, no por estimación.
 
-### D-5. Espacio libre mínimo para enviar un job
+### D-5. Comprobación preventiva del almacenamiento
 
-- **Alternativas:** (a) un mínimo fijo configurable; (b) un mínimo calculado con el tamaño estimado del formato; (c) solo reaccionar al error de escritura.
-- **Evidencia:** yt-dlp da `filesize` o `filesize_approx` para muchos formatos; la unión de ffmpeg puede necesitar el doble; falta la medición (SUP-P07).
-- **Recomendación:** (c) más (b) cuando el tamaño se conozca; el valor de (a) queda pendiente de SUP-P07.
+- **Contexto y necesidad:** evitar que un job empiece sin espacio para terminar, sin confiar en la comprobación como garantía (BR-28, UC-17).
+- **Alternativas:** (a) un espacio mínimo fijo para todos los jobs; (b) el tamaño estimado del formato elegido por un factor (parciales más la unión de ffmpeg), más un margen; (c) solo la reacción al error de escritura, sin comprobación previa.
+- **Evidencia:** yt-dlp da `filesize` o `filesize_approx` para muchos formatos, pero no para todos (los directos, algunos HLS); la unión puede necesitar unas 2 veces el contenido mientras ffmpeg escribe; varios workers pueden consumir la misma unidad a la vez; falta la medición (SUP-P07).
+- **A favor de (b):** se adapta a cada job, de un audio de pocos MiB a un video de varios GiB. **En contra:** sin tamaño conocido, cae en el margen. (a) es simple, pero un valor fijo (como el «1 GiB» de la versión 2.0) sobra para un audio y falta para un video largo.
+- **Restricciones:** la comprobación nunca sustituye a la reacción; varios jobs en curso en la misma unidad deben sumar su espacio reservado.
+- **Impacto:** funcional, UC-17 pasos 2 y 3, A1 y A2; arquitectónico, el tamaño estimado llega al proceso de `run` con `FormatSelected`.
+- **Recomendación:** (b) con (c) siempre activa; los valores, tras SUP-P07.
 
 ### D-6. Comportamiento de la pausa
 
@@ -412,7 +468,7 @@ Ninguna está aprobada. La recomendación es la del analista; decide el Responsa
 ### D-7. Proxy
 
 - **Contexto y necesidad:** en algunas redes solo se sale por un proxy.
-- **Alternativas:** (a) solo el del sistema, como ya hace yt-dlp; (b) además, una clave `proxy` propia; (c) además, informar en `diagnose`.
+- **Alternativas:** (a) solo el del sistema, como ya hace yt-dlp; (b) además, una clave `proxy` propia, global o por sitio; (c) además, informar en `diagnose`; (d) una opción para forzar conexión directa (`proxy: ""`). Análisis por dimensiones en §7.4.
 - **Evidencia:** yt-dlp usa `getproxies()` si no se configura; V lo toma del entorno y diagnostica sus fallos (SOCKS sin soporte, TLS interceptado).
 - **Restricciones y riesgos:** BR-12 (no como evasión); R-27 si lleva contraseña.
 - **Impacto:** funcional, UC-01 A11 y el catálogo, §2; arquitectónico, una clave de configuración.
@@ -449,6 +505,19 @@ Ninguna está aprobada. La recomendación es la del analista; decide el Responsa
 - **Riesgo:** borrar un archivo que el User quería; se mitiga con la confirmación y BR-17.
 - **Recomendación:** (b), prioridad baja.
 
+### D-12. Tratamiento de cada condición de almacenamiento
+
+- **Contexto y necesidad:** las condiciones del [catálogo, §3.1](failure-conditions.md#31-condiciones) no se resuelven igual.
+- **Alternativas para cada grupo:**
+  - espacio y cuota: (a) aplazar los jobs de la unidad; (b) fallar el job;
+  - unidad ausente (extraíble o de red): (a) aplazar como el espacio; (b) fallar como la configuración;
+  - acceso denegado y carpeta inválida: (a) fallar con la acción; (b) aplazar;
+  - uso compartido persistente: (a) fallar tras los reintentos de yt-dlp; (b) aplazar.
+- **Evidencia:** VoiceStudio falla todas («reintentar no sirve»); el producto ya tiene el aplazamiento de UC-11; el acceso denegado y la configuración no cambian solos.
+- **Riesgos:** aplazar una condición que no cambia sola deja jobs esperando para nada; fallar una que se resuelve sola obliga a reintentar a mano (R-22).
+- **Impacto:** funcional, UC-17 A3 a A8; arquitectónico, la planificación de `run` lleva un estado por unidad.
+- **Recomendación:** espacio, cuota y unidad ausente: aplazar. Acceso denegado, carpeta inválida y uso compartido persistente: fallar con la acción.
+
 ## 10. Limitaciones del análisis
 
 - Kannagi no tiene versión ni historial: sus hallazgos no se pueden fechar.
@@ -457,7 +526,8 @@ Ninguna está aprobada. La recomendación es la del analista; decide el Responsa
 - El checkout de FFmpeg es parcial: los contratos se comprobaron con los binarios incluidos, no con su código.
 - Ningún hallazgo de comportamiento se ejecutó contra un sitio real: la campaña está en pausa por la restricción de YouTube.
 - Los parámetros pendientes (§3 del catálogo de reglas) no tienen evidencia; no se proponen valores.
-- Las condiciones de Windows (suspensión, disco lleno real, rutas largas) solo se verifican en la campaña.
+- Las condiciones de Windows (suspensión, disco lleno real, rutas largas) solo se verifican en la campaña. La traducción de `winerror` 39, 1295, 21 y 53 a `errno` está por confirmar con una prueba `windows`.
+- Los caminos de error del §3.2 del catálogo se reprodujeron provocando cada error en el punto del código de yt-dlp; no con un disco lleno real.
 
 ## 11. Trabajo propuesto
 
@@ -465,7 +535,7 @@ Ninguna tarea empieza hasta que el Responsable apruebe las decisiones de las que
 
 | Tarea | Contenido | Prioridad | Depende de |
 |---|---|---|---|
-| T52 | Aplazar un job (`JobDeferred`), reconocer las condiciones externas (BR-01, BR-05, BR-08) con pruebas de contrato | Alta | D-1, D-2 |
+| T52 | Aplazar un job (`JobDeferred`), reconocer las condiciones externas (BR-01, BR-05) con pruebas de contrato | Alta | D-1, D-2 |
 | T53 | Política de continuidad y control de admisión por sitio, conectividad y unidad (UC-11) | Alta | T52, D-2 a D-5 |
 | T54 | Paridad de reintentos con la línea de comandos de yt-dlp (BR-07, SUP-R11) | Alta | — |
 | T55 | Completar con evidencia local (UC-06 A11) | Media | D-9 |
@@ -479,6 +549,7 @@ Ninguna tarea empieza hasta que el Responsable apruebe las decisiones de las que
 | T63 | Indicación de si reintentar sirve (SUP-U05) | Media | — |
 | T64 | Informe de diagnóstico (UC-16) con limpieza de datos sensibles (SUP-SEC01) | Baja | T61 |
 | T65 | Directos (UC-03 E1) y purgar con archivos (UC-10 A5) | Baja | D-10, D-11 |
+| T67 | Condiciones de almacenamiento: identificación en toda la cadena de causas (BR-25, corrige R-28), comprobación preventiva (BR-28) y tratamiento por condición (UC-17) | Media; la identificación, alta | T52, D-5, D-12 |
 | T66 | Preajustes de calidad (UC-02 A9), salida JSON y búsqueda (UC-08 A5 y A6, UC-09 A5) | Media | — |
 
 ## Fuentes

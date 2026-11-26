@@ -52,7 +52,7 @@ Durante la ejecución de la cola, un job de expansión resulta ser una playlist 
 - **Reglas:** BR-13, BR-20.
 - **Requisitos suplementarios:** SUP-P02, SUP-R05.
 - **Restricciones:** la expansión es plana (ADR-0009): no resuelve cada entrada.
-- **Dependencias:** UC-02, UC-03; extendido por UC-11.
+- **Dependencias:** UC-02, UC-03; extendido por UC-11 y UC-17.
 
 ## Criterios de aceptación
 

@@ -45,7 +45,7 @@ El User ejecuta la cola. El sistema toma un job pendiente, descubre que la URL e
 - **A9. `Ctrl+C`** (pasos 4 a 11): interrupción, no cancelación; ver UC-05 A6.
 - **A11. El Media site restringe las peticiones** (pasos 4 a 10; propuesto): extendido por [UC-11](uc-11-preserve-jobs-under-external-conditions.md) A1. Hoy el job falla con `UNAVAILABLE` o `NETWORK` (A2).
 - **A12. El equipo pierde la conexión** (pasos 4 a 10; propuesto): extendido por [UC-11](uc-11-preserve-jobs-under-external-conditions.md) A2. Hoy el job y los siguientes fallan con `NETWORK` (A2).
-- **A13. Se llena el disco** (pasos 6 a 11; propuesto): extendido por [UC-11](uc-11-preserve-jobs-under-external-conditions.md) A3. Hoy el job y los siguientes fallan con `FILESYSTEM` (A2).
+- **A13. Falla el almacenamiento** (pasos 6 a 11; propuesto): espacio, cuota, permisos, disponibilidad o uso compartido; extendido por [UC-17](uc-17-preserve-work-under-storage-failures.md). Hoy el job y los siguientes fallan con `FILESYSTEM` (A2).
 - **A14. El User pausa o detiene la cola** (paso 4; propuesto): ver [UC-14](uc-14-control-queue-execution.md).
 - **A15. Fallo transitorio de la descarga** (pasos 8 a 10): HTTP 5xx, timeout o conexión cortada con un host. yt-dlp reintenta según [BR-07](../business-rules.md) antes de que el job falle con `NETWORK`. **Divergencia hoy:** la librería recibe 0 reintentos HTTP y 0 de fragmentos (R-24); en la campaña T42 un timeout hizo fallar un job a la primera.
 - **A10. Otro programa retiene la base de datos más allá de `busy_timeout`** (pasos 3 a 12): `run` avisa una vez por espera (`The queue is busy; waiting until another program releases it`) y repite la operación hasta que la cola queda libre; los workers siguen con sus jobs. Los comandos cortos, en cambio, terminan sin cambiar nada (UC-02 A3). Un segundo `Ctrl+C` detiene `run` también mientras espera. Observado en la validación en Windows (T42-D12): `run` terminaba con código `1` y dejaba el job `RUNNING`.
@@ -70,10 +70,10 @@ Los fallos del job (A2, A3, A4, A7 y A8) terminan el job sin su objetivo; su tra
 
 ## Reglas, requisitos y restricciones asociados
 
-- **Reglas:** BR-13, BR-17, BR-22; propuestas: BR-01, BR-05, BR-07, BR-08, BR-24.
+- **Reglas:** BR-13, BR-17, BR-22; propuestas: BR-01, BR-05, BR-07, BR-08, BR-24, BR-25.
 - **Requisitos suplementarios:** SUP-R02, SUP-R03, SUP-R04, SUP-R05, SUP-R11, SUP-P01, SUP-P03, SUP-U02, SUP-C04.
 - **Restricciones:** solo el proceso de `run` cambia el estado de los jobs; el progreso no se guarda en la base de datos.
-- **Dependencias:** UC-01, UC-02; extendido por UC-11 y UC-14; UC-06 al arrancar.
+- **Dependencias:** UC-01, UC-02; extendido por UC-11, UC-14 y UC-17; UC-06 al arrancar.
 
 ## Criterios de aceptación
 

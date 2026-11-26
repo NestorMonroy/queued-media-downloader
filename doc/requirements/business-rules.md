@@ -1,7 +1,7 @@
 # Reglas de negocio
 
 - **Fase RUP:** Elaboración
-- **Versión:** 2.0 (2026-11-26). Las reglas vigentes describen el código de `main`; las propuestas indican la decisión de la que dependen.
+- **Versión:** 2.1 (2026-11-26; las condiciones de almacenamiento se separan). 2.0 (2026-11-26). Las reglas vigentes describen el código de `main`; las propuestas indican la decisión de la que dependen.
 - **Técnica (BABOK v3):** 10.9 Business Rules Analysis
 - **Origen:** [análisis de requisitos](requirements-analysis.md) y casos de uso vigentes
 
@@ -41,11 +41,15 @@ Ninguna está implementada. Las que dependen de una decisión pendiente lo indic
 | BR-05 | D | Hay un **corte de conectividad** cuando un job falla porque no se resuelve el nombre del host, la conexión es rechazada o la red no es alcanzable, en cualquier punto de la cadena de causas | UC-11 A2 | Propuesta |
 | BR-06 | D | **Hay conexión** cuando el sistema resuelve el nombre del último host que falló y abre una conexión TCP a su puerto. La comprobación nunca hace peticiones HTTP al sitio | UC-11 A2 | Propuesta |
 | BR-07 | C | Los reintentos ante fallos transitorios de una descarga (HTTP 5xx, timeouts, conexiones cortadas) se delegan en yt-dlp, con los mismos valores que yt-dlp usa por defecto en su línea de comandos (parámetros `retries` y `fragment_retries`). La cola no añade un reintento propio por encima | UC-03, UC-11 paso 1 | Propuesta; corrige la divergencia R-24 |
-| BR-08 | D | Hay **almacenamiento insuficiente** cuando una escritura falla por falta de espacio (`ENOSPC`, `EDQUOT`, `winerror` 112 o 39, o el mensaje equivalente de ffmpeg) en cualquier punto de la cadena de causas, o cuando, antes de enviar un job, el espacio libre de la unidad de las descargas o de la del estado es menor que un mínimo (`min_free_disk_mib`) | UC-11 A3 | Decisión D-5 |
-| BR-09 | C | Mientras hay almacenamiento insuficiente en una unidad, el sistema no envía los jobs que escriben en ella. Continúa cuando el espacio supera el mínimo de BR-08 | UC-11 A3 | Decisiones D-2 y D-5 |
+| BR-08 | D | Hay **almacenamiento insuficiente** en una unidad cuando una escritura falla por falta de espacio (`ENOSPC`, `winerror` 112 o 39) o por cuota excedida (`EDQUOT`, `winerror` 1295), según el código en la cadena de causas (BR-25) o, sin código, el texto equivalente de ffmpeg o de yt-dlp. Es una condición de la unidad, no del job. No incluye el acceso denegado ni el uso compartido (BR-26, BR-27) | UC-17 A4, A5 | Propuesta |
+| BR-09 | C | Mientras una unidad tiene almacenamiento insuficiente (BR-08) o no está disponible (BR-27), el sistema no envía los jobs que escriben en ella y sigue con los de otras unidades. Nunca borra ni mueve archivos para liberar espacio. Continúa según la política de continuidad (D-2) | UC-17 A1, A4, A8 | Decisiones D-2 y D-12 |
 | BR-10 | C | Con la cola **en pausa**, el sistema no envía jobs y deja terminar los que están en curso. Con una pausa inmediata, los detiene como una interrupción: siguen `RUNNING` con sus parciales y se reanudan al continuar | UC-14 | Decisión D-6 |
 | BR-11 | C | Toda espera o pausa de `run` se anuncia con su motivo, su alcance y, si la hay, la hora local estimada de continuación. El aviso se repite mientras dura | UC-11, UC-14 | Propuesta (SUP-U04) |
 | BR-12 | C | El sistema nunca usa PO Tokens ni mecanismos para evadir los controles de un sitio. Las cookies y el proxy solo se aceptan como acceso legítimo configurado por el User | UC-11, UC-01 A11 | PO Tokens: decisión del Responsable (2026-11-26). Cookies: D-1. Proxy: D-7 |
+| BR-25 | D | La condición de un fallo se identifica recorriendo toda la cadena de la excepción: `DownloadError.exc_info`, `__cause__` y `__context__`, hasta el error más interno. En Windows se lee `winerror` antes que `errno`, porque varios códigos comparten `errno`. Si ningún eslabón trae un código, se usa el texto del mensaje con las firmas comprobadas por pruebas de contrato | UC-17, UC-03 A2, UC-11 paso 1 | Propuesta; corrige la divergencia R-28 |
+| BR-26 | D | Hay **conflicto de uso compartido** cuando una operación de archivo falla con `winerror` 32 (uso compartido) o 33 (bloqueo). Es una condición del archivo y suele ser transitoria: la reintenta yt-dlp (`file_access_retries`); la cola no añade un aplazamiento | UC-17 A6 | Propuesta |
+| BR-27 | D | Un destino **no está disponible** cuando su unidad no existe o no responde (`winerror` 3, 21 o 53, `ENOENT` en la raíz de la unidad). Es **inválido** cuando la carpeta configurada no se puede crear en una unidad disponible, o no admite escritura (`EACCES` sin 32 ni 33, `EROFS`, `winerror` 5, 19 o 448). La falta de disponibilidad es una condición de la unidad (BR-09); la invalidez requiere una acción del User y no se aplaza | UC-17 A3, A7, A8 | Decisión D-12 |
+| BR-28 | C | Antes de enviar un job, el sistema comprueba su destino: las carpetas existen o se pueden crear, admiten escritura, y sus unidades tienen espacio libre por encima del tamaño estimado del job, si se conoce, más un margen (parámetros `storage_*`). Si la carpeta aún no existe, el espacio se mide en la unidad de su antecesor existente más cercano. Pasar la comprobación no garantiza la descarga: las reglas reactivas (BR-08, BR-26, BR-27) se aplican igual | UC-17 pasos 2 y 3, UC-01 A10 | Decisión D-5 |
 | BR-23 | C | Un job interrumpido solo se completa sin consultar al sitio si hay evidencia local suficiente: su reclamación con su owner token, un archivo final con el nombre reclamado y la confirmación de que ese archivo es legible y completo. Un archivo no vacío no basta | UC-06 A11 | Decisión D-9 |
 | BR-24 | C | Una transmisión en directo o programada no ocupa un worker sin límite | UC-03 E (directos) | Decisión D-10 |
 
@@ -62,8 +66,9 @@ Valores configurables que usan las reglas. Un valor sin evidencia queda **pendie
 | `extractor_retries` | BR-07 | 3 | Valor por defecto de la librería, ya efectivo | Vigente (sin cambio) |
 | `socket_timeout` | BR-07 | 20 s | `DEFAULT_TIMEOUT` de yt-dlp, ya efectivo | Vigente (sin cambio) |
 | `file_access_retries` | — | 10 | Ya lo pasa `build_yt_dlp_parameters` | Vigente |
-| `min_free_disk_mib` | BR-08 | Pendiente | Depende del tamaño típico de un job y del espacio que necesita ffmpeg para unir (hasta 2 veces el contenido); sin medición | **Pendiente**, sin evidencia |
-| `disk_check_seconds`, `network_check_seconds` | BR-06, BR-09 | Pendiente | Sin evidencia | **Pendiente** |
+| `storage_margin_mib` | BR-28 | Pendiente | Margen además del tamaño estimado. No hay un valor universal: un video largo puede necesitar varios GiB y un audio, pocos MiB. Sin medición (SUP-P07) | **Pendiente**, sin evidencia |
+| `storage_estimate_factor` | BR-28 | Pendiente | Cuánto espacio necesita un job respecto de su tamaño estimado: parciales de video y de audio, más el archivo unido mientras ffmpeg escribe (hasta unas 2 veces el contenido durante la unión). Sin medición (SUP-P07) | **Pendiente**, sin evidencia |
+| `storage_check_seconds`, `network_check_seconds` | BR-06, BR-09 | Pendiente (solo si D-2 elige esperar) | Sin evidencia | **Pendiente** |
 | `site_block_notice_minutes`, `network_notice_minutes` | BR-11 | Pendiente | Sin evidencia; el aviso de cola ocupada de T42-D12 se repite cada 30 s | **Pendiente** |
 | `rate_limit` | SUP-P06 | Sin límite | Seal, Kannagi y yt-dlp lo ofrecen sin valor por defecto | Propuesta |
 
@@ -71,6 +76,7 @@ Valores configurables que usan las reglas. Un valor sin evidencia queda **pendie
 
 | Id | Motivo |
 |---|---|
+| BR-08 y BR-09 (versión 2.0) | Agrupaban el disco lleno con un espacio mínimo fijo («1 GiB») antes de enviar. Se separan: BR-08 define el almacenamiento insuficiente; BR-26 y BR-27, las demás condiciones; BR-28, la comprobación previa, que no sustituye a la reacción |
 | BR-07 (versión 1.0) | Proponía un reintento propio de la cola (2 intentos, 10 s y el doble). Se sustituye por la delegación en yt-dlp: el reintento propio duplicaba un mecanismo que yt-dlp ya tiene y que hoy está desactivado por omisión (R-24) |
 
 ## Reglas de la validación

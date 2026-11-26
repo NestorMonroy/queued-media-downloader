@@ -73,6 +73,7 @@ flowchart LR
         ShowJob["UC-09 Show job"]
         PurgeFinishedJobs["UC-10 Purge finished jobs"]
         PreserveJobs["UC-11 Preserve jobs under external conditions"]
+        PreserveStorage["UC-17 Preserve work under storage failures"]
         ControlQueue["UC-14 Control queue execution"]
         DiagnosticReport["UC-16 Prepare a diagnostic report"]
     end
@@ -95,6 +96,8 @@ flowchart LR
     ExpandPlaylist --> MediaSite
     PreserveJobs -. extends .-> DownloadSingleMedia
     PreserveJobs -. extends .-> ExpandPlaylist
+    PreserveStorage -. extends .-> DownloadSingleMedia
+    PreserveStorage -. extends .-> ExpandPlaylist
     DiagnosticReport --> Maintainer
 
     classDef default fill:#1e293b,stroke:#94a3b8,stroke-width:1px,color:#f1f5f9
@@ -104,12 +107,12 @@ flowchart LR
     classDef focalProposed fill:#1e3a8a,stroke:#60a5fa,stroke-dasharray:4 3,color:#f1f5f9
     classDef external fill:#172032,stroke:#475569,color:#94a3b8
     class InstallAndVerify,DownloadSingleMedia,ExpandPlaylist,CancelJob,RecoverAndResume,EnqueueMedia focal
-    class PreserveJobs focalProposed
+    class PreserveJobs,PreserveStorage focalProposed
     class InspectMedia,ControlQueue,DiagnosticReport optional
     class MediaSite,Maintainer external
 ```
 
-UC-03 y UC-04 los inicia el User con `run`; se ejecutan dentro de la cola y se comunican con el Media site. UC-11 los extiende ante una condición externa. La validación en Windows tiene su propio [modelo de casos de uso](../process/validation-use-case-model.md).
+UC-03 y UC-04 los inicia el User con `run`; se ejecutan dentro de la cola y se comunican con el Media site. UC-11 los extiende ante una restricción del sitio o un corte de conectividad, y UC-17, ante un fallo de almacenamiento. La validación en Windows tiene su propio [modelo de casos de uso](../process/validation-use-case-model.md).
 
 ---
 
@@ -127,12 +130,13 @@ UC-03 y UC-04 los inicia el User con `run`; se ejecutan dentro de la cola y se c
 | UC-08 | Listar jobs | `list` | No | Implementado; A4 a A6 propuestos | [Completa](use-cases/uc-08-list-jobs.md) |
 | UC-09 | Ver un job | `show` | No | Implementado; A2 parcial; A4 y A5 propuestos | [Completa](use-cases/uc-09-show-job.md) |
 | UC-10 | Purgar jobs terminados | `purge` | No | Implementado; A5 propuesto | [Completa](use-cases/uc-10-purge-finished-jobs.md) |
-| UC-11 | Preservar los jobs ante condiciones externas | `run` | **Sí:** `JobDeferred`, control de admisión | Propuesto; política pendiente (D-2) | [Completa](use-cases/uc-11-preserve-jobs-under-external-conditions.md) |
+| UC-11 | Preservar los jobs ante condiciones externas (sitio y conectividad) | `run` | **Sí:** `JobDeferred`, control de admisión | Propuesto; política pendiente (D-2) | [Completa](use-cases/uc-11-preserve-jobs-under-external-conditions.md) |
 | UC-12 | — | — | — | **Retirado** (2026-11-26): consolidado en UC-11 A2; el id no se reutiliza | — |
-| UC-13 | — | — | — | **Retirado** (2026-11-26): consolidado en UC-11 A3; el id no se reutiliza | — |
+| UC-13 | — | — | — | **Retirado** (2026-11-26): consolidado en UC-11 A3 y, tras la revisión del almacenamiento, sustituido por UC-17; el id no se reutiliza | — |
 | UC-14 | Controlar temporalmente la ejecución de la cola | `pause`, `resume`, `stop` | No | Propuesto (D-6) | [Completa](use-cases/uc-14-control-queue-execution.md) |
 | UC-15 | Consultar un contenido antes de encolarlo | `inspect` | No | Propuesto | [Completa](use-cases/uc-15-inspect-media-before-enqueueing.md) |
 | UC-16 | Preparar un informe de diagnóstico | `report` | No | Propuesto | [Completa](use-cases/uc-16-prepare-a-diagnostic-report.md) |
+| UC-17 | Preservar el trabajo ante fallos de almacenamiento | `run` | **Sí:** control de admisión por unidad, identificación en la cadena de causas | Propuesto; D-5 y D-12 pendientes | [Completa](use-cases/uc-17-preserve-work-under-storage-failures.md) |
 | — | Actualizar yt-dlp | — | — | **Candidato**, pendiente de D-8 (contradice ADR-0002) | [Análisis, D-8](requirements-analysis.md#d-8-actualizar-yt-dlp-desde-el-programa) |
 
 ### 4.1 Capacidades transversales
@@ -140,7 +144,7 @@ UC-03 y UC-04 los inicia el User con `run`; se ejecutan dentro de la cola y se c
 | Capacidad | Autoridad | Usada por |
 |---|---|---|
 | Clasificar un fallo e informar de él | [Catálogo de condiciones de fallo](failure-conditions.md), BR-22, SUP-U05 | UC-03, UC-04, UC-06, UC-09, UC-15 |
-| Condiciones externas | UC-11; BR-01, BR-05, BR-08 | UC-03, UC-04, UC-15 |
+| Condiciones externas y de almacenamiento | UC-11 (sitio y conectividad), UC-17 (almacenamiento); BR-01, BR-05, BR-08, BR-25 a BR-28 | UC-03, UC-04, UC-15 |
 | Propiedad de los archivos finales | BR-17, [ADR-0030](../notes/adr-0030-final-file-ownership-claims.md) | UC-03, UC-06, UC-07, UC-10 |
 | Job requests desde otra terminal | SUP-C04 | UC-05, UC-07, UC-14 |
 | Cola ocupada por otro programa | UC-03 A10 | Todos los comandos |
@@ -154,13 +158,13 @@ Las capacidades de las referencias que no entran en el alcance, con su motivo, e
 
 ## 5. Matriz de completitud
 
-Conteo del 2026-11-26 sobre las especificaciones, tras integrar YTDownload-2026 y VoiceBlueprintPro. Un flujo es **vigente** si está implementado y lo cubren las pruebas automáticas de `main`; **parcial** si lo está con una brecha documentada; **propuesto** si no está implementado; **divergente** si el comportamiento real contradice el requisito; **pendiente** si falta cualificarlo.
+Conteo del 2026-11-26 sobre las especificaciones, tras integrar YTDownload-2026 y VoiceBlueprintPro y separar las condiciones de almacenamiento (UC-17). Un flujo es **vigente** si está implementado y lo cubren las pruebas automáticas de `main`; **parcial** si lo está con una brecha documentada; **propuesto** si no está implementado; **divergente** si el comportamiento real contradice el requisito; **pendiente** si falta cualificarlo.
 
 | UC | Alternativos | Excepciones | Vigentes | Parciales | Propuestos | Divergentes | Pendientes | Reglas | Suplementarios | Criterios | Necesita Windows |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| UC-01 | 11 | 0 | 8 | 0 | 3 | 0 | 0 | 2 | 7 | 3 | Sí |
+| UC-01 | 11 | 0 | 8 | 0 | 3 | 0 | 0 | 3 | 7 | 3 | Sí |
 | UC-02 | 9 | 0 | 4 | 0 | 4 | 0 | 1 | 1 | 3 | 3 | No |
-| UC-03 | 15 | 2 | 11 | 0 | 4 | 1 | 1 | 8 | 9 | 4 | Sí |
+| UC-03 | 15 | 2 | 11 | 0 | 4 | 1 | 1 | 9 | 9 | 4 | Sí |
 | UC-04 | 8 | 0 | 6 | 1 | 1 | 0 | 0 | 2 | 2 | 3 | No |
 | UC-05 | 8 | 3 | 11 | 0 | 0 | 0 | 0 | 2 | 2 | 4 | Sí |
 | UC-06 | 11 | 0 | 8 | 1 | 2 | 0 | 0 | 6 | 3 | 4 | Sí |
@@ -168,18 +172,19 @@ Conteo del 2026-11-26 sobre las especificaciones, tras integrar YTDownload-2026 
 | UC-08 | 6 | 3 | 6 | 0 | 3 | 0 | 0 | 0 | 2 | 2 | Sí |
 | UC-09 | 5 | 2 | 4 | 1 | 2 | 0 | 0 | 1 | 3 | 2 | Sí |
 | UC-10 | 5 | 2 | 6 | 0 | 1 | 0 | 0 | 2 | 1 | 3 | Sí |
-| UC-11 | 9 | 4 | 0 | 0 | 13 | 0 | 0 | 10 | 8 | 5 | Sí |
+| UC-11 | 9 | 4 | 0 | 0 | 13 | 0 | 0 | 10 | 7 | 5 | Sí |
 | UC-14 | 6 | 1 | 0 | 0 | 7 | 0 | 0 | 2 | 2 | 4 | Sí |
 | UC-15 | 4 | 3 | 0 | 0 | 7 | 0 | 0 | 3 | 3 | 3 | Sí |
 | UC-16 | 2 | 1 | 0 | 0 | 3 | 0 | 0 | 0 | 3 | 3 | No |
-| **Total** | **106** | **24** | **74** | **3** | **50** | **1** | **2** | — | — | **46** | **11 de 14** |
+| UC-17 | 10 | 2 | 0 | 0 | 12 | 0 | 0 | 8 | 4 | 5 | Sí |
+| **Total** | **116** | **26** | **74** | **3** | **62** | **1** | **2** | — | — | **51** | **12 de 15** |
 
 Las columnas Reglas y Suplementarios cuentan los identificadores distintos que enlaza cada caso de uso; un mismo requisito puede estar en varios.
 
 **Resumen:**
-- **Casos de uso:** 14 vigentes en el modelo (10 implementados y 4 propuestos), 2 retirados y 1 candidato.
-- **Escenarios:** 14 básicos, 106 alternativos y 24 de excepción.
-- **Reglas de negocio:** 24 (10 vigentes y 14 propuestas), más 4 de la validación ([catálogo](business-rules.md)).
+- **Casos de uso:** 15 vigentes en el modelo (10 implementados y 5 propuestos), 2 retirados y 1 candidato.
+- **Escenarios:** 15 básicos, 116 alternativos y 26 de excepción.
+- **Reglas de negocio:** 28 (10 vigentes y 18 propuestas), más 4 de la validación ([catálogo](business-rules.md)).
 - **Requisitos suplementarios:** 47: 28 vigentes, 1 parcial, 15 propuestos, 1 divergente (SUP-R11) y 2 pendientes de medición (SUP-P04, SUP-P07) ([especificación](supplementary-specification.md)).
 - **Verificación:** los flujos vigentes pasan las pruebas automáticas de `main`. Las correcciones T42-D7 a D12 esperan su confirmación en Windows, en una campaña futura ([plan de E2, §8](../project-management/iteration-plan-e2.md#8-matriz-de-casos-de-uso-implementación-y-validación)).
 
@@ -198,7 +203,7 @@ Las columnas Reglas y Suplementarios cuentan los identificadores distintos que e
 | UC-07 | `job_queue`, `job_storage` | `job_queue/retry_job.py`, `job_queue/run_queue.py` |
 | UC-08, UC-09 | `job_queue`, `job_storage` | `job_queue/list_jobs.py` (`ListJobs`, `ShowJob`) |
 | UC-10 | `job_queue`, `job_storage`, `media_extraction` (parciales y reclamaciones) | `job_queue/purge_finished_jobs.py` |
-| UC-11, UC-14 (propuestos) | `job_queue`, `workers`, `media_extraction`, `job_storage` | `job_queue/run_queue.py` (planificación y aplazamientos); clasificación en `media_extraction` ([ADR-0031](../notes/adr-0031-site-waits-and-network-waits.md)) |
+| UC-11, UC-14, UC-17 (propuestos) | `job_queue`, `workers`, `media_extraction`, `job_storage` | `job_queue/run_queue.py` (planificación y aplazamientos); clasificación en `media_extraction` ([ADR-0031](../notes/adr-0031-site-waits-and-network-waits.md)) |
 | UC-15 (propuesto) | `media_extraction`, `command_line` | Sin diseñar |
 | UC-16 (propuesto) | `diagnostics`, `job_storage`, `command_line` | Sin diseñar |
 
