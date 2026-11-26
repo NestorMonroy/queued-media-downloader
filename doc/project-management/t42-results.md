@@ -82,6 +82,18 @@ Primera ejecución con el guion 3.0, sobre el `main` publicado (`run.txt`: *comm
 
 **T42-D3 resuelto.** El log de la cola 5.1 muestra que yt-dlp usó el mismo reproductor que falló el 2026-11-25 (`b485e332`), ahora en su variante `tv` (`Downloading player b485e332-tv`), resolvió los retos con deno (`Solving JS challenges using deno`) y no registró ninguna línea `WARNING` ni `ERROR`. La prueba `test_a_youtube_download_solves_its_javascript_challenges` también pasó.
 
+### Paso 5.2 en la misma ejecución (consola del Evaluador; sin archivo de evidencia nuevo)
+
+| Paso | Resultado | Evidencia | Observaciones |
+|---|---|---|---|
+| 5.2 Playlists | **pasa con defectos** | Salida de la consola; `queue-5.2.log` (parcial, código 1) | Dos playlists (URL con `si=`): 15 y 2 entradas, cada una en su carpeta con el índice delante; 15 descargas `COMPLETED` unidas por ffmpeg (`.webm` y `.mkv`); `show 1` resume `13 COMPLETED, 2 FAILED`; `list --parent 1` lista las 15 entradas. Nombres recortados por `max_filename_length` que pierden el `[id]` (jobs 7, 10, 16): el caso de R-14, sin colisión. **No se probó** el duplicado entre playlists (UC-04 A2): la segunda playlist no repetía ningún video |
+
+| Id | Paso | Origen | Gravedad | Descripción | Estado |
+|---|---|---|---|---|---|
+| T42-D4 | 5.2 | *Producto, específico de Windows* (se reprodujo en Linux con `PYTHONIOENCODING=cp1252`) | Mayor | Con la salida redirigida (aquí, `Save-ValidationQueueState` y su `Tee-Object`), Python escribe en cp1252, que no tiene emojis: `list` terminó con `UnicodeEncodeError` en el título "…100% works 😎😎" y cortó la lista. Lo mismo habría cortado `run` a mitad de la cola con un título así | Corregido: los caracteres que la codificación no tiene se escriben como `?` (`__main__.replace_unencodable_output`); prueba `test_list_never_fails_on_characters_the_output_encoding_lacks`. **Pendiente de confirmar en Windows** |
+| T42-D5 | 5.2 | *Documentación* (especificación) | Menor | Dos entradas de una playlist retiradas por YouTube (derechos de autor, normas) se crearon `PENDING` y fallaron al descargarse con `UNAVAILABLE`, y `run` terminó con código 1. UC-04 A3 decía que una entrada no disponible se crea `SKIPPED`, pero la lista de YouTube no las marcaba: saberlo exigiría resolver cada entrada y perder la iteración perezosa (ADR-0009). El comportamiento es el de UC-03 A2 | UC-04 A3 precisado: `SKIPPED` solo si el sitio la marca en la lista; si no, `FAILED` con `UNAVAILABLE` al descargar |
+| T42-D6 | 5.2 | *Producto, general* | Menor | `show 1` mostraba `Title: -` y `list` la URL de la playlist, aunque la expansión conocía su título ("found 15 entries in playlist '…'") | Corregido: el primer lote da a la expansión el título de la playlist (`Job.record_playlist_title`); prueba `test_a_playlist_batch_gives_the_expansion_the_playlist_title`. **Pendiente de confirmar en Windows** |
+
 ### Pendiente en Windows tras esta ejecución
 
-Pasos 5.2 a 5.7 (playlists, `--playlist`, `--keep-waiting` y dos terminales, cancelación, reintentos y purga, cola ocupada), 6 a 12 (procesos tras cancelar, cierres y `Ctrl+C`, reanudación tras un cierre forzado, cambio de formato, integridad, propiedad de archivos y concurrencia, estado persistido) y 13 (memoria y SUP-P04). La validación de UC-01 a UC-10 no está completa.
+Confirmar T42-D4 y T42-D6 (repetir 5.2 en una ejecución nueva, con una segunda playlist que repita un video de la primera para UC-04 A2); pasos 5.3 a 5.7 (`--playlist`, `--keep-waiting` y dos terminales, cancelación, reintentos y purga, cola ocupada), 6 a 12 (procesos tras cancelar, cierres y `Ctrl+C`, reanudación tras un cierre forzado, cambio de formato, integridad, propiedad de archivos y concurrencia, estado persistido) y 13 (memoria y SUP-P04). La validación de UC-01 a UC-10 no está completa.

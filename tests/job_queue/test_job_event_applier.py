@@ -162,3 +162,22 @@ def test_a_completion_that_breaks_the_contract_fails_the_job(
     assert job.status is JobStatus.FAILED
     assert job.failure_reason is failure_reason
     assert job.output_path is None
+
+
+def test_a_playlist_batch_gives_the_expansion_the_playlist_title() -> None:
+    # UC-08 y UC-09: list y show nombran la playlist, no solo su URL (T42-D6).
+    job_store = InMemoryJobStore()
+    job_id = job_store.create(
+        Job.new_expansion("https://media.example/playlist", DOWNLOAD_OPTIONS)
+    )
+    job_store.update(replace(job_store.get(job_id), status=JobStatus.RUNNING))
+    batch = PlaylistEntriesFound(
+        playlist_id="PL1", playlist_title="Business Calculus", playlist_entries=(ENTRY,)
+    )
+
+    JobEventApplier(job_store).apply(message(job_id, batch))
+    JobEventApplier(job_store).apply(
+        message(job_id, replace(batch, playlist_title="Another title"))
+    )
+
+    assert job_store.get(job_id).title == "Business Calculus"

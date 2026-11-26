@@ -49,17 +49,22 @@ class JobEventApplier:
     def apply(self, message: WorkerMessage) -> Job | None:
         """Aplica el job event del mensaje, si cambia algo del job.
 
-        Un lote de playlist no cambia la expansión: crea sus jobs hijos.
+        Un lote de playlist crea los jobs hijos y da a la expansión el título
+        de la playlist, si aún no tenía uno.
 
         Returns:
-            El job tal como quedó guardado; None si el job event no cambia el
-            job del mensaje.
+            El job tal como quedó guardado; None para un lote de playlist o si
+            el job event no cambia el job del mensaje.
         """
         job_event = message.job_event
         if isinstance(job_event, PlaylistEntriesFound):
             expansion = self._job_store.get(message.job_id)
             # Una expansión que se está cancelando ya no crea hijos (UC-05 A4).
             if expansion.status is JobStatus.RUNNING:
+                if job_event.playlist_title and expansion.title is None:
+                    self._job_store.update(
+                        expansion.record_playlist_title(job_event.playlist_title)
+                    )
                 self._create_playlist_children(expansion, job_event)
             return None
         if not isinstance(job_event, PERSISTENT_JOB_EVENT_TYPES):

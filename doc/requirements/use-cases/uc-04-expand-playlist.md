@@ -28,7 +28,7 @@ Durante la ejecución de la cola, un job de expansión resulta ser una playlist 
 
 - **A1. Entrada que es otra playlist** (paso 4): por ejemplo, las pestañas de un canal. Se crea un hijo `EXPANSION`, que se expandirá a su vez.
 - **A2. Entrada duplicada** (paso 4): ya existe un job `DOWNLOAD` activo con la misma media key. El hijo se crea como `SKIPPED`.
-- **A3. Entrada no disponible** (privada o eliminada) (paso 4): el hijo se crea como `SKIPPED`, no como `FAILED`.
+- **A3. Entrada no disponible** (privada o eliminada) (paso 4): si el sitio la marca así en la lista (`availability` privada o que pide una cuenta, o los títulos `[Private video]` y `[Deleted video]` de YouTube), el hijo se crea como `SKIPPED`, no como `FAILED`. Si el sitio no la marca (por ejemplo, un video retirado por derechos de autor que la lista sigue enumerando sin datos), la expansión no puede saberlo sin resolver cada entrada, lo que rompería la iteración perezosa (ADR-0009): el hijo se crea `PENDING` y, al descargarlo, falla con `UNAVAILABLE` (UC-03 A2); `run` termina con código 1. Observado en la validación en Windows (T42-D5).
 - **A4. Contenido `multi_video`** (paso 1): se trata como un solo contenido; continúa como UC-03 desde el paso 5.
 - **A5. Cancelación durante la expansión:** ver UC-05. Los hijos ya creados quedan en la cola, salvo que se cancele la playlist entera.
 - **A6. Fallo de red a mitad de la expansión** (paso 2): la expansión pasa a `FAILED`; los hijos ya creados se conservan. Al reintentarla (UC-07 A3), sus hijos `FAILED` o `CANCELLED` vuelven a la cola, los `COMPLETED` no cambian y las entradas ya existentes se crean como duplicadas `SKIPPED` (A2).
@@ -36,7 +36,7 @@ Durante la ejecución de la cola, un job de expansión resulta ser una playlist 
 
 ## Postcondiciones
 
-- **Éxito:** la expansión está `COMPLETED`, sin `output_path` (una expansión no produce archivos), y existe un job hijo por cada playlist entry; el estado de la playlist se deriva de sus hijos.
+- **Éxito:** la expansión está `COMPLETED`, sin `output_path` (una expansión no produce archivos), con el título de la playlist, y existe un job hijo por cada playlist entry; el estado de la playlist se deriva de sus hijos.
 - **Fallo:** la expansión está `FAILED`; los hijos creados se conservan con su estado.
 
 ## Requisitos especiales

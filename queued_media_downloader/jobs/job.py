@@ -184,6 +184,16 @@ class Job:
         """La expansión encontró un contenido que ya tiene descarga (UC-03 A1)."""
         return self._as_download(media_key, title).transition_to(JobStatus.SKIPPED)
 
+    def record_playlist_title(self, playlist_title: str) -> Self:
+        """La expansión resultó ser una playlist: toma su título si no tenía.
+
+        Un hijo EXPANSION de otra playlist ya trae el título de su entrada, que
+        se conserva.
+        """
+        if self.title is not None:
+            return self
+        return replace(self, title=playlist_title)
+
     def record_selected_format(self, selected_format_id: str) -> Self:
         """Guarda el formato elegido para reutilizarlo al reanudar (ADR-0010)."""
         return replace(self, selected_format_id=selected_format_id)
