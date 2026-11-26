@@ -158,3 +158,18 @@ def test_purge_releases_only_the_names_of_the_purged_jobs(tmp_path: Path) -> Non
     PurgeFinishedJobs(job_store, output_claims).execute({JobStatus.COMPLETED})
 
     assert sorted((tmp_path / "output-claims").iterdir()) == [kept.claim_path]
+
+
+def test_purge_also_releases_names_left_by_jobs_no_longer_in_the_queue(
+    tmp_path: Path,
+) -> None:
+    # Una terminación forzada no deja soltar la reclamación (UC-05 A2).
+    job_store = InMemoryJobStore()
+    pending = store(job_store, JobStatus.PENDING, tmp_path)
+    output_claims = OutputClaims(tmp_path / "output-claims")
+    kept = output_claims.claim(int(pending), tmp_path / "a.mp4")
+    output_claims.claim(99, tmp_path / "b.mp4")
+
+    PurgeFinishedJobs(job_store, output_claims).execute({JobStatus.COMPLETED})
+
+    assert sorted((tmp_path / "output-claims").iterdir()) == [kept.claim_path]

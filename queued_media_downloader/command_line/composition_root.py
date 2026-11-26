@@ -5,6 +5,7 @@ Parte 1, §3, regla 3).
 """
 
 import functools
+import sqlite3
 import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -17,12 +18,19 @@ from queued_media_downloader.ffmpeg_discovery.file_system_ffmpeg_locator import 
     VENDORED_BUILD_NAME,
     FileSystemFfmpegLocator,
 )
-from queued_media_downloader.job_storage import JobRequestInbox, JobStore
+from queued_media_downloader.job_storage import (
+    JobRequestInbox,
+    JobStore,
+    JobStoreLockedError,
+)
 from queued_media_downloader.job_storage.sqlite_connection import open_database
 from queued_media_downloader.job_storage.sqlite_job_request_inbox import (
     SqliteJobRequestInbox,
 )
-from queued_media_downloader.job_storage.sqlite_job_store import SqliteJobStore
+from queued_media_downloader.job_storage.sqlite_job_store import (
+    LOCKED_DATABASE_MESSAGE,
+    SqliteJobStore,
+)
 from queued_media_downloader.media_extraction import MediaSourceSettings
 from queued_media_downloader.media_extraction.yt_dlp_javascript_runtime import (
     find_deno,
@@ -68,11 +76,12 @@ def create_ffmpeg_locator(settings: Settings) -> FfmpegLocator:
 def open_job_store(state_directory: Path) -> Iterator[JobStore]:
     """Abre el job store de state_directory y cierra su conexión al terminar."""
     state_directory.mkdir(parents=True, exist_ok=True)
-    connection = open_database(state_directory / DATABASE_FILE_NAME)
-    try:
-        yield SqliteJobStore(connection)
-    finally:
-        connection.close()
+    with _translating_locked_database():
+        connection = open_database(state_directory / DATABASE_FILE_NAME)
+        try:
+            yield SqliteJobStore(connection)
+        finally:
+            connection.close()
 
 
 @contextmanager
@@ -81,11 +90,28 @@ def open_job_store_and_inbox(
 ) -> Iterator[tuple[JobStore, JobRequestInbox]]:
     """Abre el job store y la bandeja de job requests sobre una sola conexión."""
     state_directory.mkdir(parents=True, exist_ok=True)
-    connection = open_database(state_directory / DATABASE_FILE_NAME)
+    with _translating_locked_database():
+        connection = open_database(state_directory / DATABASE_FILE_NAME)
+        try:
+            yield SqliteJobStore(connection), SqliteJobRequestInbox(connection)
+        finally:
+            connection.close()
+
+
+@contextmanager
+def _translating_locked_database() -> Iterator[None]:
+    """Convierte "database is locked" de SQLite en JobStoreLockedError.
+
+    Otro proceso puede tener la base de datos ocupada más allá de
+    busy_timeout al abrirla, al migrarla o en cualquier escritura de un
+    comando; cada comando lo informa sin traza (UC-02 A3, UC-05 E2…).
+    """
     try:
-        yield SqliteJobStore(connection), SqliteJobRequestInbox(connection)
-    finally:
-        connection.close()
+        yield
+    except sqlite3.OperationalError as operational_error:
+        if LOCKED_DATABASE_MESSAGE not in str(operational_error):
+            raise
+        raise JobStoreLockedError(str(operational_error)) from operational_error
 
 
 @contextmanager

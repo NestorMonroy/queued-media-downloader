@@ -2,8 +2,9 @@
 
 Los archivos descargados no se tocan. Sí se borran la carpeta de parciales de
 cada job purgado (los ids no se reutilizan, T44, así que nadie más la borraría)
-y sus reclamaciones de nombres finales (R-14): el archivo sigue protegido,
-porque un job nuevo no lo toma como suyo si no lo escribió él.
+y las reclamaciones de nombres finales de los jobs que ya no existen (R-14,
+ADR-0030): el archivo sigue protegido, porque un job nuevo no lo toma como
+suyo si no lo escribió él.
 """
 
 from collections.abc import Collection, Iterator
@@ -60,12 +61,17 @@ class PurgeFinishedJobs:
             for removed in (job, *descendants):
                 if removed.job_id is not None:
                     deleted[removed.job_id] = removed
-        # Primero los parciales y las reclamaciones: si algo falla después, el
-        # job aún existe y se puede volver a purgar.
-        for job_id, removed in deleted.items():
-            remove_partial_directory(removed.partial_directory())
-            self._output_claims.release_all_of(int(job_id))
+        # Primero la base de datos: si está ocupada (JobStoreLockedError), no
+        # se toca nada. Después, los parciales de los jobs borrados y las
+        # reclamaciones de jobs que ya no existen, incluidas las que dejó una
+        # terminación forzada o un purge anterior interrumpido.
         self._job_store.delete(list(deleted))
+        for removed in deleted.values():
+            remove_partial_directory(removed.partial_directory())
+        remaining_job_ids = {
+            int(job.job_id) for job in self._job_store.get_all() if job.job_id
+        }
+        self._output_claims.release_all_except(remaining_job_ids)
         return PurgeResult(
             deleted_job_count=len(deleted), kept_playlists=kept_playlists
         )

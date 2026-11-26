@@ -1,6 +1,7 @@
 """Interpretación de los argumentos de la línea de comandos."""
 
 import argparse
+import sys
 from collections.abc import Sequence
 from importlib.metadata import version
 
@@ -14,6 +15,7 @@ from queued_media_downloader.command_line.list_command import (
 from queued_media_downloader.command_line.purge_command import add_purge_command
 from queued_media_downloader.command_line.retry_command import add_retry_command
 from queued_media_downloader.command_line.run_command import add_run_command
+from queued_media_downloader.job_storage import JobStoreLockedError
 
 DISTRIBUTION_NAME = "queued-media-downloader"
 
@@ -55,7 +57,17 @@ def main(arguments: Sequence[str] | None = None) -> int:
         # argparse termina el proceso al mostrar la versión o un error de uso;
         # se convierte en un código de salida para que main sea comprobable.
         return _exit_code_from(parser_exit)
-    exit_code: int = parsed_arguments.run_command(parsed_arguments)
+    try:
+        exit_code: int = parsed_arguments.run_command(parsed_arguments)
+    except JobStoreLockedError as locked_error:
+        # Otro proceso tiene la base de datos ocupada: no es un error de uso, y
+        # reintentar más tarde puede bastar. La escritura se deshizo entera.
+        print(
+            f"{parsed_arguments.program_name}: error: the queue is busy "
+            f"({locked_error}); nothing was changed in the queue, try again",
+            file=sys.stderr,
+        )
+        return ExitCode.JOBS_FAILED
     return exit_code
 
 

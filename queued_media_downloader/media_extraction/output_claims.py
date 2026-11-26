@@ -27,6 +27,7 @@ al fallar o cancelar sin archivo final, o al purgar el job (UC-10).
 
 import hashlib
 import os
+from collections.abc import Collection
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -129,11 +130,24 @@ class OutputClaims:
 
     def release_all_of(self, job_id: int) -> None:
         """Suelta todas las reclamaciones de un job que se borra de la cola."""
-        if not self._claims_directory.is_dir():
-            return
-        for claim_path in self._claims_directory.glob(f"*{CLAIM_SUFFIX}"):
+        for claim_path in self._claim_paths():
             if self._owner_of(claim_path) == job_id:
                 claim_path.unlink(missing_ok=True)
+
+    def release_all_except(self, existing_job_ids: Collection[int]) -> None:
+        """Suelta las reclamaciones cuyo dueño ya no está en la cola (purge).
+
+        Una reclamación dañada, sin un id legible, también se suelta: ningún
+        job podría reconocerla como suya.
+        """
+        for claim_path in self._claim_paths():
+            if self._owner_of(claim_path) not in existing_job_ids:
+                claim_path.unlink(missing_ok=True)
+
+    def _claim_paths(self) -> list[Path]:
+        if not self._claims_directory.is_dir():
+            return []
+        return sorted(self._claims_directory.glob(f"*{CLAIM_SUFFIX}"))
 
     @staticmethod
     def _owner_of(claim_path: Path) -> int | str:
