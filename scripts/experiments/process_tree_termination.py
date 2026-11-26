@@ -401,9 +401,16 @@ class ProcessTree:
             time.sleep(0.05)
 
     def clean_up(self) -> None:
-        """Termina lo que quede del árbol y libera los handles."""
+        """Termina lo que quede del árbol, espera a que salga y libera los handles.
+
+        En Windows, TerminateProcess es asíncrono: sin esperar, un nieto aún
+        vivo retiene el parcial y la carpeta temporal no se puede borrar
+        (T42-D2: la observación se perdía como PermissionError).
+        """
         for handle in self.handles.values():
             handle.kill()
+        self.wait_until_dead()
+        for handle in self.handles.values():
             handle.close()
         if self.worker is not None:
             self.worker.join(EXIT_TIMEOUT_SECONDS)
@@ -461,7 +468,10 @@ class Observation:
 @contextlib.contextmanager
 def scenario_directory() -> Iterator[Path]:
     """Carpeta temporal para los PIDs y el archivo parcial de un escenario."""
-    with tempfile.TemporaryDirectory(prefix="t33-") as directory:
+    # Si aun así algo retiene un archivo, la observación ya hecha no se pierde.
+    with tempfile.TemporaryDirectory(
+        prefix="t33-", ignore_cleanup_errors=True
+    ) as directory:
         yield Path(directory)
 
 
