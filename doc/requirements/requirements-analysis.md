@@ -1,7 +1,7 @@
 # Análisis de requisitos: continuidad, condiciones externas y referencias
 
 - **Fase RUP:** Elaboración (consolidación del modelo de requisitos tras la campaña T42)
-- **Versión:** 3.0 (2026-11-26). La versión 2.0 se titulaba «funcionamiento sin vigilancia y validación sin esperas»; esta integra el análisis de los proyectos de referencia en el modelo canónico y deja abiertas las decisiones.
+- **Versión:** 3.1 (2026-11-26; añade YTDownload-2026 y VoiceBlueprintPro). 3.0 (2026-11-26). La versión 2.0 se titulaba «funcionamiento sin vigilancia y validación sin esperas»; esta integra el análisis de los proyectos de referencia en el modelo canónico y deja abiertas las decisiones.
 - **Responsabilidad:** razonamiento y evidencia del modelo de requisitos. Los requisitos están en sus artefactos: [modelo de casos de uso](use-case-model.md), [reglas de negocio](business-rules.md), [especificación complementaria](supplementary-specification.md), [catálogo de condiciones de fallo](failure-conditions.md) y [modelo de validación](../process/validation-use-case-model.md).
 - **Técnicas (BABOK v3):** ver §5.2.
 
@@ -162,6 +162,8 @@ Las referencias solo aportan evidencia. No son dependencias del producto, no se 
 | yt-dlp | 2026.11.23 (la fijada, sdist en `/tmp/ytdlp-new`); 2026.10.26 en el espacio de análisis | Unlicense | `options.py` y `__init__.py` (valores de la línea de comandos), `YoutubeDL.py` (valores de la librería), `utils/_utils.py` (`RetryManager`), `extractor/youtube/` (clientes, restricciones), `networking/` (proxy, timeouts), `postprocessor/` | Solo el código fuente; no se ejecutó contra sitios reales |
 | Seal | `5a4f5fb` (2026-11-25), versionCode 200_000_150 | GPL-3.0 | Descarga, cola (`download/DownloaderV2.kt`), preferencias (`util/PreferenceUtil.kt`, `util/DownloadUtil.kt`), formatos y playlists (`ui/page/downloadv2/configure/`), historial, actualización (`util/UpdateUtil.kt`), cookies, comandos personalizados, errores | Aplicación Android: lo propio de Android (tarjeta SD, red medida) solo se usa como evidencia de la necesidad |
 | VoiceStudio | `d9061408` (2026-11-26) | AGPL-3.0 | Importación desde URL (`services/dub_pipeline.py`), cola por lotes (`api/routers/batch.py`), fallos (`core/failure.py`), herramientas de medios, entorno, autodiagnóstico, paquete de diagnóstico, resistencia en Windows, arnés de pruebas | Solo el dominio compartido; el procesamiento de voz e IA queda fuera |
+| YTDownload-2026 | `0abda8e` (2026-07-02), 33 commits; yt-dlp 2026.2.4 en su `uv.lock` | **Sin licencia declarada** (todos los derechos reservados): solo se toman ideas | Toda la aplicación: `infrastructure/ytdlp_service.py`, `application/download_coordinator.py`, `application/command_api.py`, modelos (`domain/models/`), CLI (`interfaces/cli/root.py`), herramientas MCP (`infrastructure/mcp/tools/`), `docs/` (guía de descarga de YouTube en 2026: proxy, cuentas, cookies, subtítulos, playlists) | Interfaz gráfica (PySide6) leída solo por sus opciones; documentación en ruso |
+| VoiceBlueprintPro | `e9a2a63` (2026-11-22), 89 commits; yt-dlp 2026.8.19 | AGPL-3.0 | Derivado de VoiceStudio (separado el 2026-11-09, según su historial y `NOTICE`). Se comparó, archivo por archivo, con VoiceStudio `d9061408` en el dominio compartido: importación desde URL, fallos, entorno, herramientas de medios, cola por lotes, autodiagnóstico, asistente de instalación (`api/routers/setup/`) | Su canal de importación es una versión anterior a la de VoiceStudio; el resto (voz, IA, móvil) queda fuera del dominio |
 | Kannagi (yt-dlp-gui) | Sin Git ni versión declarada, en `upstream/source/yt-dlp-gui-kannagi` | MIT | `Wrappers/DLP.cs`, `Wrappers/FFMPEG.cs`, `ViewModels/Main.cs`, `Models/Config.cs`, `Models/Cookies.cs`, `Views/Release.xaml.cs` | Sin versión: los hallazgos no se pueden fechar |
 | FFmpeg | Código: checkout parcial de `master` en `329157f5` (2026-11-22); binarios: n9.0.2-39 LGPL compartido, en `vendor/ffmpeg/` | LGPL | Contratos que usa el producto: unión de video y audio, extracción de audio, `ffprobe` | El checkout solo tiene los registros de códecs y formatos y los Makefiles; los contratos se verificaron con los binarios incluidos y la documentación de yt-dlp |
 | BABOK v3 | Copia entregada por el Responsable | IIBA | Capítulos 6, 7 y 10 | — |
@@ -190,50 +192,52 @@ Las referencias solo aportan evidencia. No son dependencias del producto, no se 
 
 ## 6. Hallazgos de las referencias y su incorporación
 
-Cada hallazgo se cualifica en una sola categoría y tiene un único destino en el modelo canónico. **Estado** describe nuestro producto: vigente, parcial, propuesto, divergente o excluido. Las referencias se citan como S (Seal), V (VoiceStudio), K (Kannagi), Y (yt-dlp) y F (FFmpeg).
+Cada hallazgo se cualifica en una sola categoría y tiene un único destino en el modelo canónico. **Estado** describe nuestro producto: vigente, parcial, propuesto, divergente o excluido. Las referencias se citan como S (Seal), V (VoiceStudio), B (VoiceBlueprintPro), D (YTDownload-2026), K (Kannagi), Y (yt-dlp) y F (FFmpeg). Una fila con varias letras es un requisito propio respaldado por varias referencias.
 
 ### 6.1 Capacidades del dominio
 
 | Área | Capacidad | Evidencia | Categoría | Destino | Estado |
 |---|---|---|---|---|---|
-| Cola | Varias descargas a la vez | S: `MAX_CONCURRENCY = 3` en `DownloaderV2.kt` | UC existente | SUP-P01 (`worker_count`) | Vigente |
+| Cola | Varias descargas a la vez | S: `MAX_CONCURRENCY = 3` en `DownloaderV2.kt`; D: `max_concurrent` = 2 | UC existente | SUP-P01 (`worker_count`) | Vigente |
 | Cola | Fallo restartable, sin perder la tarea | S: estado `Error`; V: `retry_batch_job` | UC existente | UC-07 | Vigente |
 | Cola | Reintento solo cuando el trabajo ya se detuvo | V: `retry_ready`, `_admit_retry` | Regla | BR-14 (`CANCELLATION_REQUESTED` no es reintentable) | Vigente |
-| Cola | Trabajo interrumpido por un reinicio | S: pasa a `Canceled`; V: pasa a `failed` (`sweep_orphans_on_startup`) | UC existente | UC-06, BR-19: nosotros reanudamos | Vigente; mejor que las referencias |
+| Cola | Trabajo interrumpido por un reinicio | S: pasa a `Canceled`; V y B: pasan a `failed` (`sweep_orphans_on_startup`); D: la cola vive en memoria y sus registros quedan `queued` o `downloading` para siempre | UC existente | UC-06, BR-19: nosotros reanudamos | Vigente; mejor que las referencias |
 | Cola | No borrar archivos de un trabajo activo | V: `delete_batch_job` (#2547) | Regla | BR-17, BR-18 | Vigente |
 | Cola | Pausa, detención | S: cancelar y reanudar tareas | UC nuevo | UC-14 | Propuesto (D-6) |
-| Consulta | Información y formatos antes de descargar | S: `fetchInfo`, `FormatPage.kt`; K: Analyze; Y: `-F`, `--dump-json` | UC nuevo | UC-15 | Propuesto |
-| Consulta | Elegir entradas de una playlist | S: `PlaylistSelectionPage.kt`; Y: `--playlist-items` | Flujo alternativo | UC-02 A6, UC-04 A8 | Propuesto |
+| Consulta | Información y formatos antes de descargar | S: `fetchInfo`, `FormatPage.kt`; K: Analyze; D: `fetch_info` y el «modo A» de su guía (primero metadatos, después descarga); Y: `-F`, `--dump-json` | UC nuevo | UC-15 | Propuesto |
+| Consulta | Elegir entradas de una playlist | S: `PlaylistSelectionPage.kt`; D: guía, §8 («solo 1–20», «5, 7, 9»); Y: `--playlist-items` | Flujo alternativo | UC-02 A6, UC-04 A8 | Propuesto |
 | Opciones | Recortar un tramo | S: recortes; K, Y: `--download-sections` | Flujo alternativo | UC-02 A8 | Propuesto, prioridad baja |
-| Opciones | Subtítulos, miniatura, metadatos, capítulos | S: `DownloadUtil.kt`; K: incrustar subtítulos, miniatura y capítulos | Pendiente de cualificación | UC-02 A7 | Pendiente |
-| Opciones | Extraer audio y convertirlo | S, K, Y: `FFmpegExtractAudio` | UC existente | UC-02 `--audio-only` | Vigente |
+| Opciones | Subtítulos, miniatura, metadatos, capítulos | S: `DownloadUtil.kt`; K: incrustar subtítulos, miniatura y capítulos; D: archivos al lado del video (`.info.json`, `.description`, miniatura, subtítulos por idioma, incluidos los automáticos), activados por omisión | Pendiente de cualificación | UC-02 A7 | Pendiente |
+| Opciones | Extraer audio y convertirlo | S, K, D, Y: `FFmpegExtractAudio` | UC existente | UC-02 `--audio-only` | Vigente |
+| Opciones | Calidad por preajuste (mejor, 1080p, 720p, 480p, 360p, solo audio) | D: `QualityOption` y `_build_format_string`; S y K: selector de calidad | Flujo alternativo | UC-02 A9 | Propuesto |
+| Opciones | Opciones por job sobre los valores globales | D: `DownloadCoordinator.add` | UC existente | UC-02: las download options se fijan al encolar | Vigente |
 | Opciones | Unir a otro contenedor (mkv) | S, K: remux | Elemento de configuración | `default_format_selector` y la plantilla; sin opción propia | Excluido de momento: sin necesidad del User |
 | Opciones | SponsorBlock, partir por capítulos, `parse-metadata` | S | Exclusión | §6.3 | Excluido |
 | Opciones | Plantillas de comandos personalizados | S: plantillas y su log | Exclusión | §6.3 | Excluido |
-| Archivos | Plantilla de salida y subcarpetas por playlist | S, K, Y | UC existente | UC-03 (plantilla determinista), carpeta de la playlist | Vigente |
+| Archivos | Plantilla de salida y subcarpetas por playlist | S, K, D (carpeta por playlist y por video, índice con tres cifras), Y | UC existente | UC-03 (plantilla determinista), carpeta de la playlist | Vigente |
 | Archivos | Nombres seguros y recortados | S: `restrict-filenames`; Y: `trim_file_name` | UC existente | `max_filename_length` | Vigente |
 | Archivos | Archivo de descargas (`--download-archive`) | S: `DOWNLOAD_ARCHIVE` | Decisión arquitectónica | ADR-0012: duplicados por media key | Excluido por ADR |
 | Archivos | Fecha del archivo | K: modificada, de subida o de creación; V: desactiva `updatetime` (#642) | Capacidad técnica | Y 2026.11.23 la desactiva por defecto | Vigente (sin cambio de fecha) |
 | Archivos | Comprobación previa del destino | V: `ingest_pipeline` (#1225) | Flujo alternativo | UC-01 A10; catálogo, §3 | Propuesto |
-| Archivos | Borrar el registro con su archivo | S: historial; V: `delete_batch_job` | Flujo alternativo | UC-10 A5 | Propuesto (D-11) |
+| Archivos | Borrar el registro con su archivo | S: historial; V: `delete_batch_job`; D: `delete_download` con vista previa y confirmación, pero borra la carpeta de salida entera con `shutil.rmtree` | Flujo alternativo | UC-10 A5 | Propuesto (D-11) |
 | Fallos | Taxonomía con indicación de si reintentar sirve | V: `core/failure.py` (`_HINTS`) | Requisito suplementario | SUP-U05; catálogo de condiciones | Propuesto |
 | Fallos | Antibots nunca se reintenta | V: `test_yt_bot_check_2034.py` | Regla | BR-01, BR-03 | Propuesto |
 | Fallos | Límite de peticiones y captcha | V no los reconoce; Y: `raise_no_formats(expected=True)` | Regla | BR-01 (los incluye) | Propuesto |
 | Fallos | Disco lleno por `errno` o `winerror` en toda la cadena | V: `is_disk_full_error` | Regla | BR-08 | Propuesto |
-| Fallos | Reintentos de red propios (2, a 2 y 4 s) | V: `yt_download_sync` | Capacidad técnica | BR-07: se delega en yt-dlp | Sustituido |
+| Fallos | Reintentos de red propios (2, a 2 y 4 s) | V y B: `yt_download_sync` | Capacidad técnica | BR-07: se delega en yt-dlp | Sustituido |
 | Fallos | Cambiar de cliente de YouTube ante 403 o DRM | V: `_YT_PLAYER_CLIENTS` | Exclusión | §6.3 | Excluido |
 | Fallos | Regresión con el texto literal reportado | V: pruebas con los dos apóstrofos | Capacidad de validación | SUP-V03 | Propuesto |
-| Red | Proxy (configurado o del sistema) | S, K: opción; V: `core/user_env.py`; Y: `getproxies()` si no se configura | Decisión | D-7; UC-01 A11 | Pendiente (Y ya usa el del sistema) |
-| Red | Cookies | S: perfiles por WebView; K: modos con detección por expresión; V: `cookies.txt` efímero (0600, ≤1 MB, borrado al terminar) | Decisión | D-1; BR-12 | Pendiente |
+| Red | Proxy (configurado o del sistema) | S, K, D: opción `proxy`; V y B: `core/user_env.py`; D, guía §2: recomienda el proxy del sistema y una salida estable, porque rotar la IP rompe sesiones y reanudaciones; Y: `getproxies()` si no se configura | Decisión | D-7; UC-01 A11 | Pendiente (Y ya usa el del sistema) |
+| Red | Cookies | S: perfiles por WebView; K: modos con detección por expresión; V y B: `cookies.txt` efímero (0600, ≤1 MB, borrado al terminar); D, guía §3 y §4: cuenta técnica separada, `cookies-from-browser`, misma IP para la sesión y la descarga, cookies tratadas como contraseñas | Decisión | D-1; BR-12 | Pendiente |
 | Red | Forzar IPv4, agente de usuario | S | Elemento de configuración | Sin necesidad del User | Excluido de momento |
-| Red | Límite de ancho de banda | S, K, Y: `ratelimit` | Requisito suplementario | SUP-P06 | Propuesto |
+| Red | Límite de ancho de banda | S, K, Y: `ratelimit`; D, guía §12: ante la limitación de velocidad del sitio | Requisito suplementario | SUP-P06 | Propuesto |
 | Red | Fragmentos concurrentes, aria2c | S, K | Exclusión | §6.3 | Excluido |
 | Red | No descargar en una red medida | S: `CELLULAR_DOWNLOAD`, `isActiveNetworkMetered` | Exclusión | §6.3 | Excluido |
-| Red | Ritmo de peticiones | Y: preajuste `-t sleep` | Regla | BR-02 | Propuesto (D-3) |
+| Red | Ritmo de peticiones | Y: preajuste `-t sleep`; D, guía §8 y §12: pausa entre entradas de una playlist y poca concurrencia | Regla | BR-02 | Propuesto (D-3) |
 | Herramientas | ffmpeg con SHA-256 | V: `acquire_bundled`; nosotros: `SOURCE.md` | UC existente | UC-01 A5 | Vigente |
 | Herramientas | ffmpeg propio o del sistema | V: `set_custom_path`, `use_system`; K: rutas | UC existente | UC-01 A4, `ffmpeg_path` | Vigente |
 | Herramientas | Actualizar yt-dlp desde el programa, y volver a la versión probada | S: canales y periodicidad (`UpdateUtil.kt`); V: capa desde PyPI y «Restore tested version»; K: comprobación diaria | UC candidato | D-8 frente a ADR-0002 | Pendiente |
-| Diagnóstico | Autodiagnóstico ok, aviso o fallo | V: `core/diagnose.py` | UC existente | UC-01 (`diagnose`), A9 a A11 | Vigente y propuesto |
+| Diagnóstico | Autodiagnóstico ok, aviso o fallo | V: `core/diagnose.py`; B: comprobaciones del asistente de instalación (`api/routers/setup/wizard.py`) | UC existente | UC-01 (`diagnose`), A9 a A11 | Vigente y propuesto |
 | Diagnóstico | Paquete de diagnóstico limpio de datos sensibles | V: `core/diagnostic_bundle.py`; S: informe de error | UC nuevo | UC-16, SUP-SEC01, SUP-O03 | Propuesto |
 | Diagnóstico | Modo detallado (`-v`) | S | Elemento de configuración | El log ya registra los mensajes de yt-dlp | Vigente |
 | Historial | Exportar e importar el historial; modo privado | S | Exclusión | §6.3 | Excluido |
@@ -245,13 +249,22 @@ Cada hallazgo se cualifica en una sola categoría y tiene un único destino en e
 | Validación | Separar a quien actúa de quien juzga | V: `tests/probe` («No LLM ever sits on the verdict path») | Capacidad de validación | VBR-04, SUP-V02 | Propuesto |
 | Directos | Transmisiones en directo | Y: `is_live`, `wait_for_video` | Excepción | UC-03 E1 | Sin cualificar (D-10) |
 | Integridad | Verificar el archivo final | F: `ffprobe`; ninguna referencia lo hace tras descargar | Regla | BR-23, UC-06 A11 | Propuesto (D-9) |
+| Integridad | Identificar los archivos de un job buscando la carpeta más reciente | D: `_find_newest_folder`, `_scan_folder` | Regla (evidencia en contra) | BR-17: un job solo reconoce los archivos que reclamó; buscar por fecha puede tomar archivos ajenos | Vigente |
+| Integridad | Una cancelación nunca se registra como descarga completada | D: tras `cancel`, `download` devuelve un resultado vacío y el coordinador marca el registro `done` | Regla (evidencia en contra) | UC-05 y el contrato de `JobCompleted` (UC-03 A8): sin archivo final, nunca `COMPLETED` | Vigente |
+| Consulta | Salida JSON de `list` y `show` | D: `history list --format json`, `--json` global | Flujo alternativo | UC-08 A5, UC-09 A5 | Propuesto |
+| Consulta | Buscar en la cola por título o URL | D: `search_downloads`; S: historial | Flujo alternativo | UC-08 A6 | Propuesto, prioridad baja |
+| Integración | Servidor MCP para agentes, lectura de transcripciones y descripciones | D: `infrastructure/mcp/`, 10 herramientas | Exclusión | §6.3 | Excluido |
+| Seguridad | Archivo de credenciales creado ya con permisos restringidos | B: `core/user_env.py` (`_opener_0600`) | Requisito suplementario | SUP-SEC03 | Propuesto (condicionado a D-1 y D-7) |
+| Archivos | Espacio libre de una carpeta que aún no existe | B: `disk_free_bytes` sube al antecesor existente | Flujo alternativo | UC-01 A10 | Propuesto |
+| Fallos | Volumen no confiable (`winerror` 448), bloqueo prolongado por sincronización | V y B: `WINDOWS_UNTRUSTED_MOUNT`, `VIDEO_DOWNLOAD_OS_ERROR` | Excepción | [Catálogo de condiciones](failure-conditions.md), §3 | Propuesto |
+| Validación | Pruebas sin red separadas de las comprobaciones reales, que siguen pendientes hasta ejecutarse | D: `smoke_*.py` frente a «opt-in real validation gates»; marca `e2e` | Capacidad de validación | Clasificación de las pruebas ([plan de E2, §8.2](../project-management/iteration-plan-e2.md#82-clasificación-de-las-pruebas-2026-11-26-main-tras-la-actualización-de-yt-dlp)), VBR-02 | Vigente |
 
 ### 6.2 Lo que tenemos y las referencias no
 
-- Una cola persistente que reanuda desde los parciales tras un cierre (S y V marcan los trabajos como cancelados o fallidos).
-- Playlists y canales con extracción plana y duplicados por media key (V no admite playlists).
+- Una cola persistente que reanuda desde los parciales tras un cierre (S, V y B marcan los trabajos como cancelados o fallidos; D los pierde).
+- Playlists y canales con extracción plana y duplicados por media key (V y B no admiten playlists; D descarga una playlist entera como un solo trabajo).
 - Propiedad de los nombres finales con reclamaciones (ADR-0030).
-- yt-dlp fijado con pruebas de contrato, y deno con yt-dlp-ejs incluidos (V usa `ejs:github` sin declarar un runtime de JavaScript).
+- yt-dlp fijado con pruebas de contrato, y deno con yt-dlp-ejs incluidos (V y B usan `ejs:github` sin declarar un runtime de JavaScript; D no declara ninguno).
 - El límite de peticiones y el captcha reconocidos como restricción del sitio (propuesto).
 
 ### 6.3 Exclusiones
@@ -267,7 +280,11 @@ Cada hallazgo se cualifica en una sola categoría y tiene un único destino en e
 | Exportar e importar el historial; modo privado | La cola no es un historial; `purge` ya lo limpia |
 | Búsqueda en YouTube y recortes de voz (V) | Fuera del dominio |
 | Caché por hash del contenido (V) | Los duplicados se resuelven por media key (BR-13) |
-| Red privada bloqueada (V) | El programa es local; el User escribe sus propias URLs |
+| Red privada bloqueada (V, B) | El programa es local; el User escribe sus propias URLs |
+| Servidor MCP y herramientas para agentes (D) | Otra interfaz con su propio contrato y su propia superficie de seguridad; la salida JSON (UC-08 A5, UC-09 A5) cubre la automatización desde scripts. Se reconsidera con la interfaz gráfica futura |
+| Leer transcripciones y descripciones descargadas (D) | Son archivos del User en su carpeta; el producto los descarga (UC-02 A7, pendiente), no los interpreta |
+| Navegador automatizado para iniciar sesión (D, guía §4: Playwright) | Una dependencia grande para obtener cookies; depende de D-1 |
+| Interfaz gráfica, temas visuales (D, S, K) | Fuera del alcance inicial ([ADR-0001](../notes/adr-0001-project-scope.md)) |
 
 ## 7. Continuidad, reintentos y recuperación
 
@@ -289,7 +306,7 @@ La línea de comandos de yt-dlp fija valores que la librería no fija. Como el p
 | `continuedl` | Activo | Activo | Activo | Activo |
 | `updatetime` | Inactivo (`--no-mtime`) | Inactivo | No se pasa | Inactivo |
 
-Evidencia en la campaña T42: el job 11 falló con `[download] Got error` sin «Giving up after»; con la línea de comandos habría reintentado hasta 10 veces.
+Las referencias que usan la librería pasan los reintentos de forma explícita: V y B, 10 y 10; D, 5 y 5. Evidencia en la campaña T42: el job 11 falló con `[download] Got error` sin «Giving up after»; con la línea de comandos habría reintentado hasta 10 veces.
 
 ### 7.2 Responsabilidades
 
@@ -326,8 +343,8 @@ Ninguna referencia espera un plazo largo: Seal y VoiceStudio fallan el trabajo e
 | Prioridad | Elementos |
 |---|---|
 | **Alta** | UC-11, BR-07 (paridad de reintentos), VUC-04, VUC-05 |
-| **Media** | UC-06 A11, UC-15, UC-02 A6, SUP-R08, SUP-U05, VUC-06 a VUC-08 |
-| **Baja** | UC-14, UC-16, UC-02 A5 y A8, UC-10 A5, SUP-P06 |
+| **Media** | UC-06 A11, UC-15, UC-02 A6 y A9, UC-08 A5, UC-09 A5, SUP-R08, SUP-U05, VUC-06 a VUC-08 |
+| **Baja** | UC-14, UC-16, UC-02 A5 y A8, UC-08 A6, UC-10 A5, SUP-P06 |
 | **Pendiente de cualificación** | UC-02 A7, el candidato «Actualizar yt-dlp» (D-8) |
 
 ### 8.3 Verificación de los requisitos (7.2)
@@ -349,9 +366,9 @@ Ninguna está aprobada. La recomendación es la del analista; decide el Responsa
 
 - **Contexto y necesidad:** un contenido que pide una cuenta, o una restricción del sitio que persiste, solo se resuelven con una sesión iniciada.
 - **Alternativas:** (a) sin cookies; (b) `cookies.txt` explícito y efímero (V); (c) cookies del navegador (`--cookies-from-browser`); (d) cookies solo cuando el error lo pide (K: modos WhenNeeded, Ask, Always, Never).
-- **Evidencia:** la wiki de yt-dlp avisa de que la cuenta puede ser bloqueada; ADR-0004 dejó sin verificar las cookies de Chrome en Windows; V las borra tras cada uso.
+- **Evidencia:** la wiki de yt-dlp avisa de que la cuenta puede ser bloqueada; ADR-0004 dejó sin verificar las cookies de Chrome en Windows; V y B las borran tras cada uso; D recomienda una cuenta técnica separada y la misma IP para la sesión y la descarga.
 - **A favor de (b):** acceso legítimo controlado por el User, sin leer el navegador. **En contra:** el User debe exportarlas; riesgo para su cuenta.
-- **Restricciones y riesgos:** BR-12; R-27 (fuga de credenciales).
+- **Restricciones y riesgos:** BR-12; R-27 (fuga de credenciales); SUP-SEC01 y SUP-SEC03.
 - **Impacto:** funcional, UC-02 y UC-11 E2; arquitectónico, credenciales en la configuración y SUP-SEC01.
 - **Recomendación:** (a) mientras la restricción no se repita con el ritmo de BR-02; si se adoptan, (b).
 
@@ -428,13 +445,15 @@ Ninguna está aprobada. La recomendación es la del analista; decide el Responsa
 ### D-11. Purgar y borrar los archivos propios
 
 - **Alternativas:** (a) `purge` nunca borra archivos (vigente); (b) una opción que borra solo los propios, con confirmación.
-- **Evidencia:** S y V borran el registro con su archivo; las reclamaciones permiten saber cuáles son propios.
+- **Evidencia:** S y V borran el registro con su archivo; D muestra una vista previa y pide confirmación, pero borra la carpeta entera (con una playlist, todas sus entradas); las reclamaciones permiten saber cuáles son propios.
 - **Riesgo:** borrar un archivo que el User quería; se mitiga con la confirmación y BR-17.
 - **Recomendación:** (b), prioridad baja.
 
 ## 10. Limitaciones del análisis
 
 - Kannagi no tiene versión ni historial: sus hallazgos no se pueden fechar.
+- YTDownload-2026 no declara licencia: solo aporta ideas, y su guía está en ruso (se tradujo para el análisis).
+- VoiceBlueprintPro se analizó por diferencias con VoiceStudio; los archivos idénticos o solo renombrados no aportan hallazgos propios.
 - El checkout de FFmpeg es parcial: los contratos se comprobaron con los binarios incluidos, no con su código.
 - Ningún hallazgo de comportamiento se ejecutó contra un sitio real: la campaña está en pausa por la restricción de YouTube.
 - Los parámetros pendientes (§3 del catálogo de reglas) no tienen evidencia; no se proponen valores.
@@ -460,12 +479,13 @@ Ninguna tarea empieza hasta que el Responsable apruebe las decisiones de las que
 | T63 | Indicación de si reintentar sirve (SUP-U05) | Media | — |
 | T64 | Informe de diagnóstico (UC-16) con limpieza de datos sensibles (SUP-SEC01) | Baja | T61 |
 | T65 | Directos (UC-03 E1) y purgar con archivos (UC-10 A5) | Baja | D-10, D-11 |
+| T66 | Preajustes de calidad (UC-02 A9), salida JSON y búsqueda (UC-08 A5 y A6, UC-09 A5) | Media | — |
 
 ## Fuentes
 
 - IIBA, *A Guide to the Business Analysis Body of Knowledge (BABOK Guide)* v3, copia entregada por el Responsable: capítulos 6, 7 y 10.
 - Wiki de yt-dlp, *Extractors* y *PO-Token-Guide*: texto entregado por el Responsable el 2026-11-26.
 - yt-dlp 2026.11.23: `yt_dlp/options.py`, `yt_dlp/__init__.py`, `yt_dlp/YoutubeDL.py`, `yt_dlp/utils/_utils.py` (`RetryManager`), `yt_dlp/networking/`, `yt_dlp/extractor/youtube/_video.py` y `_base.py`, `yt_dlp/extractor/common.py` (`raise_no_formats`).
-- Seal `5a4f5fb`, VoiceStudio `d9061408`, Kannagi (`upstream/source/yt-dlp-gui-kannagi`), FFmpeg `329157f5` y n9.0.2-39: rutas en §5.1 y §6.1.
+- Seal `5a4f5fb`, VoiceStudio `d9061408`, VoiceBlueprintPro `e9a2a63`, YTDownload-2026 `0abda8e`, Kannagi (`upstream/source/yt-dlp-gui-kannagi`), FFmpeg `329157f5` y n9.0.2-39: rutas en §5.1 y §6.1.
 - Consolas y evidencia de la ejecución `20261125-222227-ddffe96cb470` ([registro de la campaña](../project-management/t42-results.md)).
 - Historial: el análisis detallado de VoiceStudio (flujos, actores y trazabilidad) se publicó en `doc/requirements/benchmarking/voicestudio-use-cases.md` (commit `14bd247`) y se integró aquí y en los artefactos canónicos; el archivo se retiró en esta versión.

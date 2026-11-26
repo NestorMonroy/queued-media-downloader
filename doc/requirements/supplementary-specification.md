@@ -71,6 +71,7 @@ Requisitos que no pertenecen a un caso de uso concreto, organizados según FURPS
 |---|---|---|
 | SUP-SEC01 | **Propuesto** (condicionado a D-1 y D-7): ningún valor de una credencial configurada (cookies, contraseña de un proxy) aparece en el log, en `diagnose`, en un informe (UC-16) ni en la evidencia de validación. Criterio: prueba con valores trampa que busca el valor en cada salida | VoiceStudio (limpieza del informe de diagnóstico); [análisis](requirements-analysis.md), §6 |
 | SUP-SEC02 | **Propuesto:** el informe de diagnóstico y la evidencia nunca incluyen archivos multimedia | UC-16; campaña T42 (el empaquetado manual sin videos) |
+| SUP-SEC03 | **Propuesto** (condicionado a D-1 y D-7): un archivo que guarde credenciales (cookies, proxy con contraseña) se crea ya restringido al usuario actual, sin un intervalo en que otros puedan leerlo. Criterio: prueba que crea el archivo y comprueba sus permisos (en Windows, su ACL) | VoiceBlueprintPro (`core/user_env.py`, creación con permisos 0600) |
 
 ## Observabilidad
 

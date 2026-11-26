@@ -1,7 +1,7 @@
 # Catálogo de condiciones de fallo
 
 - **Fase RUP:** Elaboración (consolidación de requisitos)
-- **Versión:** 1.0 (2026-11-26)
+- **Versión:** 1.1 (2026-11-26; añade las condiciones encontradas en YTDownload-2026 y VoiceBlueprintPro)
 - **Responsabilidad:** autoridad única sobre qué condiciones impiden o interrumpen una descarga, a qué alcanzan y qué garantiza el producto ante cada una. Los casos de uso enlazan aquí en lugar de repetirlo: UC-03 A2, UC-06, UC-11 y UC-15 E2.
 - **Técnicas (BABOK v3):** 10.40 Root Cause Analysis, 10.44 State Modelling, 10.16 Decision Modelling, 10.1 Acceptance and Evaluation Criteria
 - **Mecanismos actuales:**
@@ -60,6 +60,8 @@ El motivo del job lo asigna `failure_classifier` con la causa más interna de la
 | Disco lleno o cuota agotada | `ENOSPC`, `EDQUOT`, `winerror` 112 o 39, o el mensaje de ffmpeg ([BR-08](business-rules.md)) | Unidad · persistente hasta liberar espacio | `FAILED` `FILESYSTEM` y los jobs siguientes también | *(P)* UC-11 A3; el mensaje nombra la unidad y el espacio libre |
 | Permiso denegado, carpeta inexistente, unidad desconectada | `EACCES`, `ENOENT`, `winerror` 5 o 3 | Unidad o cola · persistente | `FAILED` `FILESYSTEM` | *(P)* Comprobar el destino antes de enviar el job (VoiceStudio, #1225); el mensaje nombra la carpeta y dice que reintentar no sirve |
 | Archivo bloqueado un instante (antivirus, indexador) | `winerror` 32 o 33 | Job · transitoria | `file_access_retries` = 10 de yt-dlp | Igual |
+| Archivo bloqueado por más tiempo (cliente de sincronización como OneDrive, antivirus con análisis largo) | `winerror` 32 o 33 tras agotar `file_access_retries` | Unidad · persistente mientras dure el bloqueo | `FAILED` `FILESYSTEM` | *(P)* El mensaje nombra la carpeta y sugiere excluirla de la sincronización o del antivirus; reintentar sin cambiar nada no sirve (SUP-U05). Origen: VoiceStudio y VoiceBlueprintPro (`VIDEO_DOWNLOAD_OS_ERROR`) |
+| Punto de montaje no confiable en la ruta (Dev Drive, VHD montado, unión a otro perfil) | `winerror` 448 | Unidad · persistente | **Sin cualificar**: `FAILED` `FILESYSTEM` | *(P)* El mensaje nombra la carpeta y dice que es una regla de Windows sobre el volumen; `diagnose` lo detecta en las carpetas configuradas (UC-01 A10). Origen: VoiceStudio y VoiceBlueprintPro (`WINDOWS_UNTRUSTED_MOUNT`) |
 | Nombre final de otro job o archivo que el job no escribió | Reclamación ajena o archivo existente (ADR-0030) | Job · persistente | `FAILED` `FILESYSTEM` sin tocar el archivo (UC-03 A7) | Igual |
 | Descarga sin un archivo final utilizable | Sin ruta, vacío o dentro de la carpeta de parciales | Job · definitiva | `FAILED` `FILESYSTEM`, parciales conservados (UC-03 A8) | Igual |
 | Ruta demasiado larga | Más de 260 caracteres en Windows | Job · persistente | Recorte con `trim_file_name` (`max_filename_length` = 150) | Igual; pruebas `windows` (campaña, paso 11) |

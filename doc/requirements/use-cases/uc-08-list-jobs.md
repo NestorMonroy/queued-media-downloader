@@ -26,6 +26,8 @@ El User consulta los jobs de la cola, opcionalmente filtrados por estado o por p
 - **A2. `--parent`** (paso 2): solo los hijos directos de esa expansión.
 - **A3. `run` escribe a la vez en otra terminal** (paso 2): la lectura funciona (SQLite en modo WAL) y refleja el último estado confirmado.
 - **A4. Jobs aplazados o cola en pausa** (propuesto, UC-11 y UC-14): la línea de un job aplazado añade la condición externa y, si la hay, la hora de continuación, por ejemplo `(deferred: site restriction until 00:47)`. Si la cola está en pausa o una condición afecta a toda la cola, la lista empieza con una línea que lo dice.
+- **A5. Salida para otros programas** (paso 3; propuesto, prioridad media): `list --json` escribe un documento JSON con los mismos campos, en lugar de la tabla, para scripts y automatizaciones. Origen: `history list --format json` de YTDownload-2026.
+- **A6. Buscar por texto** (paso 2; propuesto, prioridad baja): `list --search TEXTO` muestra solo los jobs cuyo título o URL contienen el texto. Origen: la búsqueda del historial de YTDownload-2026 y de Seal.
 
 ## Excepciones
 

@@ -118,14 +118,14 @@ UC-03 y UC-04 los inicia el User con `run`; se ejecutan dentro de la cola y se c
 | ID | Caso de uso | Comando | Arquitectura | Estado | Especificación |
 |---|---|---|---|---|---|
 | UC-01 | Instalar y verificar el entorno | `uv sync`, `diagnose` | **Sí:** uv, ffmpeg incluido, Git LFS, deno, Windows | Implementado; A9 a A11 propuestos | [Completa](use-cases/uc-01-install-and-verify-environment.md) |
-| UC-02 | Encolar contenido | `enqueue` | **Sí:** entrada a la cola, SQLite, varios procesos | Implementado; A5, A6 y A8 propuestos, A7 pendiente de cualificación | [Completa](use-cases/uc-02-enqueue-media.md) |
+| UC-02 | Encolar contenido | `enqueue` | **Sí:** entrada a la cola, SQLite, varios procesos | Implementado; A5, A6, A8 y A9 propuestos, A7 pendiente de cualificación | [Completa](use-cases/uc-02-enqueue-media.md) |
 | UC-03 | Descargar un contenido | `run` | **Sí:** recorre toda la arquitectura | Implementado; A11 a A14 propuestos; A15 divergente; E1 sin cualificar | [Completa](use-cases/uc-03-download-single-media.md) |
 | UC-04 | Expandir una playlist | `run` | **Sí:** iteración perezosa, duplicados, jobs hijos | Implementado; A6 parcial; A8 propuesto | [Completa](use-cases/uc-04-expand-playlist.md) |
 | UC-05 | Cancelar un job | `cancel` | **Sí:** cancelación cooperativa y forzada, árbol de procesos | Implementado | [Completa](use-cases/uc-05-cancel-job.md) |
 | UC-06 | Recuperar la cola y reanudar descargas | `run` | **Sí:** recuperación, `.part`, `selected_format_id` | Implementado; A4 parcial (R-25); A10 y A11 propuestos | [Completa](use-cases/uc-06-recover-and-resume-queue.md) |
 | UC-07 | Reintentar un job | `retry` | No | Implementado | [Completa](use-cases/uc-07-retry-job.md) |
-| UC-08 | Listar jobs | `list` | No | Implementado; A4 propuesto | [Completa](use-cases/uc-08-list-jobs.md) |
-| UC-09 | Ver un job | `show` | No | Implementado; A2 parcial; A4 propuesto | [Completa](use-cases/uc-09-show-job.md) |
+| UC-08 | Listar jobs | `list` | No | Implementado; A4 a A6 propuestos | [Completa](use-cases/uc-08-list-jobs.md) |
+| UC-09 | Ver un job | `show` | No | Implementado; A2 parcial; A4 y A5 propuestos | [Completa](use-cases/uc-09-show-job.md) |
 | UC-10 | Purgar jobs terminados | `purge` | No | Implementado; A5 propuesto | [Completa](use-cases/uc-10-purge-finished-jobs.md) |
 | UC-11 | Preservar los jobs ante condiciones externas | `run` | **Sí:** `JobDeferred`, control de admisión | Propuesto; política pendiente (D-2) | [Completa](use-cases/uc-11-preserve-jobs-under-external-conditions.md) |
 | UC-12 | — | — | — | **Retirado** (2026-11-26): consolidado en UC-11 A2; el id no se reutiliza | — |
@@ -154,33 +154,33 @@ Las capacidades de las referencias que no entran en el alcance, con su motivo, e
 
 ## 5. Matriz de completitud
 
-Conteo del 2026-11-26 sobre las especificaciones. Un flujo es **vigente** si está implementado y lo cubren las pruebas automáticas de `main`; **parcial** si lo está con una brecha documentada; **propuesto** si no está implementado; **divergente** si el comportamiento real contradice el requisito; **pendiente** si falta cualificarlo.
+Conteo del 2026-11-26 sobre las especificaciones, tras integrar YTDownload-2026 y VoiceBlueprintPro. Un flujo es **vigente** si está implementado y lo cubren las pruebas automáticas de `main`; **parcial** si lo está con una brecha documentada; **propuesto** si no está implementado; **divergente** si el comportamiento real contradice el requisito; **pendiente** si falta cualificarlo.
 
 | UC | Alternativos | Excepciones | Vigentes | Parciales | Propuestos | Divergentes | Pendientes | Reglas | Suplementarios | Criterios | Necesita Windows |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | UC-01 | 11 | 0 | 8 | 0 | 3 | 0 | 0 | 2 | 7 | 3 | Sí |
-| UC-02 | 8 | 0 | 4 | 0 | 3 | 0 | 1 | 1 | 3 | 3 | No |
+| UC-02 | 9 | 0 | 4 | 0 | 4 | 0 | 1 | 1 | 3 | 3 | No |
 | UC-03 | 15 | 2 | 11 | 0 | 4 | 1 | 1 | 8 | 9 | 4 | Sí |
 | UC-04 | 8 | 0 | 6 | 1 | 1 | 0 | 0 | 2 | 2 | 3 | No |
 | UC-05 | 8 | 3 | 11 | 0 | 0 | 0 | 0 | 2 | 2 | 4 | Sí |
 | UC-06 | 11 | 0 | 8 | 1 | 2 | 0 | 0 | 6 | 3 | 4 | Sí |
 | UC-07 | 7 | 3 | 10 | 0 | 0 | 0 | 0 | 4 | 2 | 3 | Sí |
-| UC-08 | 4 | 3 | 6 | 0 | 1 | 0 | 0 | 0 | 2 | 2 | Sí |
-| UC-09 | 4 | 2 | 4 | 1 | 1 | 0 | 0 | 1 | 3 | 2 | Sí |
+| UC-08 | 6 | 3 | 6 | 0 | 3 | 0 | 0 | 0 | 2 | 2 | Sí |
+| UC-09 | 5 | 2 | 4 | 1 | 2 | 0 | 0 | 1 | 3 | 2 | Sí |
 | UC-10 | 5 | 2 | 6 | 0 | 1 | 0 | 0 | 2 | 1 | 3 | Sí |
 | UC-11 | 9 | 4 | 0 | 0 | 13 | 0 | 0 | 10 | 8 | 5 | Sí |
 | UC-14 | 6 | 1 | 0 | 0 | 7 | 0 | 0 | 2 | 2 | 4 | Sí |
 | UC-15 | 4 | 3 | 0 | 0 | 7 | 0 | 0 | 3 | 3 | 3 | Sí |
 | UC-16 | 2 | 1 | 0 | 0 | 3 | 0 | 0 | 0 | 3 | 3 | No |
-| **Total** | **102** | **24** | **74** | **3** | **46** | **1** | **2** | — | — | **46** | **11 de 14** |
+| **Total** | **106** | **24** | **74** | **3** | **50** | **1** | **2** | — | — | **46** | **11 de 14** |
 
 Las columnas Reglas y Suplementarios cuentan los identificadores distintos que enlaza cada caso de uso; un mismo requisito puede estar en varios.
 
 **Resumen:**
 - **Casos de uso:** 14 vigentes en el modelo (10 implementados y 4 propuestos), 2 retirados y 1 candidato.
-- **Escenarios:** 14 básicos, 102 alternativos y 24 de excepción.
+- **Escenarios:** 14 básicos, 106 alternativos y 24 de excepción.
 - **Reglas de negocio:** 24 (10 vigentes y 14 propuestas), más 4 de la validación ([catálogo](business-rules.md)).
-- **Requisitos suplementarios:** 46: 28 vigentes, 1 parcial, 14 propuestos, 1 divergente (SUP-R11) y 2 pendientes de medición (SUP-P04, SUP-P07) ([especificación](supplementary-specification.md)).
+- **Requisitos suplementarios:** 47: 28 vigentes, 1 parcial, 15 propuestos, 1 divergente (SUP-R11) y 2 pendientes de medición (SUP-P04, SUP-P07) ([especificación](supplementary-specification.md)).
 - **Verificación:** los flujos vigentes pasan las pruebas automáticas de `main`. Las correcciones T42-D7 a D12 esperan su confirmación en Windows, en una campaña futura ([plan de E2, §8](../project-management/iteration-plan-e2.md#8-matriz-de-casos-de-uso-implementación-y-validación)).
 
 ---

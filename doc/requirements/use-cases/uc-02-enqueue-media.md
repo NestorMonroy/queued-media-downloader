@@ -33,6 +33,7 @@ El User añade una o varias URLs a la cola, con sus download options. El sistema
 - **A6. Seleccionar entradas de una playlist** (paso 1; propuesto, prioridad media): `--playlist-items 1-5,8` guarda la selección en las download options; la expansión solo crea esas entradas (UC-04 A8). Origen: la selección de entradas de Seal y la opción `--playlist-items` de yt-dlp. La consulta previa (UC-15) muestra las entradas.
 - **A7. Opciones adicionales de descarga** (paso 1; **pendiente de cualificación**): subtítulos, miniatura incrustada, metadatos y capítulos. Seal, Kannagi y yt-dlp las ofrecen; su alcance se decide en el [análisis, §6](../requirements-analysis.md#6-hallazgos-de-las-referencias-y-su-incorporación).
 - **A8. Rango de tiempo** (paso 1; propuesto, prioridad baja): `--section 00:01:00-00:02:30` descarga solo ese tramo, con `download_ranges` de yt-dlp. Origen: los recortes de Seal y la opción `--download-sections` de Kannagi y yt-dlp.
+- **A9. Calidad por preajuste** (paso 1; propuesto, prioridad media): `--quality 1080p` (también `720p`, `480p`, `360p` o `best`) se traduce a un format selector que limita la altura del video y une el mejor audio, sin que el User escriba la sintaxis de yt-dlp. `--format` sigue disponible y tiene prioridad. Origen: los preajustes de calidad de YTDownload-2026, Seal y Kannagi.
 
 ## Postcondiciones
 

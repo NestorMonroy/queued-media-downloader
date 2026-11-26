@@ -26,6 +26,7 @@ El User consulta todos los datos de un job; si es una playlist, también el resu
 - **A2. Job fallido** (paso 3): añade la failure reason y su mensaje. Propuesto (SUP-U05): indica también si reintentar puede servir y qué acción lo resuelve.
 - **A3. Playlist** (paso 3): añade el número de hijos por estado.
 - **A4. Job aplazado** (propuesto, UC-11 y UC-14): añade el sitio, la condición externa, la hora de continuación si la hay y el número de aplazamientos seguidos, o que la cola está en pausa.
+- **A5. Salida para otros programas** (paso 3; propuesto, prioridad media): `show ID --json`, como UC-08 A5.
 
 ## Excepciones
 

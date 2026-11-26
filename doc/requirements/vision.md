@@ -47,6 +47,8 @@
 | Reintentar, listar, ver y purgar jobs | [Modelo de casos de uso](use-case-model.md) |
 | Preservar los jobs ante una restricción del sitio, un corte de conectividad o falta de espacio (propuesto) | [UC-11](use-cases/uc-11-preserve-jobs-under-external-conditions.md) |
 | Pausar, continuar o detener de forma ordenada la cola desde cualquier terminal (propuesto) | [UC-14](use-cases/uc-14-control-queue-execution.md) |
+| Elegir la calidad con un preajuste (`1080p`, `720p`…) sin escribir un format selector (propuesto) | [UC-02](use-cases/uc-02-enqueue-media.md) A9 |
+| Consultar la cola desde scripts con salida JSON (propuesto) | [UC-08](use-cases/uc-08-list-jobs.md) A5, [UC-09](use-cases/uc-09-show-job.md) A5 |
 | Consultar formatos y entradas de una URL antes de encolarla (propuesto) | [UC-15](use-cases/uc-15-inspect-media-before-enqueueing.md) |
 | Preparar un informe de diagnóstico para reportar un problema (propuesto) | [UC-16](use-cases/uc-16-prepare-a-diagnostic-report.md) |
 
@@ -65,6 +67,7 @@
 - Publicación en PyPI.
 - Recodificar video (la build LGPL no incluye codificadores H.264/H.265).
 - PO Tokens y cualquier mecanismo para evadir los controles de un sitio (decisión del Responsable, 2026-11-26). Cookies y proxy, solo como acceso legítimo: decisiones D-1 y D-7 del [análisis](requirements-analysis.md#9-decisiones-pendientes).
+- Servidor MCP o herramientas para agentes de IA (la salida JSON cubre la automatización).
 - Edición del contenido (SponsorBlock, partir por capítulos), comandos personalizados de yt-dlp y descargas con aria2c: [análisis, §6.3](requirements-analysis.md#63-exclusiones).
 
 ## 7. Criterios de éxito
