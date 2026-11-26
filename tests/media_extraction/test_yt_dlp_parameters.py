@@ -25,6 +25,7 @@ DOWNLOAD_OPTIONS = DownloadOptions(
 )
 MEDIA_SOURCE_SETTINGS = MediaSourceSettings(
     cache_directory=Path("state/yt-dlp-cache"),
+    output_claims_directory=Path("state/output-claims"),
     ffmpeg_location=Path("vendor/ffmpeg/bin"),
     max_filename_length=150,
     progress_interval_seconds=0.5,
@@ -51,6 +52,7 @@ def test_parameters_carry_the_job_options_and_the_fixed_values() -> None:
 def test_ffmpeg_location_is_omitted_when_unknown() -> None:
     settings_without_ffmpeg = MediaSourceSettings(
         cache_directory=Path("cache"),
+        output_claims_directory=Path("output-claims"),
         ffmpeg_location=None,
         max_filename_length=150,
         progress_interval_seconds=0.5,

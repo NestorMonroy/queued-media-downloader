@@ -1,7 +1,9 @@
 """Caso de uso UC-10: borrar de la cola los jobs terminados.
 
-Los archivos descargados no se tocan. Sí se borra la carpeta de parciales de
-cada job purgado: los ids no se reutilizan (T44), así que nadie más la borraría.
+Los archivos descargados no se tocan. Sí se borran la carpeta de parciales de
+cada job purgado (los ids no se reutilizan, T44, así que nadie más la borraría)
+y sus reclamaciones de nombres finales (R-14): el archivo sigue protegido,
+porque un job nuevo no lo toma como suyo si no lo escribió él.
 """
 
 from collections.abc import Collection, Iterator
@@ -9,7 +11,10 @@ from dataclasses import dataclass
 
 from queued_media_downloader.job_storage import JobStore
 from queued_media_downloader.jobs import Job, JobId, JobKind, JobStatus
-from queued_media_downloader.media_extraction import remove_partial_directory
+from queued_media_downloader.media_extraction import (
+    OutputClaims,
+    remove_partial_directory,
+)
 
 PURGEABLE_STATUSES = frozenset({JobStatus.COMPLETED, JobStatus.CANCELLED})
 
@@ -26,9 +31,10 @@ class PurgeResult:
 class PurgeFinishedJobs:
     """Borra los jobs COMPLETED y/o CANCELLED, y las playlists ya sin trabajo."""
 
-    def __init__(self, job_store: JobStore) -> None:
-        """Lee y borra en job_store."""
+    def __init__(self, job_store: JobStore, output_claims: OutputClaims) -> None:
+        """Lee y borra en job_store; suelta las reclamaciones en output_claims."""
         self._job_store = job_store
+        self._output_claims = output_claims
 
     def execute(self, statuses: Collection[JobStatus]) -> PurgeResult:
         """Borra los jobs en esos estados (COMPLETED, CANCELLED o ambos).
@@ -54,9 +60,11 @@ class PurgeFinishedJobs:
             for removed in (job, *descendants):
                 if removed.job_id is not None:
                     deleted[removed.job_id] = removed
-        # Primero los parciales: si algo falla después, el job aún existe.
-        for removed in deleted.values():
+        # Primero los parciales y las reclamaciones: si algo falla después, el
+        # job aún existe y se puede volver a purgar.
+        for job_id, removed in deleted.items():
             remove_partial_directory(removed.partial_directory())
+            self._output_claims.release_all_of(int(job_id))
         self._job_store.delete(list(deleted))
         return PurgeResult(
             deleted_job_count=len(deleted), kept_playlists=kept_playlists

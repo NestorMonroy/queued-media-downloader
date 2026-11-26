@@ -130,6 +130,7 @@ def test_real_download_stops_at_its_next_progress_and_keeps_its_partial_file(
 ) -> None:
     settings = MediaSourceSettings(
         cache_directory=tmp_path / "cache",
+        output_claims_directory=tmp_path / "output-claims",
         ffmpeg_location=None,
         max_filename_length=150,
         progress_interval_seconds=0.2,

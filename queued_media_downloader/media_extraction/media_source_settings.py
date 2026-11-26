@@ -13,6 +13,8 @@ class MediaSourceSettings:
     """
 
     cache_directory: Path
+    # Reclamaciones de nombres finales (output_claims, R-14): una por cola.
+    output_claims_directory: Path
     ffmpeg_location: Path | None
     max_filename_length: int
     progress_interval_seconds: float

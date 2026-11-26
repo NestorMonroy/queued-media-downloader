@@ -15,6 +15,7 @@ from queued_media_downloader.media_extraction.media_source import (
 from queued_media_downloader.media_extraction.media_source_settings import (
     MediaSourceSettings,
 )
+from queued_media_downloader.media_extraction.output_claims import OutputClaims
 from queued_media_downloader.media_extraction.partial_files import (
     remove_partial_directory,
 )
@@ -24,6 +25,7 @@ __all__ = [
     "JobCancelledError",
     "MediaSource",
     "MediaSourceSettings",
+    "OutputClaims",
     "Publish",
     "remove_partial_directory",
 ]

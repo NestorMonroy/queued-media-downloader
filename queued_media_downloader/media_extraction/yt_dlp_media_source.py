@@ -24,6 +24,7 @@ from queued_media_downloader.media_extraction.media_source import (
 from queued_media_downloader.media_extraction.media_source_settings import (
     MediaSourceSettings,
 )
+from queued_media_downloader.media_extraction.output_claims import OutputClaims
 from queued_media_downloader.media_extraction.partial_files import (
     remove_partial_directory,
 )
@@ -34,6 +35,7 @@ from queued_media_downloader.media_extraction.progress_event_translator import (
 from queued_media_downloader.media_extraction.recording_postprocessors import (
     RECORDING_POSTPROCESSOR_NAMES,
     FinalPathRecorder,
+    OutputOwnershipGuard,
     SelectedFormatRecorder,
 )
 from queued_media_downloader.media_extraction.yt_dlp_expansion import expand_url
@@ -54,6 +56,9 @@ class YtDlpMediaSource:
     def __init__(self, media_source_settings: MediaSourceSettings) -> None:
         """Guarda la configuración común a todos los jobs."""
         self._media_source_settings = media_source_settings
+        self._output_claims = OutputClaims(
+            media_source_settings.output_claims_directory
+        )
 
     def expand(self, job: Job, publish: Publish) -> None:
         """Extrae la URL sin procesarla ni descargarla y publica qué encontró.
@@ -81,20 +86,37 @@ class YtDlpMediaSource:
     def download(self, job: Job, publish: Publish) -> None:
         """Descarga el contenido y publica el formato, el avance y el resultado.
 
-        Los parciales van a la carpeta propia del job (T44). Al reanudar se pide
-        el formato del primer intento, para que su .part siga siendo válido
-        (ADR-0010); si el sitio ya no lo ofrece, se reintenta una sola vez con el
-        format selector original (UC-06, A1). Solo se publica JobCompleted si la
-        descarga y el postprocesado terminaron (_unfinished_download_failure);
-        entonces se borra la carpeta de parciales, con lo que haya dejado
-        cualquier intento anterior.
+        Antes de descargar, el job reclama su nombre final (OutputOwnershipGuard,
+        R-14): si es de otro job o de un archivo que no es suyo, falla sin
+        tocarlo. Los parciales van a la carpeta propia del job (T44). Al
+        reanudar se pide el formato del primer intento, para que su .part siga
+        siendo válido (ADR-0010); si el sitio ya no lo ofrece, se reintenta una
+        sola vez con el format selector original (UC-06, A1). Solo se publica
+        JobCompleted si la descarga y el postprocesado terminaron
+        (_unfinished_download_failure); entonces se borra la carpeta de
+        parciales, con lo que haya dejado cualquier intento anterior. Si el job
+        falla o se cancela sin dejar su archivo final, suelta la reclamación.
         """
+        if job.job_id is None:
+            message = "Only a stored job can be downloaded"
+            raise ValueError(message)
+        guard = OutputOwnershipGuard(self._output_claims, int(job.job_id))
+        completed = False
+        try:
+            completed = self._download_owned(job, _cancellable(publish), guard)
+        finally:
+            if not completed and guard.claim is not None:
+                self._output_claims.release_unless_file_kept(guard.claim)
+
+    def _download_owned(
+        self, job: Job, publish: Publish, guard: OutputOwnershipGuard
+    ) -> bool:
+        """Descarga con guard ya preparado; indica si publicó JobCompleted."""
         partial_directory = job.partial_directory()
         retry_with_format_selector = False
-        publish = _cancellable(publish)
         try:
             final_path = self._download_with_format(
-                job, job.selected_format_id, partial_directory, publish
+                job, job.selected_format_id, partial_directory, publish, guard
             )
         except YtDlpJobCancelled as cancellation:
             raise JobCancelledError from cancellation
@@ -103,7 +125,7 @@ class YtDlpMediaSource:
                 download_error
             ):
                 publish(classify_failure(download_error))
-                return
+                return False
             retry_with_format_selector = True
         if retry_with_format_selector:
             # Fuera del except: yt-dlp tomaría el error del primer intento como
@@ -115,19 +137,20 @@ class YtDlpMediaSource:
             )
             try:
                 final_path = self._download_with_format(
-                    job, None, partial_directory, publish
+                    job, None, partial_directory, publish, guard
                 )
             except YtDlpJobCancelled as cancellation:
                 raise JobCancelledError from cancellation
             except Exception as retry_error:
                 publish(classify_failure(retry_error))
-                return
+                return False
         unfinished_failure = _unfinished_download_failure(final_path, partial_directory)
         if unfinished_failure is not None:
             publish(unfinished_failure)
-            return
+            return False
         remove_partial_directory(partial_directory)
         publish(JobCompleted(output_path=final_path))
+        return True
 
     def _download_with_format(
         self,
@@ -135,6 +158,7 @@ class YtDlpMediaSource:
         format_id: str | None,
         partial_directory: Path,
         publish: Publish,
+        guard: OutputOwnershipGuard,
     ) -> str | None:
         """Descarga con format_id o, sin él, con el format selector del job.
 
@@ -160,6 +184,7 @@ class YtDlpMediaSource:
         ]
         final_path_recorder = FinalPathRecorder()
         with YoutubeDL(parameters) as youtube_dl:
+            youtube_dl.add_post_processor(guard, when="before_dl")
             youtube_dl.add_post_processor(
                 SelectedFormatRecorder(publish), when="before_dl"
             )

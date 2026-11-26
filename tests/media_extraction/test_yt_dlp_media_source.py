@@ -23,7 +23,10 @@ from queued_media_downloader.jobs import (
     PlaylistEntry,
     SingleMediaFound,
 )
-from queued_media_downloader.media_extraction import MediaSourceSettings
+from queued_media_downloader.media_extraction import (
+    JobCancelledError,
+    MediaSourceSettings,
+)
 from queued_media_downloader.media_extraction import (
     yt_dlp_media_source as yt_dlp_media_source_module,
 )
@@ -36,7 +39,7 @@ from queued_media_downloader.media_extraction.yt_dlp_expansion import (
 from queued_media_downloader.media_extraction.yt_dlp_media_source import (
     YtDlpMediaSource,
 )
-from tests.conftest import SAMPLE_MEDIA_CONTENT
+from tests.conftest import SAMPLE_MEDIA_CONTENT, SLOW_MEDIA_NAME
 
 
 def expansion_job(url: str, download_directory: Path) -> Job:
@@ -79,6 +82,7 @@ def media_source(
     return YtDlpMediaSource(
         MediaSourceSettings(
             cache_directory=tmp_path / "cache",
+            output_claims_directory=tmp_path / "state" / "output-claims",
             ffmpeg_location=None,
             max_filename_length=max_filename_length,
             progress_interval_seconds=0.5,
@@ -662,3 +666,68 @@ def test_entry_count_is_taken_only_when_the_site_reports_it(
     playlist_count: object, expected: int | None
 ) -> None:
     assert playlist_entry_count_of({"playlist_count": playlist_count}) == expected
+
+
+def claim_files(tmp_path: Path) -> list[Path]:
+    """Reclamaciones de nombres finales que dejó la MediaSource (R-14)."""
+    return sorted((tmp_path / "state" / "output-claims").glob("*.claim"))
+
+
+def test_a_completed_job_keeps_its_name_for_recovery(
+    local_media_server: str, tmp_path: Path
+) -> None:
+    # Un cierre antes de registrar JobCompleted vuelve a enviar el job: debe
+    # reconocer su archivo (test_finished_download_run_again_...).
+    job = download_job(f"{local_media_server}/sample.mp4", tmp_path)
+
+    ignored_events: list[JobEvent] = []
+    media_source(tmp_path).download(job, ignored_events.append)
+
+    assert len(claim_files(tmp_path)) == 1
+
+
+def test_a_job_cancelled_before_its_file_exists_releases_its_name(
+    local_media_server: str, tmp_path: Path
+) -> None:
+    def cancel_on_progress(job_event: JobEvent) -> None:
+        if isinstance(job_event, DownloadProgressed):
+            raise JobCancelledError
+
+    job = download_job(f"{local_media_server}/{SLOW_MEDIA_NAME}", tmp_path)
+
+    with pytest.raises(JobCancelledError):
+        media_source(tmp_path).download(job, cancel_on_progress)
+
+    assert claim_files(tmp_path) == []
+    assert not (tmp_path / "slow [slow].mp4").exists()
+
+
+def test_a_job_that_finds_another_jobs_file_fails_without_touching_it(
+    local_media_server: str, tmp_path: Path
+) -> None:
+    template = "same.%(ext)s"
+    first = download_job(f"{local_media_server}/sample.mp4", tmp_path, job_id=1)
+    second = download_job(f"{local_media_server}/slow.mp4", tmp_path, job_id=2)
+    first, second = (
+        replace(
+            job,
+            download_options=replace(job.download_options, output_template=template),
+        )
+        for job in (first, second)
+    )
+    first_events: list[JobEvent] = []
+    media_source(tmp_path).download(first, first_events.append)
+    output_path = tmp_path / "same.mp4"
+    before = (output_path.stat().st_mtime_ns, output_path.read_bytes())
+    published_events: list[JobEvent] = []
+
+    media_source(tmp_path).download(second, published_events.append)
+
+    failure = published_events[-1]
+    assert isinstance(failure, JobFailed)
+    assert failure.failure_reason is FailureReason.FILESYSTEM
+    assert "belongs to job 1" in failure.failure_message
+    assert not any(isinstance(e, JobCompleted) for e in published_events)
+    assert (output_path.stat().st_mtime_ns, output_path.read_bytes()) == before
+    # Falla antes de descargar: su carpeta de parciales, si existe, está vacía.
+    assert list(partial_directory(tmp_path, job_id=2).glob("**/*")) == []

@@ -77,7 +77,9 @@ WEBM_CODEC_ARGUMENTS = (
 )
 
 
-def write_dash_media(directory: Path, codec_arguments: tuple[str, ...]) -> None:
+def write_dash_media(
+    directory: Path, codec_arguments: tuple[str, ...], duration_seconds: int = 2
+) -> None:
     """Genera con ffmpeg un manifiesto DASH con video y audio separados."""
     directory.mkdir()
     subprocess.run(
@@ -88,11 +90,11 @@ def write_dash_media(directory: Path, codec_arguments: tuple[str, ...]) -> None:
             "-f",
             "lavfi",
             "-i",
-            "testsrc=duration=2:size=160x120:rate=10",
+            f"testsrc=duration={duration_seconds}:size=160x120:rate=10",
             "-f",
             "lavfi",
             "-i",
-            "sine=frequency=440:duration=2",
+            f"sine=frequency=440:duration={duration_seconds}",
             "-map",
             "0:v",
             "-map",

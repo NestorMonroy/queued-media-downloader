@@ -46,6 +46,8 @@ if sys.platform == "win32":
 
 DATABASE_FILE_NAME = "queue.sqlite3"
 YT_DLP_CACHE_DIRECTORY_NAME = "yt-dlp-cache"
+# Reclamaciones de los nombres finales (R-14): una carpeta por cola.
+OUTPUT_CLAIMS_DIRECTORY_NAME = "output-claims"
 FFMPEG_VERIFICATION_FILE_NAME = "ffmpeg-verification.json"
 
 
@@ -98,6 +100,7 @@ def open_worker_pool(
     """
     media_source_settings = MediaSourceSettings(
         cache_directory=settings.state_directory / YT_DLP_CACHE_DIRECTORY_NAME,
+        output_claims_directory=output_claims_directory(settings),
         ffmpeg_location=ffmpeg_location,
         max_filename_length=settings.max_filename_length,
         progress_interval_seconds=settings.progress_interval_seconds,
@@ -112,6 +115,11 @@ def open_worker_pool(
         yield worker_pool
     finally:
         worker_pool.shut_down()
+
+
+def output_claims_directory(settings: Settings) -> Path:
+    """Carpeta de las reclamaciones de nombres finales de esta cola (R-14)."""
+    return settings.state_directory / OUTPUT_CLAIMS_DIRECTORY_NAME
 
 
 def create_process_tree_terminator() -> ProcessTreeTerminator:
