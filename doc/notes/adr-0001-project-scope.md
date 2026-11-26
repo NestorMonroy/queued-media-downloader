@@ -3,6 +3,7 @@
 - **Estado:** Aceptada
 - **Fecha:** 2026-11-22
 - **Nota:** el proyecto y su paquete se llaman `queued-media-downloader` / `queued_media_downloader` desde [ADR-0015](adr-0015-project-and-package-name.md).
+- **Nota (2026-11-26):** la interfaz gráfica sigue diferida; las necesidades que una GUI satisfaría están en los casos de uso, y el contrato para otros programas es SUP-I01 (D-17). Ver la [reconciliación de exclusiones](../requirements/requirements-analysis.md#12-reconciliación-de-exclusiones).
 
 ## Contexto
 

@@ -4,6 +4,7 @@
 - **Actor principal:** User
 - **Disparador:** el User decide que ya no quiere un contenido, o que una descarga debe parar.
 - **Significativo para la arquitectura:** sí
+- **Estado:** aprobado; implementado. Los escenarios propuestos, condicionados, divergentes y defectuosos se marcan en cada flujo y se cuentan en la [matriz de completitud](../use-case-model.md#5-matriz-de-completitud).
 - **Decisiones relacionadas:** [ADR-0008](../../notes/adr-0008-process-based-worker-pool.md), [ADR-0013](../../notes/adr-0013-process-tree-terminator-abstraction.md)
 - **Diseño:** [Parte 2, §1.4](../../design/02-flows-persistence-and-operations.md#14-cancelación)
 
@@ -35,6 +36,7 @@ El User cancela uno o varios jobs. Si el job aún no empezó, se cancela de inme
 - **A6. `Ctrl+C` durante `run` (interrupción, no cancelación):** el sistema deja de enviar jobs y detiene los jobs en curso con el mismo mecanismo que la cancelación (pasos 5 y A2), pero **sin cancelarlos**: siguen `RUNNING`, con sus archivos parciales, y no se registra ninguna job request. Un segundo `Ctrl+C` termina el árbol de cada worker de inmediato; los siguientes se ignoran hasta que `run` sale. `run` termina con código `130`, y los jobs interrumpidos se recuperan y se reanudan en el siguiente `run` (UC-06; interrupción recuperable, [ADR-0029](../../notes/adr-0029-process-tree-termination-on-windows.md)).
 - **A7. Job ya terminado** (`COMPLETED`, `FAILED`, `SKIPPED`, `CANCELLED`): no se registra job request; `cancel` informa al User de que el job ya terminó. Si el job terminó entre el registro y el procesamiento, `run` marca la job request procesada sin cambios. Un job `FAILED` conserva su failure reason: no se cancela, se reintenta (UC-07). Ver la tabla de estados terminados, reintentables y cancelables del [vocabulario, §1.1](../../design/00-vocabulary.md#11-estados-terminados-reintentables-y-cancelables).
 - **A8. Job `CANCELLATION_REQUESTED`** (paso 4): ya se está cancelando; la job request se marca procesada sin cambios.
+- **A9. Cancelar durante el postprocesamiento con varios resultados** (paso 5; propuesto, D-15): los resultados ya publicados en su ruta final se conservan con su reclamación y quedan registrados como parciales del job cancelado; los que no llegaron a publicarse se descartan como parciales. Nunca queda un archivo final a medio escribir: la publicación de cada resultado es un movimiento atómico.
 
 ## Excepciones
 

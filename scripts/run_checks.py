@@ -1,4 +1,4 @@
-"""Ejecuta las cinco verificaciones del proyecto, en orden y con stop-on-error.
+"""Ejecuta las seis verificaciones del proyecto, en orden y con stop-on-error.
 
 Cada verificación conserva su salida completa y su código de salida. Si una
 falla, las siguientes no se ejecutan y el script termina con ese código, para
@@ -6,7 +6,7 @@ corregir la causa antes de seguir (sin commits, merges ni publicaciones).
 
 Uso, desde la raíz del repositorio (Linux o Windows):
 
-    uv run python scripts/run_checks.py            # las cinco
+    uv run python scripts/run_checks.py            # las seis
     uv run python scripts/run_checks.py -- -m windows   # argumentos para pytest
 """
 
@@ -19,6 +19,7 @@ CHECKS: tuple[tuple[str, list[str]], ...] = (
     ("lint", ["ruff", "check", "."]),
     ("types", ["mypy"]),
     ("architecture", ["lint-imports"]),
+    ("requirements", [sys.executable, "scripts/check_requirements_model.py"]),
     ("tests", ["pytest"]),
 )
 

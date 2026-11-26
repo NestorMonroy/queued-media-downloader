@@ -1,7 +1,7 @@
 # Análisis de requisitos: continuidad, condiciones externas y referencias
 
 - **Fase RUP:** Elaboración (consolidación del modelo de requisitos tras la campaña T42)
-- **Versión:** 3.2 (2026-11-26; condiciones de almacenamiento separadas en UC-17 y análisis del acceso con proxy y cookies). 3.1 (añade YTDownload-2026 y VoiceBlueprintPro). 3.0 (2026-11-26). La versión 2.0 se titulaba «funcionamiento sin vigilancia y validación sin esperas»; esta integra el análisis de los proyectos de referencia en el modelo canónico y deja abiertas las decisiones.
+- **Versión:** 3.3 (2026-11-26; reconciliación de exclusiones, §12, y contratos transversales, §13). 3.2 (2026-11-26; condiciones de almacenamiento separadas en UC-17 y análisis del acceso con proxy y cookies). 3.1 (añade YTDownload-2026 y VoiceBlueprintPro). 3.0 (2026-11-26). La versión 2.0 se titulaba «funcionamiento sin vigilancia y validación sin esperas»; esta integra el análisis de los proyectos de referencia en el modelo canónico y deja abiertas las decisiones.
 - **Responsabilidad:** razonamiento y evidencia del modelo de requisitos. Los requisitos están en sus artefactos: [modelo de casos de uso](use-case-model.md), [reglas de negocio](business-rules.md), [especificación complementaria](supplementary-specification.md), [catálogo de condiciones de fallo](failure-conditions.md) y [modelo de validación](../process/validation-use-case-model.md).
 - **Técnicas (BABOK v3):** ver §5.2.
 
@@ -110,10 +110,16 @@ ishikawa-beta
 | User | Dejar libre la conexión o el equipo un rato sin perder la cola | — | **UC-14** (propuesto en la versión 2.0; reformulado por la necesidad) |
 | User | Reportar un problema con todo lo necesario | — | **UC-16 nuevo** |
 | User | Descargar sin saturar la conexión | — | Requisito no funcional (SUP-P06): una configuración, sin interacción propia |
-| User | Usar su cuenta del sitio | — | Decisión D-1 |
-| User | Actualizar yt-dlp sin esperar una versión del programa | Procedimiento SUP-S01 | **Candidato**, decisión D-8 |
-| User | Empezar la cola a una hora | — | Exclusión: lo cubre el Programador de tareas de Windows |
-| User | Ser avisado al terminar | — | Exclusión: `run` ya resume al terminar |
+| User | Usar su cuenta del sitio o un proxy | — | **UC-19** (condicionado a D-1 y D-7) |
+| User | Actualizar yt-dlp sin esperar una versión del programa | Procedimiento SUP-S01 | **UC-27** (condicionado a D-8) |
+| User | Descargar solo en ciertas horas sin estar presente | — | **UC-21** (revisado en §12: el Programador de tareas no cubre las ventanas) |
+| User | Enterarse de los sucesos sin vigilar la consola | — | **UC-28** (revisado en §12) |
+| User | Reutilizar preferencias de descarga | — | **UC-18** |
+| User | Ver, cambiar y trasladar la configuración | — | **UC-20** |
+| User | Trasladar o conservar la cola | — | **UC-22**, **UC-23** |
+| User | Obtener solo la información complementaria | — | **UC-24** |
+| User | Administrar y verificar lo descargado | — | **UC-25**, **UC-26** |
+| Programa cliente | Usar el producto sin interpretar texto | Todos | SUP-I01; canal según D-17 |
 | Mantenedor | Actualizar yt-dlp cuando un sitio cambia | Procedimiento SUP-S01 | Proceso de desarrollo |
 | Evaluador | Validar un commit en Windows | VUC-01 a VUC-08 | [Modelo de validación](../process/validation-use-case-model.md) |
 
@@ -218,9 +224,9 @@ Cada hallazgo se cualifica en una sola categoría y tiene un único destino en e
 | Opciones | Extraer audio y convertirlo | S, K, D, Y: `FFmpegExtractAudio` | UC existente | UC-02 `--audio-only` | Vigente |
 | Opciones | Calidad por preajuste (mejor, 1080p, 720p, 480p, 360p, solo audio) | D: `QualityOption` y `_build_format_string`; S y K: selector de calidad | Flujo alternativo | UC-02 A9 | Propuesto |
 | Opciones | Opciones por job sobre los valores globales | D: `DownloadCoordinator.add` | UC existente | UC-02: las download options se fijan al encolar | Vigente |
-| Opciones | Unir a otro contenedor (mkv) | S, K: remux | Elemento de configuración | `default_format_selector` y la plantilla; sin opción propia | Excluido de momento: sin necesidad del User |
-| Opciones | SponsorBlock, partir por capítulos, `parse-metadata` | S | Exclusión | §6.3 | Excluido |
-| Opciones | Plantillas de comandos personalizados | S: plantillas y su log | Exclusión | §6.3 | Excluido |
+| Opciones | Unir a otro contenedor (mkv) | S, K: remux | Flujo alternativo | UC-02 A14, UC-03 A19 | Propuesto (revisado en §12) |
+| Opciones | SponsorBlock, partir por capítulos, `parse-metadata` | S | Flujo alternativo | UC-02 A7, A10 y A11; UC-03 A17 y A18 | Propuesto (revisado en §12) |
+| Opciones | Plantillas de comandos personalizados | S: plantillas y su log | Nuevo UC (la necesidad); exclusión (ejecutar comandos) | UC-18 | Propuesto (revisado en §12) |
 | Archivos | Plantilla de salida y subcarpetas por playlist | S, K, D (carpeta por playlist y por video, índice con tres cifras), Y | UC existente | UC-03 (plantilla determinista), carpeta de la playlist | Vigente |
 | Archivos | Nombres seguros y recortados | S: `restrict-filenames`; Y: `trim_file_name` | UC existente | `max_filename_length` | Vigente |
 | Archivos | Archivo de descargas (`--download-archive`) | S: `DOWNLOAD_ARCHIVE` | Decisión arquitectónica | ADR-0012: duplicados por media key | Excluido por ADR |
@@ -236,18 +242,18 @@ Cada hallazgo se cualifica en una sola categoría y tiene un único destino en e
 | Fallos | Regresión con el texto literal reportado | V: pruebas con los dos apóstrofos | Capacidad de validación | SUP-V03 | Propuesto |
 | Red | Proxy (configurado o del sistema) | S, K, D: opción `proxy`; V y B: `core/user_env.py`; D, guía §2: recomienda el proxy del sistema y una salida estable, porque rotar la IP rompe sesiones y reanudaciones; Y: `getproxies()` si no se configura | Decisión | D-7; UC-01 A11 | Pendiente (Y ya usa el del sistema) |
 | Red | Cookies | S: perfiles por WebView; K: modos con detección por expresión; V y B: `cookies.txt` efímero (0600, ≤1 MB, borrado al terminar); D, guía §3 y §4: cuenta técnica separada, `cookies-from-browser`, misma IP para la sesión y la descarga, cookies tratadas como contraseñas | Decisión | D-1; BR-12 | Pendiente |
-| Red | Forzar IPv4, agente de usuario | S | Elemento de configuración | Sin necesidad del User | Excluido de momento |
+| Red | Forzar IPv4, agente de usuario | S | Elemento de configuración (IPv4); exclusión (agente) | UC-20 A7 | Propuesto (revisado en §12) |
 | Red | Límite de ancho de banda | S, K, Y: `ratelimit`; D, guía §12: ante la limitación de velocidad del sitio | Requisito suplementario | SUP-P06 | Propuesto |
-| Red | Fragmentos concurrentes, aria2c | S, K | Exclusión | §6.3 | Excluido |
-| Red | No descargar en una red medida | S: `CELLULAR_DOWNLOAD`, `isActiveNetworkMetered` | Exclusión | §6.3 | Excluido |
+| Red | Fragmentos concurrentes, aria2c | S, K | Requisito suplementario (fragmentos); tecnología excluida (aria2c) | SUP-P09 | Propuesto (revisado en §12) |
+| Red | No descargar en una red medida | S: `CELLULAR_DOWNLOAD`, `isActiveNetworkMetered` | Flujo alternativo | UC-21 A9 | Propuesto (revisado en §12) |
 | Red | Ritmo de peticiones | Y: preajuste `-t sleep`; D, guía §8 y §12: pausa entre entradas de una playlist y poca concurrencia | Regla | BR-02 | Propuesto (D-3) |
 | Herramientas | ffmpeg con SHA-256 | V: `acquire_bundled`; nosotros: `SOURCE.md` | UC existente | UC-01 A5 | Vigente |
 | Herramientas | ffmpeg propio o del sistema | V: `set_custom_path`, `use_system`; K: rutas | UC existente | UC-01 A4, `ffmpeg_path` | Vigente |
-| Herramientas | Actualizar yt-dlp desde el programa, y volver a la versión probada | S: canales y periodicidad (`UpdateUtil.kt`); V: capa desde PyPI y «Restore tested version»; K: comprobación diaria | UC candidato | D-8 frente a ADR-0002 | Pendiente |
+| Herramientas | Actualizar yt-dlp desde el programa, y volver a la versión probada | S: canales y periodicidad (`UpdateUtil.kt`); V: capa desde PyPI y «Restore tested version»; K: comprobación diaria | Nuevo UC | UC-27 | Condicionado a D-8 |
 | Diagnóstico | Autodiagnóstico ok, aviso o fallo | V: `core/diagnose.py`; B: comprobaciones del asistente de instalación (`api/routers/setup/wizard.py`) | UC existente | UC-01 (`diagnose`), A9 a A11 | Vigente y propuesto |
 | Diagnóstico | Paquete de diagnóstico limpio de datos sensibles | V: `core/diagnostic_bundle.py`; S: informe de error | UC nuevo | UC-16, SUP-SEC01, SUP-O03 | Propuesto |
 | Diagnóstico | Modo detallado (`-v`) | S | Elemento de configuración | El log ya registra los mensajes de yt-dlp | Vigente |
-| Historial | Exportar e importar el historial; modo privado | S | Exclusión | §6.3 | Excluido |
+| Historial | Exportar e importar el historial; modo privado | S | Nuevo UC; flujo alternativo | UC-22; UC-10 A6 | Propuesto (revisado en §12) |
 | Windows | Árbol de procesos con Job Object | V: `contained_subprocess.py` | UC existente | SUP-R02, ADR-0013 | Vigente |
 | Windows | Vigilancia del proceso padre | V: `parent_liveness.py` | Capacidad técnica | ADR-0013 (`KILL_ON_JOB_CLOSE`) | Vigente |
 | Windows | Sin ventanas de consola | V: `CREATE_NO_WINDOW` | Capacidad técnica | Programa de consola; los workers son del mismo proceso | No aplica |
@@ -260,7 +266,7 @@ Cada hallazgo se cualifica en una sola categoría y tiene un único destino en e
 | Integridad | Una cancelación nunca se registra como descarga completada | D: tras `cancel`, `download` devuelve un resultado vacío y el coordinador marca el registro `done` | Regla (evidencia en contra) | UC-05 y el contrato de `JobCompleted` (UC-03 A8): sin archivo final, nunca `COMPLETED` | Vigente |
 | Consulta | Salida JSON de `list` y `show` | D: `history list --format json`, `--json` global | Flujo alternativo | UC-08 A5, UC-09 A5 | Propuesto |
 | Consulta | Buscar en la cola por título o URL | D: `search_downloads`; S: historial | Flujo alternativo | UC-08 A6 | Propuesto, prioridad baja |
-| Integración | Servidor MCP para agentes, lectura de transcripciones y descripciones | D: `infrastructure/mcp/`, 10 herramientas | Exclusión | §6.3 | Excluido |
+| Integración | Servidor MCP para agentes, lectura de transcripciones y descripciones | D: `infrastructure/mcp/`, 10 herramientas | Requisito suplementario e interfaz diferida; nuevo UC (obtener la información) | SUP-I01, D-17; UC-24 | Propuesto (revisado en §12) |
 | Seguridad | Archivo de credenciales creado ya con permisos restringidos | B: `core/user_env.py` (`_opener_0600`) | Requisito suplementario | SUP-SEC03 | Propuesto (condicionado a D-1 y D-7) |
 | Archivos | Espacio libre de una carpeta que aún no existe | B: `disk_free_bytes` sube al antecesor existente | Regla | BR-28; UC-01 A10, UC-17 | Propuesto |
 | Fallos | Volumen no confiable (`winerror` 448), bloqueo prolongado por sincronización | V y B: `WINDOWS_UNTRUSTED_MOUNT`, `VIDEO_DOWNLOAD_OS_ERROR` | Flujo alternativo | UC-17 A3 y A6; BR-26, BR-27 | Propuesto |
@@ -276,22 +282,7 @@ Cada hallazgo se cualifica en una sola categoría y tiene un único destino en e
 
 ### 6.3 Exclusiones
 
-| Capacidad | Motivo |
-|---|---|
-| Cambiar de cliente de YouTube ante un 403 | `android` exige PO Token (wiki de yt-dlp); los clientes por defecto de 2026.11.23 no lo necesitan; contrario a BR-12 |
-| PO Tokens y proveedores de PO Token | Restricción del Responsable (2026-11-26) |
-| SponsorBlock, partir por capítulos, `parse-metadata` | Edición del contenido, fuera del objetivo de descargarlo |
-| Plantillas de comandos personalizados | Convertiría el producto en una interfaz de la línea de comandos de yt-dlp; rompe las pruebas de contrato |
-| Fragmentos concurrentes y aria2c | Otra dependencia y más peticiones por segundo al sitio, contrario a BR-02 |
-| Red medida, tarjeta SD, notificaciones móviles | Propias de Android |
-| Exportar e importar el historial; modo privado | La cola no es un historial; `purge` ya lo limpia |
-| Búsqueda en YouTube y recortes de voz (V) | Fuera del dominio |
-| Caché por hash del contenido (V) | Los duplicados se resuelven por media key (BR-13) |
-| Red privada bloqueada (V, B) | El programa es local; el User escribe sus propias URLs |
-| Servidor MCP y herramientas para agentes (D) | Otra interfaz con su propio contrato y su propia superficie de seguridad; la salida JSON (UC-08 A5, UC-09 A5) cubre la automatización desde scripts. Se reconsidera con la interfaz gráfica futura |
-| Leer transcripciones y descripciones descargadas (D) | Son archivos del User en su carpeta; el producto los descarga (UC-02 A7, pendiente), no los interpreta |
-| Navegador automatizado para iniciar sesión (D, guía §4: Playwright) | Una dependencia grande para obtener cookies; depende de D-1 |
-| Interfaz gráfica, temas visuales (D, S, K) | Fuera del alcance inicial ([ADR-0001](../notes/adr-0001-project-scope.md)) |
+El inventario completo de exclusiones, con su cualificación, está en §12.
 
 ## 7. Continuidad, reintentos y recuperación
 
@@ -396,7 +387,9 @@ Ninguna decisión está tomada (D-1, D-7). Esta sección separa las necesidades 
 |---|---|
 | **Alta** | UC-11, BR-07 (paridad de reintentos), VUC-04, VUC-05 |
 | **Media** | UC-17, UC-06 A11, UC-15, UC-02 A6 y A9, UC-08 A5, UC-09 A5, SUP-R08, SUP-U05, VUC-06 a VUC-08 |
-| **Baja** | UC-14, UC-16, UC-02 A5 y A8, UC-08 A6, UC-10 A5, SUP-P06 |
+| **Baja** | UC-14, UC-16, UC-23, UC-28, UC-02 A5 y A8, UC-08 A6, UC-10 A5 y A6, UC-20 A7, UC-21 A9, UC-24 A7 y A8 |
+| **Media (reconciliación)** | UC-18, UC-20, UC-21, UC-22, UC-24, UC-25, UC-26, UC-02 A7, A10, A11 y A14, UC-15 A5, SUP-I01, SUP-P06, SUP-P09 |
+| **Condicionados** | UC-19 (D-1, D-7), UC-27 (D-8), UC-28 (D-14), SUP-M01 (D-18) |
 | **Pendiente de cualificación** | UC-02 A7, el candidato «Actualizar yt-dlp» (D-8) |
 
 ### 8.3 Verificación de los requisitos (7.2)
@@ -412,7 +405,7 @@ Ninguna decisión está tomada (D-1, D-7). Esta sección separa las necesidades 
 
 ## 9. Decisiones pendientes
 
-Ninguna está aprobada (D-1 a D-12). La recomendación es la del analista; decide el Responsable.
+Ninguna está aprobada (D-1 a D-20). Sus relaciones están en §13.10. La recomendación es la del analista; decide el Responsable.
 
 ### D-1. Cookies o cuenta del sitio
 
@@ -518,10 +511,111 @@ Ninguna está aprobada (D-1 a D-12). La recomendación es la del analista; decid
 - **Impacto:** funcional, UC-17 A3 a A8; arquitectónico, la planificación de `run` lleva un estado por unidad.
 - **Recomendación:** espacio, cuota y unidad ausente: aplazar. Acceso denegado, carpeta inválida y uso compartido persistente: fallar con la acción.
 
+### D-13. Programación de la ejecución
+
+- **Contexto y necesidad:** UC-21, descargar en ventanas sin la presencia del User.
+- **Alternativas:**
+  - (a) ventanas propias de `run` (admisión, BR-37), con `run --keep-waiting`;
+  - (b) registrar una tarea en el Programador de tareas de Windows que arranca y detiene `run`;
+  - (c) las dos: (b) arranca `run` y (a) controla las ventanas.
+- **Evidencia:** el Programador de tareas arranca procesos pero no conoce la pausa, los aplazamientos ni la recuperación; `run --keep-waiting` ya existe.
+- **A favor de (c):** sobrevive a reinicios sin dejar `run` siempre abierto.
+- **En contra:** administrar una tarea del sistema.
+- **Riesgos:** permisos o políticas que impiden registrar tareas.
+- **Impacto:** funcional, UC-21; arquitectónico, estado de programación persistente.
+- **Recomendación:** (a) primero; (b) como A2 de UC-21.
+
+### D-14. Mecanismo de los avisos
+
+- **Contexto y necesidad:** UC-28.
+- **Alternativas:**
+  - (a) notificaciones de Windows;
+  - (b) un archivo de sucesos JSON en la carpeta de estado;
+  - (c) las dos.
+  - Excluidas: correo, mensajería y ejecutar comandos.
+- **Evidencia:** Seal usa notificaciones del sistema; los job events ya existen.
+- **A favor de (c):** sirve a las personas y a los programas (SUP-I01).
+- **En contra:** una dependencia para las notificaciones de Windows.
+- **Impacto:** funcional, UC-28; arquitectónico, un consumidor de los job events.
+- **Recomendación:** (c), con (b) primero.
+
+### D-15. Representación de los resultados de un job
+
+- **Contexto y necesidad:** §13.1, N resultados por job, obligatorios y opcionales.
+- **Alternativas:**
+  - (a) mantener un archivo por job y crear jobs hijos por resultado (un job por capítulo o por subtítulo);
+  - (b) un job con N resultados registrados, cada uno con tipo, obligatoriedad, ruta y reclamación;
+  - (c) un archivo principal por job y un manifiesto de complementarios.
+- **Evidencia:** las referencias guardan rutas en un diccionario por descarga (YTDownload-2026) o no las registran; ADR-0030 protege un nombre por job; la expansión de playlists ya usa jobs hijos (ADR-0009).
+- **A favor de (b):** una sola petición, un solo estado y una cancelación coherente.
+- **En contra:** cambiar `JobCompleted`, `output_path` y las reclamaciones.
+- **A favor de (a):** reutiliza el modelo.
+- **En contra de (a):** multiplica jobs por un solo contenido y complica la cancelación y la purga.
+- **Restricciones:** BR-17 y BR-31; no implementar nada antes de decidir.
+- **Impacto:** arquitectónico alto (modelo, eventos, migraciones, reclamaciones).
+- **Recomendación:** (b), sin elegir aún tablas ni eventos.
+
+### D-16. Identidad de las variantes y «ya descargado»
+
+- **Contexto y necesidad:** §13.2.
+- **Alternativas:**
+  - (a) mantener BR-13;
+  - (b) BR-32: identidad por especificación del resultado, con «ya descargado» como `SKIPPED` informativo;
+  - (c) (b) más un reemplazo explícito.
+- **Evidencia:** hoy una variante legítima se omite y un contenido ya descargado falla con un mensaje confuso.
+- **Impacto:** migración del índice `unique_active_download_per_media`; detección de duplicados en la importación (UC-22).
+- **Recomendación:** (b); el reemplazo, por UC-25.
+
+### D-17. Canal de integración programática
+
+- **Contexto y necesidad:** §13.7.
+- **Alternativas:**
+  - (a) solo la CLI con salida JSON y errores estructurados (SUP-I01);
+  - (b) además, una biblioteca Python pública;
+  - (c) además, un servidor local (API HTTP o MCP).
+- **Evidencia:** YTDownload-2026 ofrece CLI y MCP sobre la misma capa de aplicación; ADR-0001 exige un motor reutilizable.
+- **Riesgos:** (c) abre un puerto y amplía la superficie de seguridad.
+- **Impacto:** (a) es transversal y barato; (c) es un componente nuevo.
+- **Recomendación:** (a) ahora; (b) y (c) diferidos hasta una necesidad concreta.
+
+### D-18. Contenido transformado
+
+- **Contexto y necesidad:** SponsorBlock, capítulos, secciones, remux, conversión de audio y recodificación (§13.3, §13.4).
+- **Alternativas:**
+  - (a) solo transformaciones sin recodificar (marcar, dividir, secciones en fotogramas clave, remux, conversión de audio);
+  - (b) además, quitar segmentos con cortes exactos y recodificar con los codificadores disponibles;
+  - (c) ninguna.
+- **Para el fallo del servicio de SponsorBlock:** fallar el job o completar sin quitar segmentos y avisar.
+- **Evidencia:** capacidades de yt-dlp; configuración de la build (§13.4).
+- **Riesgos:** R-29 (patentes); recodificar es lento y caro en CPU.
+- **Impacto:** identidad (D-16) y cardinalidad (D-15).
+- **Recomendación:** (a), con «completar y avisar» ante un fallo de SponsorBlock; (b) tras resolver R-29.
+
+### D-19. Momento de resolver las opciones de un perfil
+
+- **Contexto y necesidad:** UC-18, §13.5.
+- **Alternativas:** (a) copiar las opciones al encolar (BR-33); (b) resolverlas al ejecutar.
+- **Evidencia:** hoy las download options ya se fijan al encolar (UC-02).
+- **Impacto:** (b) cambia la recuperación y la reproducibilidad de un job.
+- **Recomendación:** (a); las referencias de acceso se resuelven al enviar el job (BR-33).
+
+### D-20. Límite global de ancho de banda
+
+- **Contexto y necesidad:** §13.6.
+- **Alternativas:**
+  - (a) solo el límite por descarga;
+  - (b) un límite global repartido entre los workers activos, recalculado al enviar cada job;
+  - (c) un límite global fijo por worker (global ÷ `worker_count`).
+- **Evidencia:** yt-dlp limita por instancia, no entre procesos.
+- **Impacto:** (b) necesita que `run` pase el límite a cada worker.
+- **Recomendación:** (c) por simplicidad; (b) si (c) desperdicia ancho de banda con un solo job activo.
+
 ## 10. Limitaciones del análisis
 
 - Kannagi no tiene versión ni historial: sus hallazgos no se pueden fechar.
 - YTDownload-2026 no declara licencia: solo aporta ideas, y su guía está en ruso (se tradujo para el análisis).
+- La configuración de la build de ffmpeg se leyó del binario (`avcodec-63.dll`), sin ejecutar `ffmpeg.exe` en Windows: la lista efectiva de codificadores se confirma en la campaña.
+- No se ejecutaron SponsorBlock, la división por capítulos ni las secciones contra un sitio real; las capacidades se leyeron en el código de yt-dlp 2026.11.23.
 - VoiceBlueprintPro se analizó por diferencias con VoiceStudio; los archivos idénticos o solo renombrados no aportan hallazgos propios.
 - El checkout de FFmpeg es parcial: los contratos se comprobaron con los binarios incluidos, no con su código.
 - Ningún hallazgo de comportamiento se ejecutó contra un sitio real: la campaña está en pausa por la restricción de YouTube.
@@ -530,6 +624,8 @@ Ninguna está aprobada (D-1 a D-12). La recomendación es la del analista; decid
 - Los caminos de error del §3.2 del catálogo se reprodujeron provocando cada error en el punto del código de yt-dlp; no con un disco lleno real.
 
 ## 11. Trabajo propuesto
+
+Las tareas T52 a T67 son **candidatas**, no un plan. La reconciliación del §12 añadió capacidades que afectan transversalmente a la identidad (D-16), a los resultados (D-15), a la configuración (D-19) y a las interfaces (D-17). La descomposición definitiva y su secuencia se harán después de resolver esas decisiones, en el plan de E3. No se crean tareas nuevas para UC-18 a UC-28.
 
 Ninguna tarea empieza hasta que el Responsable apruebe las decisiones de las que depende.
 
@@ -551,6 +647,292 @@ Ninguna tarea empieza hasta que el Responsable apruebe las decisiones de las que
 | T65 | Directos (UC-03 E1) y purgar con archivos (UC-10 A5) | Baja | D-10, D-11 |
 | T67 | Condiciones de almacenamiento: identificación en toda la cadena de causas (BR-25, corrige R-28), comprobación preventiva (BR-28) y tratamiento por condición (UC-17) | Media; la identificación, alta | T52, D-5, D-12 |
 | T66 | Preajustes de calidad (UC-02 A9), salida JSON y búsqueda (UC-08 A5 y A6, UC-09 A5) | Media | — |
+
+## 12. Reconciliación de exclusiones
+
+Revisión del 2026-11-26 (instrucción 2.1.0). Se localizaron las exclusiones de todos los artefactos:
+- la visión (§6);
+- el modelo de casos de uso (§4.2);
+- este análisis (§4.1, §6.1 y §6.3);
+- los ADR, los planes de iteración y las especificaciones.
+
+Cada una se cualificó separando la **necesidad** del User de la **solución** que se había excluido.
+
+**Criterios válidos de exclusión:**
+- fuera del dominio;
+- sin objetivo funcional;
+- duplicada;
+- contraria a una restricción vigente;
+- licencia incompatible;
+- solo una tecnología innecesaria;
+- interfaz diferida;
+- evidencia de que no se necesita.
+
+**Criterios que no son motivo:** que no esté implementado, que sea difícil, que afecte a varios componentes, que otra herramienta lo haga o que tenga prioridad baja.
+
+**Columnas de la tabla:**
+- **Origen:** S, V, B, D, K, Y y F, como en §6.
+- **Clasificación:**
+  - **M:** se mantiene excluida;
+  - **T:** solo una tecnología; la necesidad tiene otro destino;
+  - **I:** interfaz diferida;
+  - **P:** decisión de soporte o distribución;
+  - **A:** amplía un caso de uso existente;
+  - **N:** nuevo caso de uso;
+  - **R:** requisito suplementario;
+  - **L:** localizada, pero no es una exclusión de alcance.
+
+### 12.1 Inventario
+
+| # | Exclusión (dónde) | Necesidad · actor · resultado esperado | Origen | Hoy | Justificación original | ¿Válida? | ¿Necesidad o solución? | Clasificación y destino | Impacto de incorporarla · consecuencia de excluirla |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | Interfaz gráfica (visión, ADR-0001, §6.3) | Interactuar sin la línea de comandos · User · ver y operar la cola | S, D, K | Solo CLI | Alcance inicial | Sí, para la implementación | Solución (canal) | **I**: diferida; sus necesidades ya están en los casos de uso; SUP-I01 | Un canal más sobre los mismos servicios · ninguna necesidad queda sin cubrir |
+| 2 | Temas visuales (§6.3) | Personalizar el aspecto · User | D, S, K | — | Alcance inicial | Sí | Solución | **M**: sin necesidad en una CLI | — |
+| 3 | Otras plataformas, Windows ARM64 (visión, ADR-0004) | Usar el producto en otro sistema · User | — | Solo Windows x64 | Plataforma objetivo | Sí, como decisión de soporte | Decisión de soporte | **P**: SUP-C06 | Ampliar la matriz de pruebas · sin soporte, pero el núcleo es portable |
+| 4 | Publicación en PyPI (visión) | Instalar con `pip` · User | — | Clon con `uv sync` | — | Sí, mientras el procedimiento actual baste | Alternativa de distribución | **P**: SUP-C07 | Empaquetar ffmpeg y deno aparte · ninguna |
+| 5 | Recodificar video (visión: «la build LGPL no incluye H.264/H.265») | Resultado reproducible en los dispositivos del User · User | S, K, Y, F | Solo unión, sin recodificar | Falta de codificadores | **No**: la build incluida trae `libopenh264` (H.264), `libkvazaar` (HEVC), VP8, VP9, AV1 y codificadores por hardware (§13.4) | Necesidad | **A**: UC-02 A14, UC-03 A19; **R**: SUP-M01; decisión D-18; R-29 | Recodificar es lento y caro en CPU · el User recodifica a mano fuera del producto |
+| 6 | PO Tokens (visión, §6.3, BR-12) | — | Wiki de yt-dlp | — | Decisión del Responsable | Sí (aprobada) | Mecanismo | **M**: restricción vigente | — |
+| 7 | Evadir controles del sitio (visión) | — | — | — | Restricción legítima | Sí | Mecanismo | **M** | — |
+| 8 | Cambiar de cliente de YouTube ante un 403 (§6.1, §6.3) | Descargar pese a un 403 · User | V, B | El job falla `NETWORK` | Exige PO Token; contrario a BR-12 | Sí | Mecanismo | **M**; la necesidad (no perder el job) es UC-11 | — |
+| 9 | Servidor MCP y herramientas para agentes (visión, §6.1, §6.3) | Que otros programas usen el producto sin interpretar texto · Programa cliente | D | Sin salida estructurada | «La salida JSON cubre la automatización» | **No**: JSON en dos comandos no cubre encolar, cancelar ni errores estructurados | Necesidad (integración) y solución (MCP) | **R**: SUP-I01; **I**: MCP o API, diferidos (D-17) | Contrato estable en todos los comandos · los programas dependen de texto frágil |
+| 10 | Leer transcripciones y descripciones (§6.3) | Obtener la información que publica el sitio · User | D, Y | No se descarga | «El producto no interpreta archivos» | Solo para interpretar | Necesidad (obtener) frente a solución excluida (interpretar o generar con IA) | **N**: UC-24; **A**: UC-02 A7, UC-03 A16 | Resultados no multimedia (D-15) · el User usa yt-dlp aparte |
+| 11 | Navegador automatizado para iniciar sesión (§6.3) | Acceso con cuenta · User | D | Sin acceso con cuenta | Dependencia grande | Sí, como tecnología | Tecnología | **T**: la necesidad es UC-19 | — |
+| 12 | SponsorBlock (visión, §6.1, §6.3) | Contenido sin patrocinios o con ellos marcados · User | S, Y | No | «Edición del contenido» | **No**: es un postprocesado de la descarga con capacidades de yt-dlp, no un editor | Necesidad | **A**: UC-02 A10, UC-03 A18, UC-15 A6; D-18 | Servicio externo y otra identidad del resultado · el User edita a mano |
+| 13 | Partir por capítulos (visión, §6.3) | Un archivo por capítulo de un curso o audiolibro · User | S, K, Y | No | «Edición del contenido» | **No** | Necesidad | **A**: UC-02 A11, UC-03 A17; D-15 y D-18 | Varios resultados por job (§13.1) · el User corta a mano |
+| 14 | `parse-metadata` (§6.3) | Metadatos correctos para organizar la biblioteca · User | S, Y | No | «Edición del contenido» | **No** | Necesidad | **A**: UC-02 A7, UC-24 A8 | Reglas validadas, sin comandos · metadatos inconsistentes |
+| 15 | Plantillas de comandos personalizados (visión, §6.3) | Reutilizar preferencias · User | S, K | Opciones por invocación | «Interfaz de la CLI de yt-dlp; rompe las pruebas de contrato» | Sí para ejecutar comandos; **no** para la necesidad | Solución | **N**: UC-18; **M**: ejecutar comandos | Perfiles validados · repetir opciones en cada `enqueue` |
+| 16 | Fragmentos concurrentes (§6.1, §6.3) | Descargas más rápidas · User | S, K, Y | 1 fragmento | Más peticiones al sitio | Parcialmente: se configura con BR-02 en cuenta | Necesidad | **R**: SUP-P09 | Más carga sobre el sitio · descargas HLS o DASH más lentas |
+| 17 | aria2c (visión, §6.3) | Igual que 16 | S, K | — | Otra dependencia | Sí | Tecnología | **T**: SUP-P09 | — |
+| 18 | Red medida (§6.3) | No consumir datos de una conexión de uso medido · User | S | No | «Propia de Android» | **No**: Windows tiene conexiones de uso medido | Necesidad | **A**: UC-21 A9 | Consulta a Windows · descargas con datos caros |
+| 19 | Tarjeta SD (§6.3) | Elegir la unidad de destino · User | S | `download_directory` | Propia de Android | Sí: ya satisfecha | Duplicada | **M** | — |
+| 20 | Notificaciones móviles (§6.3) | Enterarse de los sucesos sin vigilar · User | S | Resumen en la consola | Propia de Android | Sí para el canal móvil; **no** para la necesidad | Necesidad y canal | **N**: UC-28; D-14 | Un consumidor de los job events · el User vigila la consola |
+| 21 | Exportar e importar el historial (§6.1, §6.3) | Trasladar o conservar la cola · User, Programa cliente | S | No | «La cola no es un historial» | **No**: los jobs terminados ya son un historial | Necesidad | **N**: UC-22 | Formato versionado · copiar la base de datos, con sus riesgos (UC-06 A8) |
+| 22 | Modo privado (§6.3) | No conservar el registro de lo descargado · User | S | `purge` manual | «`purge` ya lo limpia» | Parcialmente | Necesidad | **A**: UC-10 A6 | Purga automática · purgar a mano |
+| 23 | Búsqueda en YouTube (§6.3, como «fuera del dominio») | Encontrar un contenido antes de tener su URL · User | V, Y (`ytsearch`) | No | Se confundió con la búsqueda de voces de VoiceStudio | **No** | Necesidad | **A**: UC-15 A5 (se consolida; no es un caso de uso propio) | Una petición al sitio · el User busca en el navegador |
+| 24 | Recortes de voz (§6.3) | Clip de voz para clonar | V | — | Fuera del dominio | Sí | Producto de voz | **M**; la necesidad genérica de un tramo es UC-02 A8 | — |
+| 25 | Caché por hash del contenido (§6.3) | No repetir procesamientos | V | Duplicados por media key | Duplica BR-13 | Sí | Duplicada | **M**; la identidad es BR-32 | — |
+| 26 | Red privada bloqueada (§6.3) | Evitar SSRF en un servidor | V, B | — | El producto es local | Sí | No aplica | **M** | — |
+| 27 | Empezar la cola a una hora (§4.1, modelo §4.2) | Descargar en horarios permitidos sin estar presente · User | — | No | «Lo cubre el Programador de tareas de Windows» | **No**: no ofrece ventanas ni las combina con la pausa y los aplazamientos | Necesidad | **N**: UC-21; D-13 | Admisión por ventana · el User programa `run` y lo detiene a mano |
+| 28 | Avisar al terminar (§4.1, modelo §4.2) | Igual que 20 | S | Resumen en la consola | «`run` ya resume al terminar» | **No** | Necesidad | **N**: UC-28 | Igual que 20 |
+| 29 | Unir a otro contenedor, mkv (§6.1, «de momento») | Un contenedor compatible con el reproductor del User · User | S, K, Y | Contenedor del selector | Sin necesidad del User | **No** | Necesidad | **A**: UC-02 A14 | Remux sin pérdida · el User remuxa a mano |
+| 30 | Forzar IPv4 y agente de usuario (§6.1, «de momento») | Conectar en redes con IPv6 roto · User | S, Y | No | Sin necesidad del User | IPv4: **no**; agente: sí | IPv4: necesidad; agente: mecanismo | **A**: UC-20 A7 (IPv4); **M**: agente de usuario (BR-12) | Una clave de configuración · fallos de red sin solución |
+| 31 | `--download-archive` (§6.1, ADR-0012) | No volver a descargar lo ya descargado · User | S, Y | Solo detecta los activos; uno ya descargado acaba `FAILED` por su reclamación | ADR-0012 | Sí para la tecnología; la necesidad quedó **sin cubrir** | Tecnología y necesidad | **T**; la necesidad es BR-32 y D-16 (omitir como «ya descargado») | Identidad persistente · fallos confusos al volver a encolar |
+| 32 | `CREATE_NO_WINDOW` (§6.1, «no aplica») | — | V | Programa de consola | Los workers comparten la consola | Sí | Técnica | **M** | — |
+| 33 | Cuenta del sitio (visión 1.0, §4.1) | Acceso autorizado a lo que el User puede ver · User | S, K, V, B, D | No | D-1 | Pendiente | Necesidad | **N**: UC-19 (condicionado a D-1) | Ciclo de vida de credenciales · contenido autorizado inaccesible |
+| 34 | Proxy (visión 1.0) | Salir por el proxy de la red · User | Todas | Proxy del sistema, sin diagnóstico | D-7 | Pendiente | Necesidad | **N**: UC-19 A1; **A**: UC-01 A11 (condicionados a D-7) | Credenciales de proxy · sin diagnóstico |
+| 35 | Escenarios excluidos de los planes E1 y E2 | — | — | — | Secuencia de iteraciones | — | Planificación | **L**: no excluye necesidades | — |
+| 36 | Alternativas descartadas en ADR-0005, 0017, 0029, 0030 y 0031 | — | — | — | Diseño | — | Alternativas técnicas | **L** | — |
+
+### 12.2 Resultado
+
+| Concepto | Cantidad | Filas |
+|---|---:|---|
+| Localizadas | 36 | 1–36 |
+| No eran exclusiones de alcance (L) | 2 | 35, 36 |
+| Exclusiones de alcance revisadas | 34 | 1–34 |
+| Se mantienen justificadamente (M) | 9 | 2, 6, 7, 8, 19, 24, 25, 26, 32 |
+| Solo tecnologías (T) | 3 | 11, 17, 31 |
+| Interfaces diferidas (I) | 2 | 1, 9 |
+| Decisiones de soporte o distribución (P) | 2 | 3, 4 |
+| Reincorporadas como necesidad | 18 | 5, 10, 12–16, 18, 20–23, 27–30, 33, 34 |
+| … que amplían casos de uso existentes | 9 | 5, 12, 13, 14, 18, 22, 23, 29, 30 |
+| … que justifican casos de uso nuevos | 8 filas, 6 casos de uso | 10 (UC-24), 15 (UC-18), 20 y 28 (UC-28), 21 (UC-22), 27 (UC-21), 33 y 34 (UC-19) |
+| … como requisito suplementario | 1 | 16 (SUP-P09); además, 5 y 9 aportan SUP-M01 y SUP-I01 |
+| Que dependen de una decisión | 10 | 5, 9, 12, 13, 20, 27, 28, 31, 33, 34 |
+| Sin cualificar | 0 | — |
+
+Inconsistencias corregidas:
+- la visión excluía la recodificación con un dato falso;
+- la visión excluía SponsorBlock y los capítulos mientras UC-02 A7 seguía pendiente de cualificación;
+- el MCP se excluía con un argumento («JSON cubre la automatización») que solo valía para dos comandos;
+- «leer transcripciones» se excluía a la vez que «obtener información complementaria» quedaba pendiente.
+
+### 12.3 Objetivos candidatos
+
+| Candidato | Resultado |
+|---|---|
+| Administrar perfiles de descarga | UC-18 |
+| Administrar perfiles de acceso autorizado | UC-19 (condicionado a D-1 y D-7) |
+| Administrar la configuración | UC-20 |
+| Programar la ejecución de la cola | UC-21 |
+| Exportar la cola y el historial; importarlos | **Consolidados** en UC-22: el mismo objetivo (trasladar), en dos sentidos |
+| Respaldar y restaurar la cola | UC-23: otro objetivo (recuperar la misma instalación) |
+| Obtener la información complementaria | UC-24 |
+| Administrar los resultados descargados | UC-25 |
+| Verificar los resultados descargados | UC-26: separado de UC-25 porque es de solo lectura y lo reutilizan UC-06 y UC-25 |
+| Buscar contenidos | **Consolidado** en UC-15 A5: el objetivo es el de UC-15 (saber qué encolar) |
+| Administrar las dependencias multimedia | UC-27 (condicionado a D-8); sustituye al candidato «Actualizar yt-dlp» |
+| Administrar las preferencias de avisos | UC-28 (recibir avisos); las preferencias son configuración (UC-20) |
+| Integración programática | **No es un caso de uso**: es un canal hacia los casos de uso existentes (SUP-I01, D-17) |
+
+## 13. Contratos transversales
+
+### 13.1 Resultados de un job y su cardinalidad
+
+**El modelo actual supone un archivo por job:**
+- `Job.output_path` es una sola ruta, y `Job.complete` exige una ruta para `DOWNLOAD` y ninguna para `EXPANSION`;
+- `JobCompleted(output_path)` lleva una sola ruta;
+- la tabla `jobs` tiene una columna `output_path` con el índice único `unique_output_path` (migración 0003);
+- la reclamación protege un nombre base sin extensión (`canonical_stem_path`, `existing_files_with_stem`).
+
+**Contraste con las nuevas capacidades:**
+
+| Escenario | Archivos | ¿Lo cubre el contrato actual? |
+|---|---|---|
+| Video y audio unidos | 1 (los formatos separados son parciales) | Sí |
+| Solo audio | 1 | Sí |
+| Con subtítulos, miniatura, descripción, `info.json` | 1 multimedia y N complementarios con otro nombre base (`título.es.vtt`, `título.info.json`) | **No**: solo se registra y se reclama el principal; `splitext` da un nombre base distinto (`título.es`), así que los complementarios quedan sin reclamación |
+| Capítulos o secciones | N multimedia, con o sin el completo | **No** |
+| Solo información (UC-24) | 0 multimedia y N complementarios | **No**: `Job.complete` exige una ruta |
+| Resultados opcionales que el sitio no ofrece | Variable | **No**: no hay noción de opcional |
+
+**Contrato funcional propuesto** (BR-29 a BR-31; sin elegir todavía la representación, que es D-15):
+- **Qué es un resultado:** cada archivo producido por la petición, con su tipo y su obligatoriedad (BR-29).
+- **Qué es completar:** todos los obligatorios publicados, propios y con contenido (BR-30). Un opcional ausente deja un aviso; un obligatorio que falla deja `FAILED` y conserva los resultados publicados.
+- **Propiedad:** una reclamación por resultado (BR-31), sin apropiarse nunca de archivos ajenos (BR-17).
+- **Integridad:** la verificación es por tipo (BR-38).
+- **Cancelar durante el postprocesamiento:** se conserva lo publicado; lo no publicado es parcial (UC-05 A9). Publicar cada resultado es un movimiento atómico.
+- **Recuperación:** la evidencia local se evalúa por resultado (UC-06 A12).
+- **Reintento:** solo se produce lo que falta (UC-07 A8).
+- **Un resultado que desaparece:** se informa y no cambia el estado (UC-25 A3).
+- **Purga:** borra registros y nunca archivos (BR-18); con `--delete-files`, solo los resultados propios (UC-25 A1).
+
+Relación: UC-03 A16 y A17, UC-05 A9, UC-06 A11 y A12, UC-07 A8, UC-09 A6, UC-10 A5, UC-17, UC-24, UC-25, UC-26; ADR-0030; D-5 (el espacio por job depende de N); D-9; D-11.
+
+### 13.2 Identidad, variantes y duplicados
+
+**Comportamiento actual (BR-13, migración 0002):** la identidad es la media key más «solo audio o no». Por eso:
+- pedir el mismo video en 1080p y en 720p a la vez, o en dos carpetas, deja el segundo `SKIPPED`;
+- volver a encolar algo ya descargado no se omite: el job falla `FILESYSTEM` contra la reclamación del primero, o contra su archivo si fue purgado (fila 31 del §12.1).
+
+| Petición respecto de otra con la misma media key | Clasificación (BR-32) | Tratamiento propuesto |
+|---|---|---|
+| Misma especificación, una activa | Duplicado | `SKIPPED` (como hoy) |
+| Misma especificación, la otra `COMPLETED` con sus resultados presentes | Ya descargado | `SKIPPED` con el motivo «ya descargado» y la ruta, en lugar de `FAILED` (D-16) |
+| Otra calidad, contenedor, conversión, capítulos, segmentos o carpeta | Variante | Se descarga; si pide el mismo nombre final, decide la reclamación (BR-17) |
+| Solo complementarios nuevos de un contenido descargado | Ampliación | UC-24 A5 |
+| Mismo nombre final por la plantilla | Colisión de nombres | La reclamación decide; nunca se reemplaza sin autorización explícita (UC-25) |
+| Reemplazo explícito de un resultado propio | Reemplazo autorizado | Solo con confirmación sobre un resultado propio (UC-25 A1, y después encolar) |
+
+Se conservan las garantías de R-14 y de ADR-0030: la identidad nunca da la propiedad de un archivo.
+
+### 13.3 SponsorBlock, capítulos y secciones
+
+Capacidades de yt-dlp 2026.11.23:
+- **Segmentos:** `SponsorBlockPP` consulta el servicio de SponsorBlock (por omisión `sponsor.ajay.app`, solo para YouTube y con un prefijo de 4 caracteres del SHA-256 del id del video). Un 404 significa «sin segmentos»; otros errores dan `PostProcessingError` tras `extractor_retries` intentos.
+- **Marcar o quitar:** `ModifyChaptersPP` marca los segmentos como capítulos o los quita. Los quita concatenando con copia de streams; los cortes son exactos solo con `force_keyframes_at_cuts`, que recodifica.
+- **Dividir:** `FFmpegSplitChaptersPP` divide por capítulos con copia de streams.
+- **Secciones:** `download_ranges` descarga solo ciertos tramos.
+
+**Tratamiento:**
+- Marcar es una variante que conserva el contenido íntegro; quitar produce otro contenido y entra en la identidad (BR-32).
+- Que no haya segmentos es un resultado normal; un fallo del servicio se decide en D-18.
+- Al reanudar o reintentar, se vuelven a consultar los segmentos.
+- Capítulos y secciones cambian la cardinalidad (§13.1) y las rutas: carpeta por contenido o sufijo por capítulo, siempre reclamados.
+
+No es un editor multimedia: solo se aplican transformaciones que el User pide al encolar, con postprocessors de yt-dlp.
+
+### 13.4 Recodificación y compatibilidad
+
+La configuración de la build incluida (`n9.0.2-39`, BtbN, variante LGPL compartida), leída en `avcodec-63.dll`, sin ejecutar `ffmpeg.exe`:
+- **Desactivados:** `libx264`, `libx265`, `libfdk-aac`.
+- **Activados:**
+  - `libopenh264` (H.264), `libkvazaar` (HEVC) y `libvvenc` (H.266);
+  - `libvpx` (VP8 y VP9), `libaom`, `librav1e` y `libsvtav1` (AV1);
+  - `libmp3lame`, `libopus`, `libvorbis` y el AAC nativo;
+  - codificadores por hardware (`ffnvcodec`, `amf`, `libvpl`).
+
+**Conclusión:** la exclusión de la visión («la build LGPL no incluye codificadores H.264/H.265») era falsa. Escalera de compatibilidad (SUP-M01):
+1. Elegir formatos compatibles del sitio.
+2. Unir o cambiar de contenedor sin pérdida.
+3. Convertir el audio.
+4. Recodificar el video solo si se pide.
+
+**Pendiente:**
+- comprobar con `ffmpeg -encoders` en Windows (campaña);
+- la calidad de `libopenh264` y de `mpeg4` frente a `libx264`;
+- el licenciamiento de patentes de H.264 y HEVC (R-29).
+
+Todo esto lo decide D-18. No se cambia la build.
+
+### 13.5 Configuración, perfiles y acceso
+
+Precedencia vigente: argumentos, variables de entorno, `config.toml`, valores por defecto (SUP-F03). Se separan cuatro clases de información:
+- **configuración:** UC-20;
+- **perfiles:** UC-18, con las opciones copiadas en el job al encolar (BR-33);
+- **credenciales:** UC-19, solo referencias (BR-34) y copias por job (BR-35);
+- **estado operativo:** pausa, aplazamientos y programación, que no se guardan en `config.toml`.
+
+Si las opciones se resolvieran al ejecutar en lugar de al encolar, un job recuperado tras un cierre podría descargar con otras opciones que las pedidas. Por eso la recomendación de D-19 es fijarlas al encolar.
+
+### 13.6 Optimización y ancho de banda
+
+Capacidades de yt-dlp, todas por instancia de `YoutubeDL`, es decir, por worker:
+- `concurrent_fragment_downloads`;
+- `ratelimit` y `throttledratelimit`;
+- `http_chunk_size`;
+- `retries`, `fragment_retries`, `file_access_retries` y `extractor_retries`;
+- `retry_sleep_functions`;
+- `socket_timeout`;
+- `max_filesize` y `min_filesize`;
+- `continuedl`.
+
+| Dimensión | Hoy | Propuesta |
+|---|---|---|
+| Concurrencia total de peticiones | `worker_count` × 1 fragmento | `worker_count` × `concurrent_fragments` (SUP-P09), con BR-02 |
+| Límite por job | No | `rate_limit` (SUP-P06) |
+| Límite global | No | D-20: repartir entre los workers activos o fijar el límite por worker |
+| Reintentos | 0 HTTP y 0 de fragmentos (R-24) | BR-07 y SUP-R11 |
+| Tamaño máximo | No | `max_filesize` como opción de perfil (UC-18), si el User lo necesita |
+
+aria2c sigue excluido como tecnología: no hay ninguna necesidad que yt-dlp no cubra. No se crea un descargador propio.
+
+### 13.7 Integración programática
+
+**Necesidad:** que otros programas encolen, consulten, cancelen, reintenten, controlen la ejecución, lean el progreso, los sucesos y los errores, y diagnostiquen, sin interpretar texto. Se distinguen:
+- **contrato:** salida JSON, errores estructurados, códigos de salida y versionado (SUP-I01);
+- **canal adicional:** biblioteca Python, API HTTP o MCP (D-17).
+
+No se crean casos de uso por canal: todos los canales usan los servicios de aplicación ya separados (`job_queue`, ADR-0001). La salida JSON propuesta en `list` y `show` es una parte del contrato, no el contrato completo.
+
+### 13.8 Defectos, divergencias, ampliaciones y riesgos
+
+| Elemento | Clasificación | Escenario afectado | Motivo |
+|---|---|---|---|
+| R-24 (0 reintentos HTTP y de fragmentos) | **Divergencia** del reparto documentado (los reintentos dentro de un job son de yt-dlp) | UC-03 A15 | Ningún contrato aprobado prometía reintentos, pero el diseño los delegaba en yt-dlp y hoy no ocurren |
+| R-25 (la recuperación depende del sitio) | **Defecto** de un escenario vigente | UC-06 A4 | A4 promete completar sin descargar de nuevo, y no lo hace si el sitio no responde |
+| R-28 (fallos de almacenamiento como `UNKNOWN`) | **Defecto** de un escenario vigente | UC-03 A2 | El motivo `FILESYSTEM` existe y la clasificación promete el motivo |
+| R-26 (directos) | Decisión pendiente (D-10) | UC-03 E1 | Comportamiento no definido |
+| R-27 (fuga de credenciales) | Riesgo condicionado | UC-19 | Solo si se adoptan credenciales |
+| R-20 a R-23 | Riesgos | UC-11, UC-17, VUC | — |
+| R-29 (patentes de los códecs) | Riesgo condicionado | UC-03 A19 | Solo si se adopta la recodificación |
+| R-30 (complementarios sin reclamación) | Riesgo de las ampliaciones | UC-03 A16, UC-24 | Solo si se implementan antes de D-15 |
+| T42-D1 a D12 | Defectos corregidos, pendientes de confirmar en Windows | Varios | [Registro de T42](../project-management/t42-results.md) |
+| UC-03 A1 con variantes | Limitación de un escenario vigente | UC-03 A1 | BR-13 aplicado a variantes; D-16 |
+
+### 13.9 Gobierno de los identificadores
+
+- **UC-12:** retirado, fusionado en UC-11 A2.
+- **UC-13:** retirado. Su objetivo («esperar espacio en disco») describía una solución.
+- **UC-17:** no reactiva UC-13. Es una responsabilidad nueva y mayor: todas las condiciones de almacenamiento, con escenarios preventivos y reactivos, y no todas se resuelven esperando. Reactivar UC-13 habría mantenido un identificador cuyo significado histórico era «esperar». La relación queda registrada en UC-17 (historial), en el modelo (UC-13: «sustituido por UC-17») y en §4.3.
+- **UC-18 a UC-28:** se asignaron después de cualificar cada objetivo.
+- **Consolidados en UC-15 y en UC-22:** dos candidatos (buscar contenidos; exportar e importar).
+- **Integración programática:** no recibió identificador, porque no es un caso de uso (§12.3).
+
+No se renumeró ningún caso de uso.
+
+### 13.10 Relación entre decisiones
+
+| Decisiones | Relación |
+|---|---|
+| D-1, D-7, D-19 | Configuración y seguridad del acceso (UC-19, UC-18): referencias, copias por job, perfiles fijados al encolar |
+| D-2, D-6, D-13 | Continuidad de la ejecución: política ante condiciones, pausa y ventanas comparten la admisión de `run` |
+| D-2, D-12 | Tratamiento de los jobs afectados por el almacenamiento |
+| D-5, D-15 | El espacio por job depende de cuántos resultados produce |
+| D-9, D-11, D-15, D-16 | Propiedad, integridad e identidad de los resultados |
+| D-8, D-18 | Cambiar yt-dlp o ffmpeg cambia los contratos de extracción y postprocesamiento |
+| D-14, D-17 | Los avisos y el canal programático consumen los mismos sucesos |
+| D-3, D-20 | Ritmo de peticiones y ancho de banda global |
 
 ## Fuentes
 

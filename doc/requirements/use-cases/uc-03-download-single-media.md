@@ -5,6 +5,7 @@
 - **Actor secundario:** Media site
 - **Disparador:** el User ejecuta `run`.
 - **Significativo para la arquitectura:** sí (recorre todos los componentes)
+- **Estado:** aprobado; implementado. Los escenarios propuestos, condicionados, divergentes y defectuosos se marcan en cada flujo y se cuentan en la [matriz de completitud](../use-case-model.md#5-matriz-de-completitud).
 - **Decisiones relacionadas:** [ADR-0008](../../notes/adr-0008-process-based-worker-pool.md), [ADR-0010](../../notes/adr-0010-sqlite-persistent-queue.md), [ADR-0013](../../notes/adr-0013-process-tree-terminator-abstraction.md)
 - **Diseño:** [Parte 2, §1.2 y §1.3](../../design/02-flows-persistence-and-operations.md#13-descarga)
 
@@ -34,8 +35,8 @@ El User ejecuta la cola. El sistema toma un job pendiente, descubre que la URL e
 
 ## Flujos alternativos
 
-- **A1. Contenido duplicado** (paso 5): ya existe un job `DOWNLOAD` activo con la misma media key. El job queda `SKIPPED` y no se descarga.
-- **A2. Fallo de red, contenido no disponible, restricción geográfica o URL no soportada** (pasos 5 a 10; condiciones y motivos en el [catálogo de condiciones de fallo](../failure-conditions.md)): el worker clasifica el error y publica `JobFailed` con su failure reason. El job pasa a `FAILED`; el resto de la cola continúa. Al terminar, el código de salida es `1`.
+- **A1. Contenido duplicado** (paso 5): ya existe un job `DOWNLOAD` activo con la misma media key. El job queda `SKIPPED` y no se descarga. **Limitación:** la identidad es la media key con el tipo de salida (audio o video), así que otra calidad, otro contenedor u otra carpeta del mismo contenido también quedan `SKIPPED`; la identidad de las variantes es la decisión D-16 ([BR-32](../business-rules.md), [análisis, §13.2](../requirements-analysis.md#132-identidad-variantes-y-duplicados)).
+- **A2. Fallo de red, contenido no disponible, restricción geográfica o URL no soportada** (pasos 5 a 10; condiciones y motivos en el [catálogo de condiciones de fallo](../failure-conditions.md); **Defecto (R-28):** un fallo de almacenamiento que yt-dlp envuelve sin su `OSError` queda `UNKNOWN` en lugar de `FILESYSTEM`): el worker clasifica el error y publica `JobFailed` con su failure reason. El job pasa a `FAILED`; el resto de la cola continúa. Al terminar, el código de salida es `1`.
 - **A3. Extractor desactualizado** (paso 5 o 7): igual que A2, con `EXTRACTOR_OUTDATED`; el mensaje indica que probablemente haga falta actualizar la versión fijada de yt-dlp.
 - **A4. El worker muere sin publicar un evento final** (pasos 5 a 11): el pool lo detecta, publica `JobFailed(WORKER_CRASHED)` y arranca otro worker.
 - **A5. `--keep-waiting`** (paso 12): el sistema no termina; espera jobs nuevos.
@@ -48,6 +49,10 @@ El User ejecuta la cola. El sistema toma un job pendiente, descubre que la URL e
 - **A13. Falla el almacenamiento** (pasos 6 a 11; propuesto): espacio, cuota, permisos, disponibilidad o uso compartido; extendido por [UC-17](uc-17-preserve-work-under-storage-failures.md). Hoy el job y los siguientes fallan con `FILESYSTEM` (A2).
 - **A14. El User pausa o detiene la cola** (paso 4; propuesto): ver [UC-14](uc-14-control-queue-execution.md).
 - **A15. Fallo transitorio de la descarga** (pasos 8 a 10): HTTP 5xx, timeout o conexión cortada con un host. yt-dlp reintenta según [BR-07](../business-rules.md) antes de que el job falle con `NETWORK`. **Divergencia hoy:** la librería recibe 0 reintentos HTTP y 0 de fragmentos (R-24); en la campaña T42 un timeout hizo fallar un job a la primera.
+- **A16. Resultados complementarios** (pasos 9 a 11; propuesto): con las opciones de UC-02 A7, el job escribe además subtítulos, miniatura, descripción, metadatos o `info.json`, cada uno reclamado como resultado propio ([BR-31](../business-rules.md)). Uno opcional que el sitio no ofrece o que falla deja el job `COMPLETED` con un aviso; uno obligatorio que falla deja el job `FAILED` y conserva los demás resultados ([BR-30](../business-rules.md)).
+- **A17. Varios resultados multimedia** (pasos 9 a 11; propuesto, D-15 y D-18): con capítulos o secciones (UC-02 A8 y A11), el job produce N archivos. Termina `COMPLETED` cuando están todos los obligatorios; cada uno tiene su reclamación.
+- **A18. SponsorBlock** (pasos 9 a 11; propuesto, D-18): se consultan los segmentos al servicio de SponsorBlock (solo para YouTube; la petición envía un prefijo del hash del id del video). Si el servicio no responde tras sus reintentos, D-18 decide entre fallar el job o completar sin quitar segmentos y avisar. Si no hay segmentos, el resultado es el original y se informa.
+- **A19. Contenedor o conversión** (pasos 9 a 11; propuesto, D-18): el remux y la conversión de audio usan ffmpeg sin pérdida o con el codificador pedido; recodificar el video solo es posible con los codificadores de la build incluida (§13.4 del análisis). Un fallo es `POSTPROCESSING` y conserva los parciales.
 - **A10. Otro programa retiene la base de datos más allá de `busy_timeout`** (pasos 3 a 12): `run` avisa una vez por espera (`The queue is busy; waiting until another program releases it`) y repite la operación hasta que la cola queda libre; los workers siguen con sus jobs. Los comandos cortos, en cambio, terminan sin cambiar nada (UC-02 A3). Un segundo `Ctrl+C` detiene `run` también mientras espera. Observado en la validación en Windows (T42-D12): `run` terminaba con código `1` y dejaba el job `RUNNING`.
 
 ## Excepciones

@@ -4,6 +4,7 @@
 - **Actor principal:** User
 - **Disparador:** el User encuentra contenidos que quiere descargar.
 - **Significativo para la arquitectura:** sí
+- **Estado:** aprobado; implementado. Los escenarios propuestos, condicionados, divergentes y defectuosos se marcan en cada flujo y se cuentan en la [matriz de completitud](../use-case-model.md#5-matriz-de-completitud).
 - **Decisiones relacionadas:** [ADR-0009](../../notes/adr-0009-playlist-expansion-into-jobs.md), [ADR-0010](../../notes/adr-0010-sqlite-persistent-queue.md)
 - **Diseño:** [Parte 2, §1.1](../../design/02-flows-persistence-and-operations.md#11-encolar)
 
@@ -31,9 +32,14 @@ El User añade una o varias URLs a la cola, con sus download options. El sistema
 - **A4. La base de datos no se puede abrir o una migración falla** (paso 4): como UC-01 A8; ningún job se crea.
 - **A5. URLs de un archivo** (paso 1; propuesto, prioridad baja, [análisis](../requirements-analysis.md) §4.1): `enqueue --from-file FILE` lee una URL por línea, sin líneas vacías ni comentarios `#`. Si alguna línea no es una URL válida, es A1: el sistema indica la línea y no encola ninguna.
 - **A6. Seleccionar entradas de una playlist** (paso 1; propuesto, prioridad media): `--playlist-items 1-5,8` guarda la selección en las download options; la expansión solo crea esas entradas (UC-04 A8). Origen: la selección de entradas de Seal y la opción `--playlist-items` de yt-dlp. La consulta previa (UC-15) muestra las entradas.
-- **A7. Opciones adicionales de descarga** (paso 1; **pendiente de cualificación**): subtítulos, miniatura incrustada, metadatos y capítulos. Seal, Kannagi y yt-dlp las ofrecen; su alcance se decide en el [análisis, §6](../requirements-analysis.md#6-hallazgos-de-las-referencias-y-su-incorporación).
+- **A7. Información complementaria junto con el contenido** (paso 1; propuesto): `--subtitles IDIOMAS`, `--auto-subtitles`, `--embed-subtitles`, `--thumbnail`, `--embed-thumbnail`, `--description`, `--metadata`, `--info-json`. Cada una se guarda en las download options; al descargar, son resultados complementarios del job (UC-03 A16), obligatorios u opcionales según [BR-29](../business-rules.md). Para obtener solo la información, sin el contenido: UC-24.
 - **A8. Rango de tiempo** (paso 1; propuesto, prioridad baja): `--section 00:01:00-00:02:30` descarga solo ese tramo, con `download_ranges` de yt-dlp. Origen: los recortes de Seal y la opción `--download-sections` de Kannagi y yt-dlp.
 - **A9. Calidad por preajuste** (paso 1; propuesto, prioridad media): `--quality 1080p` (también `720p`, `480p`, `360p` o `best`) se traduce a un format selector que limita la altura del video y une el mejor audio, sin que el User escriba la sintaxis de yt-dlp. `--format` sigue disponible y tiene prioridad. Origen: los preajustes de calidad de YTDownload-2026, Seal y Kannagi.
+- **A10. Segmentos de SponsorBlock** (paso 1; propuesto, decisión D-18): `--sponsorblock-mark CATEGORÍAS` marca los segmentos como capítulos; `--sponsorblock-remove CATEGORÍAS` los quita del resultado. La petición forma parte de la identidad de la variante (BR-32): quitar segmentos produce un resultado distinto del original. Origen: Seal; postprocessors `SponsorBlock` y `ModifyChapters` de yt-dlp.
+- **A11. Capítulos** (paso 1; propuesto, decisión D-18): `--split-chapters` produce un archivo por capítulo además del completo, o en su lugar; `--chapters PATRÓN` descarga solo los capítulos cuyo título coincide (`download_ranges` de yt-dlp). Útil para cursos, conferencias, podcasts y audiolibros. Cambia el número de resultados del job (D-15).
+- **A12. Acceso autorizado** (paso 1; condicionado a D-1 y D-7): `--access NOMBRE` indica un perfil de acceso (UC-19). El job guarda el nombre del perfil, nunca credenciales ([BR-34](../business-rules.md)).
+- **A13. Perfil de descarga** (paso 1; propuesto): `--profile NOMBRE` copia las opciones del perfil en el job (UC-18, [BR-33](../business-rules.md)).
+- **A14. Contenedor y conversión** (paso 1; propuesto, decisión D-18): `--container mkv|mp4` cambia el contenedor sin recodificar (remux); `--audio-format mp3|m4a|opus` convierte el audio; `--recode CÓDEC` recodifica el video solo con un codificador disponible en la build incluida ([análisis, §13.4](../requirements-analysis.md#134-recodificación-y-compatibilidad)). Una combinación imposible es E1 de UC-18.
 
 ## Postcondiciones
 
@@ -46,7 +52,7 @@ El User añade una o varias URLs a la cola, con sus download options. El sistema
 
 ## Reglas, requisitos y restricciones asociados
 
-- **Reglas:** ninguna al encolar: los duplicados se detectan al descargar (BR-13).
+- **Reglas:** ninguna al encolar: los duplicados se detectan al descargar (BR-13 y BR-32). Las opciones propuestas usan BR-29, BR-33 y BR-34.
 - **Requisitos suplementarios:** SUP-F02, SUP-F03, SUP-C04.
 - **Restricciones:** `enqueue` no accede a la red ni cambia jobs existentes.
 - **Dependencias:** UC-01; UC-15 orienta sus opciones.

@@ -5,6 +5,7 @@
 - **Actor secundario:** Media site
 - **Disparador:** `run` toma un job cuya URL resulta ser una playlist.
 - **Significativo para la arquitectura:** sí
+- **Estado:** aprobado; implementado. Los escenarios propuestos, condicionados, divergentes y defectuosos se marcan en cada flujo y se cuentan en la [matriz de completitud](../use-case-model.md#5-matriz-de-completitud).
 - **Decisiones relacionadas:** [ADR-0009](../../notes/adr-0009-playlist-expansion-into-jobs.md), [ADR-0012](../../notes/adr-0012-no-download-archive-no-database-triggers.md)
 - **Diseño:** [Parte 2, §1.2](../../design/02-flows-persistence-and-operations.md#12-expansión)
 
@@ -33,7 +34,7 @@ Durante la ejecución de la cola, un job de expansión resulta ser una playlist 
 - **A3. Entrada no disponible** (privada o eliminada) (paso 4): si el sitio la marca así en la lista (`availability` privada o que pide una cuenta, o los títulos `[Private video]` y `[Deleted video]` de YouTube), el hijo se crea como `SKIPPED`, no como `FAILED`. Si el sitio no la marca (por ejemplo, un video retirado por derechos de autor que la lista sigue enumerando sin datos), la expansión no puede saberlo sin resolver cada entrada, lo que rompería la iteración perezosa (ADR-0009): el hijo se crea `PENDING` y, al descargarlo, falla con `UNAVAILABLE` (UC-03 A2); `run` termina con código 1. Observado en la validación en Windows (T42-D5).
 - **A4. Contenido `multi_video`** (paso 1): se trata como un solo contenido; continúa como UC-03 desde el paso 5.
 - **A5. Cancelación durante la expansión:** ver UC-05. Los hijos ya creados quedan en la cola, salvo que se cancele la playlist entera.
-- **A6. Fallo de red a mitad de la expansión** (paso 2): la expansión pasa a `FAILED`; los hijos ya creados se conservan. Con [UC-11](uc-11-preserve-jobs-under-external-conditions.md) A5 (propuesto), un corte de conectividad o una restricción del sitio devuelven la expansión a `PENDING` en lugar de dejarla `FAILED`. Al reintentarla (UC-07 A3), sus hijos `FAILED` o `CANCELLED` vuelven a la cola, los `COMPLETED` no cambian y las entradas ya existentes se crean como duplicadas `SKIPPED` (A2).
+- **A6. Fallo de red a mitad de la expansión** (paso 2): la expansión pasa a `FAILED`; los hijos ya creados se conservan. **Parcial:** con [UC-11](uc-11-preserve-jobs-under-external-conditions.md) A5 (propuesto), un corte de conectividad o una restricción del sitio devuelven la expansión a `PENDING` en lugar de dejarla `FAILED`. Al reintentarla (UC-07 A3), sus hijos `FAILED` o `CANCELLED` vuelven a la cola, los `COMPLETED` no cambian y las entradas ya existentes se crean como duplicadas `SKIPPED` (A2).
 - **A7. Mensajes tardíos de una expansión cancelada** (paso 4): un lote que llega cuando la expansión ya no está `RUNNING` no crea hijos.
 - **A8. Solo las entradas seleccionadas** (paso 4; propuesto, prioridad media): con una selección en las download options (UC-02 A6), solo se crean hijos para esas entradas; las demás no se registran.
 

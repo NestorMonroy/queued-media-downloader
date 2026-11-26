@@ -37,6 +37,8 @@
 - **A2. Enlace a un video dentro de una lista** (paso 3): muestra el video y avisa de que `--playlist` encolaría la lista entera (ADR-0027).
 - **A3. `--format SELECTOR`** (paso 4): muestra qué formatos elegiría ese selector, sin descargar.
 - **A4. Subtítulos disponibles** (paso 4): lista sus idiomas, si se aprueba la opción de subtítulos (UC-02 A7).
+- **A5. Buscar antes de conocer la URL** (paso 1; propuesto): `inspect --search "TEXTO" [--limit N]` usa la búsqueda que ofrece el extractor de yt-dlp (`ytsearchN:` en YouTube) y muestra los resultados con su URL; `enqueue` usa después esa URL. No hay buscadores propios ni interfaz gráfica. Origen: VoiceStudio (galería), yt-dlp (`ytsearch`); la exclusión «búsqueda fuera del dominio» confundía la búsqueda de voces de VoiceStudio con la necesidad de encontrar un contenido para descargarlo.
+- **A6. Capítulos y segmentos** (paso 4; propuesto): muestra los capítulos del contenido y, si se pide, los segmentos conocidos de SponsorBlock, para elegir UC-02 A10 y A11.
 
 ## Excepciones
 

@@ -1,6 +1,6 @@
 # Modelo de casos de uso de la validación en Windows
 
-- **Versión:** 1.1 (propuesta; revisada en la consolidación del modelo de requisitos)
+- **Versión:** 1.2 (propuesta; revisada en la reconciliación de exclusiones: medios para los resultados múltiples y la verificación). 1.1: consolidación del modelo de requisitos
 - **Fecha:** 2026-11-26
 - **Origen:** [análisis de requisitos](../requirements/requirements-analysis.md), §2.2 y §3.2
 - **Herramienta actual:** `scripts/windows/validation_campaign.ps1`; [guion de la campaña](../project-management/windows-validation-campaign.md)
@@ -163,6 +163,7 @@ flowchart LR
      - un video y un audio separados en un manifiesto DASH, para la unión;
      - un archivo grande servido a velocidad limitada, para cancelar, interrumpir y reanudar a mitad;
      - una playlist (feed) con una entrada repetida en otra, para los duplicados.
+     - (propuesto, para UC-03 A16 y A17, UC-24 y UC-26) un contenido con capítulos, subtítulos en dos idiomas y miniatura, y una variante truncada o sin un stream para la verificación.
   3. La herramienta los sirve en `127.0.0.1` y muestra las URLs.
 - **Flujos alternativos:**
   - **A1. Simular condiciones:** a mitad de una descarga, el servidor se detiene y vuelve a arrancar (corte de conectividad, UC-11 A2), responde HTTP 429 o 403 o el texto de una restricción (UC-11 A1, BR-01), responde 5xx una vez y después bien (reintentos de yt-dlp, BR-07) o corta la conexión (UC-03 A15).

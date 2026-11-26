@@ -4,6 +4,7 @@
 - **Actor principal:** User
 - **Disparador:** la lista de jobs crece con jobs terminados.
 - **Significativo para la arquitectura:** no
+- **Estado:** aprobado; implementado. Los escenarios propuestos, condicionados, divergentes y defectuosos se marcan en cada flujo y se cuentan en la [matriz de completitud](../use-case-model.md#5-matriz-de-completitud).
 - **Decisiones relacionadas:** [ADR-0010](../../notes/adr-0010-sqlite-persistent-queue.md) (ids que no se reutilizan), [ADR-0030](../../notes/adr-0030-final-file-ownership-claims.md)
 - **Diseño:** [Parte 2, §4.1](../../design/02-flows-persistence-and-operations.md#41-comandos)
 
@@ -30,7 +31,8 @@ El User borra de la cola los jobs `COMPLETED` y/o `CANCELLED`. Los archivos desc
 - **A2. Playlist con alguna entrada que aún requiere trabajo** (paso 3): `PENDING`, `RUNNING`, `CANCELLATION_REQUESTED`, `FAILED`, o un estado no elegido (por ejemplo, una entrada `CANCELLED` con `--completed`). La playlist se conserva, con esas entradas, y se informa (`Kept job N: its playlist has unfinished entries`). Sus entradas en los estados elegidos sí se borran.
 - **A3. Nada que purgar** (paso 6): `Purged 0 jobs`; código `0`.
 - **A4. `run` en ejecución en otra terminal** (paso 4): el borrado espera hasta `busy_timeout` (SQLite en modo WAL); los jobs en curso no son purgables.
-- **A5. Purgar y borrar los archivos propios** (propuesto, decisión D-11): `purge --delete-files` borra además el archivo final de cada job purgado, solo si el job lo escribió y conserva su reclamación con su owner token ([BR-17](../business-rules.md)). Primero muestra una vista previa (jobs, archivos y tamaño total) sin borrar nada, y solo borra con una confirmación explícita. Un archivo movido, ajeno o sin reclamación no se toca. Origen: Seal (borrar el registro con su archivo) y YTDownload-2026 (vista previa y confirmación en dos fases). A diferencia de YTDownload-2026, que borra la carpeta de salida completa, aunque sea la de una playlist entera, nunca se borra una carpeta ni un archivo que el job no escribió.
+- **A5. Purgar y borrar los archivos propios** (propuesto, decisión D-11; el borrado de resultados es UC-25 A1, y este flujo lo aplica a los jobs purgados): `purge --delete-files` borra además el archivo final de cada job purgado, solo si el job lo escribió y conserva su reclamación con su owner token ([BR-17](../business-rules.md)). Primero muestra una vista previa (jobs, archivos y tamaño total) sin borrar nada, y solo borra con una confirmación explícita. Un archivo movido, ajeno o sin reclamación no se toca. Origen: Seal (borrar el registro con su archivo) y YTDownload-2026 (vista previa y confirmación en dos fases). A diferencia de YTDownload-2026, que borra la carpeta de salida completa, aunque sea la de una playlist entera, nunca se borra una carpeta ni un archivo que el job no escribió.
+- **A6. Purga automática** (propuesto, prioridad baja): con `purge_completed_after_days`, `run` purga al arrancar los jobs `COMPLETED` más antiguos que ese plazo. No borra archivos. Satisface la necesidad del «modo privado» de Seal (no conservar el registro de lo descargado) sin perder la protección de los archivos (ADR-0030).
 
 ## Excepciones
 

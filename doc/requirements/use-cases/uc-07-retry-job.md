@@ -4,6 +4,7 @@
 - **Actor principal:** User
 - **Disparador:** el User ve jobs `FAILED` o `CANCELLED` que quiere volver a intentar.
 - **Significativo para la arquitectura:** no (reutiliza las job requests de UC-05 y la reanudación de UC-06)
+- **Estado:** aprobado; implementado. Los escenarios propuestos, condicionados, divergentes y defectuosos se marcan en cada flujo y se cuentan en la [matriz de completitud](../use-case-model.md#5-matriz-de-completitud).
 - **Decisiones relacionadas:** [ADR-0010](../../notes/adr-0010-sqlite-persistent-queue.md), [ADR-0030](../../notes/adr-0030-final-file-ownership-claims.md)
 - **Diseño:** [Parte 2, §2.4 y §4.1](../../design/02-flows-persistence-and-operations.md#41-comandos)
 
@@ -32,6 +33,7 @@ El User vuelve a poner en la cola jobs que fallaron o que canceló. Como `cancel
 - **A5. `run` no está en ejecución** (paso 3): la job request se procesa al arrancar el siguiente `run`.
 - **A6. El formato guardado ya no está disponible** (paso 5): como UC-06 A1.
 - **A7. Otro job ya es dueño del nombre final** (paso 5): el job vuelve a fallar con `FILESYSTEM` sin tocar el archivo ajeno ([ADR-0030](../../notes/adr-0030-final-file-ownership-claims.md)).
+- **A8. Job con resultados parciales** (paso 5; propuesto, D-15): al reintentar, solo se producen los resultados obligatorios que faltan o que no superan la verificación; los completos y propios se conservan.
 
 ## Excepciones
 

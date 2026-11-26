@@ -4,6 +4,7 @@
 - **Actor principal:** User
 - **Disparador:** el User quiere usar el programa por primera vez, o tras actualizar el clon.
 - **Significativo para la arquitectura:** sí
+- **Estado:** aprobado; implementado. Los escenarios propuestos, condicionados, divergentes y defectuosos se marcan en cada flujo y se cuentan en la [matriz de completitud](../use-case-model.md#5-matriz-de-completitud).
 - **Decisiones relacionadas:** [ADR-0003](../../notes/adr-0003-packaging-with-uv-and-pyproject.md), [ADR-0005](../../notes/adr-0005-vendored-ffmpeg-lgpl-shared.md), [ADR-0006](../../notes/adr-0006-ffmpeg-resolution-and-verification.md), [ADR-0018](../../notes/adr-0018-ffmpeg-build-selection.md), [ADR-0020](../../notes/adr-0020-repository-branching-and-lfs.md)
 
 ## Breve descripción
@@ -42,7 +43,7 @@ El User obtiene el proyecto, prepara el entorno con uv y comprueba que ffmpeg, f
 - **A8. La base de datos no se puede abrir o una migración falla** (paso 8): la migración se deshace (la base de datos queda en su última versión completa) y se cierra la conexión. `diagnose` muestra la comprobación `database` como fallida, con la causa, y termina con código `2`; los demás comandos indican la ruta y la causa sin traza y terminan con código `1` (si otro proceso la tiene ocupada más allá de `busy_timeout`, `the queue is busy`).
 - **A9. Sin conexión** (propuesto, [UC-11](uc-11-preserve-jobs-under-external-conditions.md) A2): `diagnose` resuelve el nombre de los sitios configurados (por defecto, `www.youtube.com`) sin descargar nada; si falla, muestra la comprobación `network` como aviso, no como fallo, porque el entorno está instalado.
 - **A10. Destino o estado no utilizables** (propuesto): `diagnose` comprueba que `download_directory` y `state_directory` existen, admiten escritura y tienen espacio libre por encima del margen configurado ([BR-28](../business-rules.md)), con la misma comprobación que hace `run` antes de enviar un job ([UC-17](uc-17-preserve-work-under-storage-failures.md) paso 2). Si una carpeta aún no existe, el espacio se mide en la unidad de su antecesor existente más cercano. Si no, muestra la carpeta y la causa. Una carpeta sin permiso es un fallo; poco espacio, un aviso. Origen: la comprobación previa del destino de VoiceStudio y la medición del espacio de VoiceBlueprintPro.
-- **A11. Proxy en uso** (propuesto, decisión D-7): `diagnose` informa de si las descargas usarán un proxy, configurado o tomado del sistema (yt-dlp usa el del sistema si no se configura otro), sin mostrar credenciales (SUP-SEC01).
+- **A11. Proxy en uso** (propuesto, decisión D-7; los perfiles de acceso son UC-19): `diagnose` informa de si las descargas usarán un proxy, configurado o tomado del sistema (yt-dlp usa el del sistema si no se configura otro), sin mostrar credenciales (SUP-SEC01).
 
 ## Postcondiciones
 

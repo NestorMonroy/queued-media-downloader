@@ -4,6 +4,7 @@
 - **Actor principal:** User
 - **Disparador:** el User quiere saber qué hay en la cola y cómo va.
 - **Significativo para la arquitectura:** no
+- **Estado:** aprobado; implementado. Los escenarios propuestos, condicionados, divergentes y defectuosos se marcan en cada flujo y se cuentan en la [matriz de completitud](../use-case-model.md#5-matriz-de-completitud).
 - **Diseño:** [Parte 2, §4.1](../../design/02-flows-persistence-and-operations.md#41-comandos)
 
 ## Breve descripción

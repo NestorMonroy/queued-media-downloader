@@ -2,8 +2,7 @@
 
 - **Proyecto:** queued-media-downloader
 - **Fase RUP:** Inicio
-- **Versión:** 1.0 (borrador para revisión)
-- **Fecha:** 2026-11-23
+- **Versión:** 1.1 (2026-11-26; alcance revisado en la reconciliación de exclusiones). 1.0: 2026-11-23, borrador para revisión
 
 ---
 
@@ -14,7 +13,7 @@
 | **El problema de** | descargar contenidos de sitios de video y audio de forma fiable, sobre todo playlists y canales completos |
 | **afecta a** | usuarios de Windows, incluidos los que tienen equipos y conexiones modestos |
 | **cuyo impacto es** | descargas que se pierden al cerrar la aplicación o fallar la red, procesos que quedan colgados, configuración manual de ffmpeg y dependencias, y uso de una herramienta de línea de comandos con cientos de opciones |
-| **una solución exitosa** | gestiona una cola persistente que sobrevive a cierres, reanuda lo descargado, permite cancelar en cualquier momento y se instala con un solo flujo reproducible |
+| **una solución exitosa** | administra de manera persistente, configurable, segura, recuperable y eficiente la obtención de contenidos multimedia y de su información complementaria, mediante una cola de trabajos que admite operaciones individuales, por lotes y desatendidas, y se instala con un solo flujo reproducible |
 
 ## 2. Posicionamiento
 
@@ -36,22 +35,23 @@
 
 ## 4. Capacidades del producto
 
-| Capacidad | Caso de uso |
+Formulación del alcance: **administrar de manera persistente, configurable, segura, recuperable y eficiente la obtención de contenidos multimedia y de su información complementaria, mediante una cola de trabajos que admite operaciones individuales, por lotes y desatendidas.** La formulación orienta el análisis; no aprueba por sí sola ninguna capacidad. El estado de cada caso de uso está en el [modelo](use-case-model.md#4-casos-de-uso).
+
+| Necesidad | Casos de uso |
 |---|---|
-| Instalar con un flujo reproducible y verificar el entorno | [UC-01](use-cases/uc-01-install-and-verify-environment.md) |
-| Encolar contenidos (videos, playlists, canales) | [UC-02](use-cases/uc-02-enqueue-media.md) |
-| Descargar contenidos con progreso | [UC-03](use-cases/uc-03-download-single-media.md) |
-| Expandir playlists y canales en descargas individuales | [UC-04](use-cases/uc-04-expand-playlist.md) |
-| Cancelar descargas en cualquier momento | [UC-05](use-cases/uc-05-cancel-job.md) |
-| Recuperar la cola y reanudar descargas tras un cierre | [UC-06](use-cases/uc-06-recover-and-resume-queue.md) |
-| Reintentar, listar, ver y purgar jobs | [Modelo de casos de uso](use-case-model.md) |
-| Preservar los jobs ante una restricción del sitio o un corte de conectividad (propuesto) | [UC-11](use-cases/uc-11-preserve-jobs-under-external-conditions.md) |
-| Preservar el trabajo ante fallos de almacenamiento (espacio, cuota, permisos, unidad ausente, archivos retenidos), con prevención y reacción (propuesto) | [UC-17](use-cases/uc-17-preserve-work-under-storage-failures.md) |
-| Pausar, continuar o detener de forma ordenada la cola desde cualquier terminal (propuesto) | [UC-14](use-cases/uc-14-control-queue-execution.md) |
-| Elegir la calidad con un preajuste (`1080p`, `720p`…) sin escribir un format selector (propuesto) | [UC-02](use-cases/uc-02-enqueue-media.md) A9 |
-| Consultar la cola desde scripts con salida JSON (propuesto) | [UC-08](use-cases/uc-08-list-jobs.md) A5, [UC-09](use-cases/uc-09-show-job.md) A5 |
-| Consultar formatos y entradas de una URL antes de encolarla (propuesto) | [UC-15](use-cases/uc-15-inspect-media-before-enqueueing.md) |
-| Preparar un informe de diagnóstico para reportar un problema (propuesto) | [UC-16](use-cases/uc-16-prepare-a-diagnostic-report.md) |
+| Obtención multimedia | UC-02 (encolar, con preajustes, capítulos, secciones, SponsorBlock, contenedor y conversión), UC-03 (descargar), UC-04 (playlists y canales), UC-15 (consultar y buscar antes de encolar) |
+| Información complementaria | UC-02 A7 y UC-03 A16 (junto con el contenido); UC-24 (sin descargar el contenido) |
+| Administración de trabajos | UC-05 (cancelar), UC-07 (reintentar), UC-08 y UC-09 (consultar), UC-10 (purgar registros) |
+| Administración de resultados | UC-25 (consultar, localizar y eliminar resultados propios) |
+| Recuperación e integridad | UC-06 (recuperar y reanudar), UC-26 (verificar resultados), UC-23 (respaldar y restaurar) |
+| Configuración | UC-20 (configuración), UC-18 (perfiles de descarga) |
+| Operación desatendida | UC-11 (sitio y conectividad), UC-17 (almacenamiento), UC-14 (pausa, continuación y detención), UC-21 (programación), UC-28 (avisos) |
+| Acceso autorizado | UC-19 (perfiles de acceso; condicionado a D-1 y D-7) |
+| Administración de recursos | SUP-P01 a SUP-P09 (workers, ancho de banda, fragmentos, memoria, espacio) |
+| Automatización e interoperabilidad | SUP-I01 (salida estructurada de todos los comandos; mecanismo adicional según D-17) |
+| Diagnóstico | UC-01 (instalar y verificar), UC-16 (informe de diagnóstico) |
+| Portabilidad de la información | UC-22 (exportar e importar), UC-23 (respaldo), UC-20 A5 (configuración) |
+| Dependencias | UC-01 y UC-27 (condicionado a D-8) |
 
 ## 5. Restricciones
 
@@ -63,13 +63,22 @@
 
 ## 6. Fuera de alcance
 
-- Interfaz gráfica (alcance inicial, [ADR-0001](../notes/adr-0001-project-scope.md)).
-- Otras plataformas, incluido Windows ARM64.
-- Publicación en PyPI.
-- Recodificar video (la build LGPL no incluye codificadores H.264/H.265).
-- PO Tokens y cualquier mecanismo para evadir los controles de un sitio (decisión del Responsable, 2026-11-26). Cookies y proxy, solo como acceso legítimo: decisiones D-1 y D-7 del [análisis](requirements-analysis.md#9-decisiones-pendientes).
-- Servidor MCP o herramientas para agentes de IA (la salida JSON cubre la automatización).
-- Edición del contenido (SponsorBlock, partir por capítulos), comandos personalizados de yt-dlp y descargas con aria2c: [análisis, §6.3](requirements-analysis.md#63-exclusiones).
+Cada exclusión está cualificada en el [análisis, §12](requirements-analysis.md#12-reconciliación-de-exclusiones), que separa la necesidad de la solución. Excluir una tecnología o una interfaz no excluye la necesidad que resolvería.
+
+**Fuera del dominio:** síntesis y clonación de voz; transcripción o traducción con inteligencia artificial; edición multimedia general; administración general de cuentas; recortes de voz para otros productos.
+
+**Restricciones vigentes:**
+- PO Tokens y cualquier mecanismo para evadir los controles, bloqueos o restricciones geográficas de un sitio (decisión del Responsable, 2026-11-26), incluidos cambiar de cliente de YouTube y rotar proxies o agentes de usuario;
+- ejecución de comandos o scripts arbitrarios del sistema.
+
+**Tecnologías excluidas** (su necesidad está cubierta por otro destino):
+- aria2c (SUP-P09);
+- navegadores automatizados como Playwright (UC-19);
+- `--download-archive` (BR-32, ADR-0012).
+
+**Interfaces diferidas:** interfaz gráfica ([ADR-0001](../notes/adr-0001-project-scope.md)) y temas visuales; servidor MCP o API HTTP (D-17). El motor ya expone sus operaciones para que se reutilicen sin duplicar la lógica.
+
+**Decisiones de soporte y distribución:** otras plataformas, incluido Windows ARM64 (SUP-C06); publicación en PyPI (SUP-C07).
 
 ## 7. Criterios de éxito
 

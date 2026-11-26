@@ -74,6 +74,7 @@ La disciplina de Requisitos de RUP produce los artefactos de la tabla; BABOK v3 
 - **Verificación:** características de BABOK 7.2 y criterios de aceptación (10.1) en cada caso de uso.
 
 Reglas del modelo:
+- la matriz de completitud no se edita a mano: la genera `scripts/check_requirements_model.py --write`, y `run_checks` comprueba que esté al día;
 - un solo modelo canónico: los hallazgos de una referencia se integran en sus artefactos, nunca en catálogos paralelos con identificadores propios;
 - los identificadores de los casos de uso no se renumeran; un caso de uso retirado conserva su id, que no se reutiliza;
 - cada concepto tiene una sola autoridad, y los demás documentos la enlazan.
@@ -94,7 +95,7 @@ No se usan: modelo de negocio, caso de negocio, modelo de análisis separado del
 uv run python scripts/run_checks.py
 ```
 
-Ejecuta, en orden, `ruff format --check .`, `ruff check .`, `mypy`, `lint-imports` y `pytest`, conserva la salida y el código de salida de cada uno y se detiene en el primero que falla (stop-on-error), con su código. No se usan tuberías ni truncados que oculten el código de salida real. Si alguna falla, no se hace commit, merge ni publicación.
+Ejecuta, en orden, `ruff format --check .`, `ruff check .`, `mypy`, `lint-imports`, `scripts/check_requirements_model.py` (enlaces, identificadores y matriz de completitud del modelo de requisitos) y `pytest`, conserva la salida y el código de salida de cada uno y se detiene en el primero que falla (stop-on-error), con su código. No se usan tuberías ni truncados que oculten el código de salida real. Si alguna falla, no se hace commit, merge ni publicación.
 
 ### Cierre de cada iteración (evaluación)
 
@@ -111,7 +112,8 @@ Todos funcionan desde un clon del repositorio, sin herramientas externas al proy
 
 | Script | Responsabilidad | Alcance |
 |---|---|---|
-| `scripts/run_checks.py` | Las cinco comprobaciones con stop-on-error y el código de salida real de cada una | Reutilizable, cualquier sistema |
+| `scripts/run_checks.py` | Las seis comprobaciones con stop-on-error y el código de salida real de cada una | Reutilizable, cualquier sistema |
+| `scripts/check_requirements_model.py` | Enlaces, identificadores y matriz de completitud del modelo de requisitos; `--write` regenera la matriz | Reutilizable, cualquier sistema |
 | `scripts/check_commit_message.py` | Convenciones de los mensajes de commit | Reutilizable, cualquier sistema |
 | `scripts/windows/validation_campaign.ps1` | Ejecuciones de la validación en Windows identificadas por commit, colas aisladas y evidencia | Reutilizable, Windows |
 | `scripts/experiments/process_tree_termination.py` | Experimento de terminación de árboles de procesos (T33, ADR-0029), que la validación repite en Windows | Experimento; sus resultados históricos están en `doc/notes/experiments/` |
@@ -129,7 +131,7 @@ uv run python scripts/check_commit_message.py RUTA_DEL_MENSAJE
 | Estado | Qué significa | Quién lo establece y con qué evidencia |
 |---|---|---|
 | **Implementación completa** (`IMPLEMENTATION_COMPLETE`) | Todos los escenarios de los casos de uso del alcance están implementados | Agente de implementación; matriz del plan de la iteración |
-| **Verificación de desarrollo** (`DEVELOPMENT_VERIFICATION_PASSED`) | Las cinco comprobaciones pasan en el entorno de desarrollo (Linux), con las pruebas que no requieren Windows ni red | Agente de implementación; salida de `scripts/run_checks.py` sobre un commit identificado |
+| **Verificación de desarrollo** (`DEVELOPMENT_VERIFICATION_PASSED`) | Las seis comprobaciones pasan en el entorno de desarrollo (Linux), con las pruebas que no requieren Windows ni red | Agente de implementación; salida de `scripts/run_checks.py` sobre un commit identificado |
 | **Validación en la plataforma** (`WINDOWS_VALIDATION_PENDING` / `..._PASSED`) | Las pruebas `windows` y los pasos manuales pasan en Windows 10/11 x64 sobre el commit evaluado | Evaluador en Windows; registro de resultados de la campaña. La evidencia de Linux **nunca** cuenta como validación en Windows |
 | **Evaluación de la iteración** | Comparación de los resultados con los criterios del plan, riesgos y decisiones actualizados | Agente de implementación redacta; Responsable del proyecto decide el cierre |
 | **Aceptación final** (`FINAL_ACCEPTANCE_PENDING` / `..._ACCEPTED`) | El Responsable del proyecto acepta el producto de la iteración | Responsable del proyecto, solo con los resultados reales de Windows |
@@ -139,7 +141,7 @@ Una prueba no ejecutada nunca cuenta como satisfactoria; se informa como pendien
 ### Definición de terminado (por cambio)
 
 - El cambio tiene pruebas escritas antes del código.
-- Las cinco comprobaciones locales pasan (`scripts/run_checks.py`), y ninguna prueba toca los datos reales del usuario (la sesión de pruebas falla si cambia algún archivo del estado, de las descargas o de `config.toml` reales).
+- Las seis comprobaciones locales pasan (`scripts/run_checks.py`), y ninguna prueba toca los datos reales del usuario (la sesión de pruebas falla si cambia algún archivo del estado, de las descargas o de `config.toml` reales).
 - Los nombres nuevos están en el vocabulario.
 - Si el cambio toma una decisión de arquitectura, hay un ADR.
 
