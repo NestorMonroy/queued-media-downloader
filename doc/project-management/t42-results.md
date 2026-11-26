@@ -116,13 +116,13 @@ Consola del Evaluador; sin archivo de evidencia todavía. `Start-ValidationRun` 
 | Paso | Resultado | Evidencia | Observaciones |
 |---|---|---|---|
 | 3 Suites | **pasa** | `suite-run-checks.log` (538 pasan, 7 omitidas, código 0), `suite-pytest-windows.log` (16, código 0), `suite-pytest-network.log` (4, código 0) | Incluye `test_output_encoding.py` y `test_youtube_challenge_solving.py` en Windows |
-| 5.6 Reintentar y purgar | **no ejecutado** (T42-D9) | — | Las órdenes se ejecutaron sin cola activa, contra la carpeta de estado por omisión del usuario: estaba vacía (`No jobs`, `Purged 0 jobs`), así que no se cambió ningún dato. Se repite sobre la cola 5.2, que conserva los 9 fallos |
+| 5.6 Reintentar y purgar | **no ejecutado** (T42-D9) | — | Las órdenes se ejecutaron sin cola activa, contra la carpeta de estado por omisión, `state\` dentro del clon de evaluación: estaba vacía (`No jobs`, `Purged 0 jobs`), así que no se cambió ningún dato; puede haber quedado ahí una base de datos vacía. Se repite sobre la cola 5.2, que conserva los 9 fallos |
 | 5.3 `--playlist` | **pasa** | `queue-5.3.log` (código 0) | El job del video con `&list=` sin `--playlist` resolvió solo el video y quedó `SKIPPED` por duplicado (la playlist, encolada antes, ya lo tenía); con `--playlist`, la lista entera (15 entradas, todas `SKIPPED`). **UC-04 A2 entre playlists distintas**: "Functions (review)", en dos playlists, se descargó una vez (job 22) y la otra copia quedó `SKIPPED` (job 24). Las 9 descargas que fallaron por red en 5.2 terminaron bien, entre ellas la del título con emojis |
 | 5.4 `--keep-waiting` | **pasa** (falta confirmar en la evidencia que la playlist se encoló con `run` ya esperando) | `queue-5.4.log` (código 0) | `run --keep-waiting` tomó la playlist encolada desde otra ventana, la descargó y siguió esperando; un `Ctrl+C` terminó con código 130 |
 
 | Id | Paso | Origen | Gravedad | Descripción | Estado |
 |---|---|---|---|---|---|
-| T42-D9 | 5.6 | *Procedimiento de validación* | Mayor | `Invoke-ValidationSuites` borra las variables de la cola para las pruebas y no las restablecía: las órdenes siguientes del programa usaron la carpeta real del usuario. El guion pedía volver a la cola 5.2 sin dar una forma de hacerlo | Corregido: las suites restablecen la cola activa, y `Use-ValidationQueue "<bloque>"` vuelve a una cola ya creada (también para la segunda ventana de 5.4, 5.5 y 5.7). **Pendiente de confirmar en Windows** |
+| T42-D9 | 5.6 | *Procedimiento de validación* | Menor | `Invoke-ValidationSuites` borra las variables de la cola para las pruebas y no las restablecía: las órdenes siguientes del programa usaron la carpeta de estado por omisión (`state\` del clon), fuera de la evidencia; en un clon de uso real habría sido la cola del usuario. El guion pedía volver a la cola 5.2 sin dar una forma de hacerlo | Corregido: las suites restablecen la cola activa, y `Use-ValidationQueue "<bloque>"` vuelve a una cola ya creada (también para la segunda ventana de 5.4, 5.5 y 5.7). **Pendiente de confirmar en Windows** |
 
 ### Pendiente en Windows tras esta ejecución
 
