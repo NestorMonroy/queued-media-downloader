@@ -114,7 +114,13 @@ def open_worker_pool(
     try:
         yield worker_pool
     finally:
-        worker_pool.shut_down()
+        try:
+            worker_pool.shut_down()
+        except KeyboardInterrupt:
+            # Segundo Ctrl+C mientras los workers terminaban por su cuenta: se
+            # termina su árbol sin esperar, nunca se deja un worker vivo.
+            worker_pool.shut_down(immediately=True)
+            raise
 
 
 def output_claims_directory(settings: Settings) -> Path:

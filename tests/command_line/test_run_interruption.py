@@ -119,3 +119,32 @@ def test_run_keep_waiting_takes_jobs_enqueued_from_another_terminal(
     assert still_waiting
     assert "Job 1: completed" in output
     assert run.returncode == INTERRUPTION_EXIT_CODE
+
+
+def test_more_ctrl_c_while_stopping_at_once_are_ignored(
+    local_media_server: str,
+    state_directory: Path,
+    tmp_path: Path,
+    read_stored_job: Callable[[int], Job],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Un User impaciente: Ctrl+C repetidos no deben cortar el apagado a medias
+    # ni dejar una traza; el job y su parcial siguen para la próxima vez.
+    monkeypatch.setenv("QUEUED_MEDIA_DOWNLOADER_CANCELLATION_GRACE_SECONDS", "60")
+    main(["enqueue", f"{local_media_server}/{SLOW_MEDIA_NAME}"])
+    monkeypatch.setenv("QUEUED_MEDIA_DOWNLOADER_PROGRESS_INTERVAL_SECONDS", "30")
+    run = start_run(state_directory)
+    partial_path = wait_for_partial_file(tmp_path / "downloads")
+
+    for _ in range(6):
+        run.send_signal(signal.SIGINT)
+        time.sleep(0.05)
+    output, _ = run.communicate(timeout=WAIT_TIMEOUT_SECONDS)
+
+    assert run.returncode == INTERRUPTION_EXIT_CODE
+    assert "Traceback" not in output
+    assert read_stored_job(1).status is JobStatus.RUNNING
+    assert partial_path.stat().st_size > 0
+    monkeypatch.delenv("QUEUED_MEDIA_DOWNLOADER_PROGRESS_INTERVAL_SECONDS")
+    assert main(["run"]) == 0
+    assert read_stored_job(1).status is JobStatus.COMPLETED
