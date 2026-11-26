@@ -1,0 +1,12 @@
+#!/bin/sh
+# queued-media-downloader git hook: pre-push.
+# Instalado con `uv run python -m scripts.git_hooks install`; sustituye al
+# stub de Git LFS y lo encadena. Cada paso termina el hook con su propio
+# código si falla. En cada tubería, el comando que decide es el último, cuyo
+# código es el de la tubería; printf solo reenvía las referencias leídas.
+command -v uv >/dev/null 2>&1 || { echo >&2 "pre-push: uv not found; push refused"; exit 2; }
+command -v git-lfs >/dev/null 2>&1 || { echo >&2 "pre-push: git-lfs not found; push refused (the repository stores ffmpeg in Git LFS)"; exit 2; }
+refs=$(cat)
+if [ -n "$refs" ]; then printf '%s\n' "$refs"; fi | uv run --quiet python -m scripts.git_hooks pre-push "$@" || exit $?
+if [ -n "$refs" ]; then printf '%s\n' "$refs"; fi | git lfs pre-push "$@" || exit $?
+exit 0

@@ -150,6 +150,7 @@ Todos funcionan desde un clon del repositorio, sin herramientas externas al proy
 | `scripts/run_checks.py` | Las seis comprobaciones con stop-on-error y el código de salida real de cada una | Reutilizable, cualquier sistema |
 | `scripts/check_requirements_model.py` | Enlaces, identificadores y matriz de completitud del modelo de requisitos; cobertura y estados de la realización de los casos de uso y de su aplicabilidad por plataforma (Parte 3 del diseño); cobertura del plan de E3: cada flujo pendiente con una sola unidad, grafo de unidades sin ciclos, reglas y suplementarios pendientes con estrategia (consistencia documental, no evidencia de implementación); `--write` regenera la matriz | Reutilizable, cualquier sistema |
 | `scripts/check_commit_message.py` | Convenciones de los mensajes de commit | Reutilizable, cualquier sistema |
+| `scripts/git_hooks.py` y `scripts/hooks/` | Hooks `commit-msg` (el validador decide si Git crea el commit) y `pre-push` (mensajes de los commits nuevos, HEAD publicado, árbol limpio, las seis comprobaciones y después Git LFS); `install` y `check` | Reutilizable, cualquier sistema con `sh` (Git for Windows lo incluye) |
 | `scripts/windows/validation_campaign.ps1` | Ejecuciones de la validación en Windows identificadas por commit, colas aisladas y evidencia | Reutilizable, Windows |
 | `scripts/experiments/process_tree_termination.py` | Experimento de terminación de árboles de procesos (T33, ADR-0029), que la validación repite en Windows | Experimento; sus resultados históricos están en `doc/notes/experiments/` |
 | `scripts/experiments/requirements_qualification.py` | Experimentos de cualificación de decisiones de requisitos (reintentos de yt-dlp, copia de SQLite, cadena de causas) | Experimento; resultados en `doc/notes/experiments/requirements-qualification.md` |
@@ -158,11 +159,25 @@ Todos funcionan desde un clon del repositorio, sin herramientas externas al proy
 
 ### Mensajes de commit
 
-Estilo de Tim Pope, en inglés: asunto en imperativo de 50 caracteres como máximo, con mayúscula y sin punto final; una línea en blanco; cuerpo que explica qué y por qué, con líneas de 72 caracteres como máximo. Antes de cada commit:
+Estilo de Tim Pope, en inglés: asunto en imperativo de 50 caracteres como máximo, con mayúscula y sin punto final; una línea en blanco; cuerpo que explica qué y por qué, con líneas de 72 caracteres como máximo. El hook `commit-msg` lo comprueba en cada commit; también se puede comprobar a mano:
 
 ```text
 uv run python scripts/check_commit_message.py RUTA_DEL_MENSAJE
 ```
+
+### Procedimiento de commit y publicación (stop-on-error)
+
+1. **Una vez por clon:** `uv run python -m scripts.git_hooks install`. Git no instala hooks al clonar; `uv run python -m scripts.git_hooks check` termina con 1 si faltan o están desactualizados. El instalador sustituye el stub de Git LFS por el `pre-push` del proyecto, que lo encadena, y no sobrescribe ningún otro hook ajeno.
+2. **Commit:** el hook `commit-msg` valida el mensaje tal como Git lo guardará; si no cumple, Git no crea el commit y HEAD no cambia.
+3. **Publicación:** `git push`. El hook `pre-push` rechaza la publicación si algún commit nuevo tiene un mensaje inválido (también los creados sin hook), si lo publicado no es el HEAD verificado, si el árbol de trabajo tiene cambios o si `scripts/run_checks.py` falla; después ejecuta el hook de Git LFS. Cada paso termina con su propio código.
+4. **Prohibido:** `--no-verify`, push forzado y reescritura de `main`.
+5. **Secuencias manuales:** el comando cuyo código decide si se continúa no puede ir seguido de una tubería, porque una tubería devuelve el código de su **último** comando (`validador | tail -1 && git commit` continúa aunque el validador falle). Se ejecuta directamente, o con `set -o pipefail`, o se guarda su salida en un archivo y se comprueba `$?` antes de resumirla:
+
+```text
+uv run python scripts/run_checks.py > checks.log 2>&1; code=$?; tail -8 checks.log; [ "$code" -eq 0 ] || exit "$code"
+```
+
+**Incumplimiento histórico corregido:** el commit `46b897e` se publicó con dos líneas de cuerpo de 73 caracteres. La causa comprobada fue doble: no existía ningún hook `commit-msg` (solo los stubs de Git LFS en `.git/hooks`), y el validador se ejecutó como `check_commit_message.py ... | tail -1 && git commit`, de modo que `&&` evaluó el código de `tail`. El commit se conserva sin reescribir; las pruebas negativas de `tests/test_git_hooks.py` demuestran la corrección.
 
 ### Estados del producto: cinco conceptos distintos
 

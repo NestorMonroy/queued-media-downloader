@@ -1,0 +1,9 @@
+#!/bin/sh
+# queued-media-downloader git hook: commit-msg.
+# Instalado con `uv run python -m scripts.git_hooks install`. El código de
+# salida del validador decide si Git crea el commit; nada lo enmascara.
+if command -v uv >/dev/null 2>&1; then
+  exec uv run --quiet python -m scripts.git_hooks commit-msg "$1"
+fi
+echo >&2 "commit-msg: uv not found; the commit message cannot be validated"
+exit 2
