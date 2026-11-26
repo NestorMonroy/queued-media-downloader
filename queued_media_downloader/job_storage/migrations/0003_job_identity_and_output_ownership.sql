@@ -52,6 +52,22 @@ CREATE TABLE job_requests_new (
 
 INSERT INTO jobs_new SELECT * FROM jobs;
 
+-- E1 pudo dejar dos jobs con el mismo archivo final (R-14): el segundo lo tomó
+-- por "ya descargado". El archivo es del primero, el de id menor; los demás
+-- pasan a FAILED (reintentables) y liberan el archivo para que el índice
+-- unique_output_path pueda crearse y la cola se siga abriendo.
+UPDATE jobs_new
+SET status = 'FAILED',
+    failure_reason = 'FILESYSTEM',
+    failure_message = 'output file ' || output_path || ' belongs to job '
+        || (SELECT min(owner.id) FROM jobs_new AS owner
+            WHERE owner.output_path = jobs_new.output_path)
+        || '; use an output template that keeps %(id)s',
+    output_path = NULL
+WHERE output_path IS NOT NULL
+  AND id > (SELECT min(owner.id) FROM jobs_new AS owner
+            WHERE owner.output_path = jobs_new.output_path);
+
 INSERT INTO job_requests_new SELECT * FROM job_requests;
 
 -- Los ids más altos no deben volver a usarse aunque se borren después.

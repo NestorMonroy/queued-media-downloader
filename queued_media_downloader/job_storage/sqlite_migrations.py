@@ -35,7 +35,15 @@ def apply_migrations(connection: sqlite3.Connection) -> None:
         if migration.number > current_version:
             # executescript confirma cualquier transacción abierta; BEGIN y
             # COMMIT explícitos hacen atómicos el script y el cambio de versión.
-            connection.executescript(
-                f"BEGIN;\n{migration.script}\n"
-                f"PRAGMA user_version = {migration.number};\nCOMMIT;"
-            )
+            try:
+                connection.executescript(
+                    f"BEGIN;\n{migration.script}\n"
+                    f"PRAGMA user_version = {migration.number};\nCOMMIT;"
+                )
+            except BaseException:
+                # Si una sentencia falla, executescript se detiene con la
+                # transacción abierta: se deshace para que la base de datos
+                # quede en la última versión completa, no a medio migrar.
+                if connection.in_transaction:
+                    connection.rollback()
+                raise

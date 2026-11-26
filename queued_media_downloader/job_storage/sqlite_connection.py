@@ -20,7 +20,13 @@ CONNECTION_PRAGMAS = (
 def open_database(database_path: Path) -> sqlite3.Connection:
     """Abre la base de datos, aplica los PRAGMAs y deja el esquema al día."""
     connection = sqlite3.connect(database_path)
-    for pragma in CONNECTION_PRAGMAS:
-        connection.execute(pragma)
-    apply_migrations(connection)
+    try:
+        for pragma in CONNECTION_PRAGMAS:
+            connection.execute(pragma)
+        apply_migrations(connection)
+    except BaseException:
+        # Sin cerrar, la conexión retendría el archivo (en Windows impide
+        # moverlo o borrarlo) hasta que el recolector la libere.
+        connection.close()
+        raise
     return connection

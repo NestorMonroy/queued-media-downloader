@@ -180,3 +180,118 @@ def test_two_jobs_cannot_own_the_same_output_file(
         connection.execute(
             "UPDATE jobs SET output_path = 'downloads/video.mp4' WHERE id = 2"
         )
+
+
+def test_upgrading_from_version_1_keeps_every_job_and_its_links(tmp_path: Path) -> None:
+    database_path = tmp_path / "queue.sqlite3"
+    version_1 = sqlite3.connect(database_path)
+    version_1.executescript(f"{load_migrations()[0].script}\nPRAGMA user_version = 1;")
+    version_1.execute(INSERT_DOWNLOAD, ("Youtube", "abc", '{"audio_only": false}'))
+    version_1.execute(INSERT_DOWNLOAD, ("Youtube", "def", '{"audio_only": true}'))
+    version_1.execute("UPDATE jobs SET parent_id = 1 WHERE id = 2")
+    version_1.commit()
+    before = version_1.execute("SELECT * FROM jobs ORDER BY id").fetchall()
+    version_1.close()
+
+    migrated = open_database(database_path)
+    after = migrated.execute("SELECT * FROM jobs ORDER BY id").fetchall()
+    indexes = {row[1] for row in migrated.execute("PRAGMA index_list(jobs)").fetchall()}
+    foreign_key_problems = migrated.execute("PRAGMA foreign_key_check").fetchall()
+    schema_version = pragma(migrated, "user_version")
+    migrated.close()
+
+    assert schema_version == LATEST_SCHEMA_VERSION
+    assert after == before
+    assert foreign_key_problems == []
+    assert {
+        "jobs_by_status",
+        "jobs_by_parent",
+        "unique_active_download_per_media",
+        "unique_output_path",
+    } <= indexes
+
+
+def test_migration_3_releases_a_file_claimed_twice_by_version_2_jobs(
+    tmp_path: Path,
+) -> None:
+    # E1 (riesgo R-14) pudo dejar dos jobs COMPLETED con el mismo archivo: el
+    # segundo lo tomó por "ya descargado". El archivo es del primero.
+    database_path = tmp_path / "queue.sqlite3"
+    version_2 = database_at_version_2(database_path)
+    version_2.execute(INSERT_DOWNLOAD, ("Youtube", "abc", '{"audio_only": false}'))
+    version_2.execute(INSERT_DOWNLOAD, ("Youtube", "def", '{"audio_only": false}'))
+    version_2.execute(
+        "UPDATE jobs SET status = 'COMPLETED', output_path = '/downloads/same.mp4'"
+    )
+    version_2.commit()
+    version_2.close()
+
+    migrated = open_database(database_path)
+    rows = migrated.execute(
+        "SELECT id, status, output_path, failure_reason, failure_message"
+        " FROM jobs ORDER BY id"
+    ).fetchall()
+    migrated.close()
+
+    assert rows[0] == (1, "COMPLETED", "/downloads/same.mp4", None, None)
+    assert rows[1][:4] == (2, "FAILED", None, "FILESYSTEM")
+    assert "/downloads/same.mp4" in rows[1][4]
+    assert "job 1" in rows[1][4]
+
+
+class ClosingSpy:
+    """Envuelve una conexión real para saber si open_database la cerró."""
+
+    def __init__(self, connection: sqlite3.Connection) -> None:
+        self.connection = connection
+        self.closed = False
+
+    def __getattr__(self, name: str) -> object:
+        return getattr(self.connection, name)
+
+    def close(self) -> None:
+        self.closed = True
+        self.connection.close()
+
+
+def test_a_failing_migration_leaves_the_database_as_it_was_and_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from queued_media_downloader.job_storage import sqlite_migrations
+
+    database_path = tmp_path / "queue.sqlite3"
+    version_2 = database_at_version_2(database_path)
+    version_2.execute(INSERT_DOWNLOAD, ("Youtube", "abc", '{"audio_only": false}'))
+    version_2.commit()
+    before = version_2.execute("SELECT * FROM jobs").fetchall()
+    version_2.close()
+    failing = sqlite_migrations.Migration(
+        number=3, script="CREATE TABLE half_done (x);\nSELECT * FROM missing_table;"
+    )
+    real_migrations = sqlite_migrations.load_migrations()[:2]
+    monkeypatch.setattr(
+        sqlite_migrations, "load_migrations", lambda: [*real_migrations, failing]
+    )
+    spies: list[ClosingSpy] = []
+    real_connect = sqlite3.connect
+
+    def connect_with_spy(path: Path) -> ClosingSpy:
+        spy = ClosingSpy(real_connect(path))
+        spies.append(spy)
+        return spy
+
+    monkeypatch.setattr(sqlite3, "connect", connect_with_spy)
+
+    with pytest.raises(sqlite3.OperationalError, match="missing_table"):
+        open_database(database_path)
+
+    monkeypatch.undo()
+    check = sqlite3.connect(database_path)
+    tables = {row[0] for row in check.execute("SELECT name FROM sqlite_master")}
+    after = check.execute("SELECT * FROM jobs").fetchall()
+    version = check.execute("PRAGMA user_version").fetchone()[0]
+    check.close()
+    assert spies[0].closed
+    assert version == 2
+    assert "half_done" not in tables
+    assert after == before
