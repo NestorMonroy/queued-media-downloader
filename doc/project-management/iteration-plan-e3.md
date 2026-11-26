@@ -450,7 +450,7 @@ El script del modelo lo comprueba. El criterio de aceptación es el del caso de 
 | UC-02 | A17 | U13 | Propuesto |
 | UC-05 | A10 | U13 | Propuesto |
 | UC-10 | A7 | U13 | Propuesto |
-| UC-14 | A7, A8, E2 | U13 | Propuesto |
+| UC-14 | A7, A8, A9, E2 | U13 | Propuesto |
 | UC-21 | A10 | U13 | Propuesto |
 | UC-29 | Básico, A1, A2, A3, A4, E1, E2 | U13 | Propuesto |
 | UC-30 | Básico, A1, A2, A3, A4, A5, A6, A7, A8, E1, E2, E3 | U14 | Propuesto |
@@ -458,6 +458,7 @@ El script del modelo lo comprueba. El criterio de aceptación es el del caso de 
 | UC-02 | A15, A16, E1 | U15 | Propuesto |
 | UC-25 | A7, A8, A9, A10, E4 | U15 | Propuesto |
 | UC-18 | A8, A9 | U6 | Propuesto |
+| UC-19 | A11 | U6 | Propuesto |
 | UC-20 | A8, A9, A10 | U16 | Propuesto |
 | UC-32 | Básico, A1, A2, A3, A4, A5, E1, E2, E3 | U16 | Propuesto |
 <!-- e3-coverage:end -->
@@ -531,12 +532,12 @@ No se crean etiquetas ni se inicia otra campaña durante E3.
 
 | Unidad | Responsabilidad | Requisitos | Migración | Pruebas |
 |---|---|---|---|---|
-| U13 | Orden, elegibilidad, pausa de un job, selecciones y modificación de jobs pendientes | UC-14 A7, A8, E2; UC-02 A17; UC-05 A10; UC-10 A7; UC-21 A10; UC-29; BR-46, BR-47 | Columnas de orden, pausa, hora de inicio y procedencia en jobs, con valores por defecto que conservan el comportamiento actual | Envío con jobs no elegibles y prioridades iguales; orden tras reinicio; modificación concurrente con el envío |
+| U13 | Orden, elegibilidad, pausa de un job, selecciones, acción al terminar y modificación de jobs pendientes | UC-14 A7, A8, A9, E2; UC-02 A17; UC-05 A10; UC-10 A7; UC-21 A10; UC-29; BR-46, BR-47 | Columnas de orden, pausa, hora de inicio y procedencia en jobs, con valores por defecto que conservan el comportamiento actual | Envío con jobs no elegibles y prioridades iguales; orden tras reinicio; modificación concurrente con el envío |
 | U14 | Suscripciones y contenido nuevo | UC-30, UC-31; BR-50 | Tablas nuevas de suscripción y contenido conocido, sin tocar las de jobs | Fuente simulada que publica, retira y falla; consulta programada sin duplicados |
 | U15 | Solicitudes externas y acceso a resultados | UC-02 A15, A16, E1; UC-25 A7 a A10, E4; BR-48, BR-52; SUP-I06 | Ninguna | Adaptador con texto de una, varias y ninguna URL; exportación verificada sin mover la reclamación |
 | U16 | Datos de la aplicación, privacidad y actualización | UC-20 A8 a A10; UC-32; BR-49, BR-51; SUP-D02, SUP-C12 | Ninguna para la privacidad; la actualización reutiliza las migraciones existentes (SUP-C10) | Almacenes vacíos tras jobs privados; recuperación de un job privado interrumpido; canal simulado |
 
-- **Asignadas a unidades existentes:** UC-18 A8 y A9 (patrones de URL e idioma en el perfil) van en U6, porque el perfil ya está allí; SUP-U06 también.
+- **Asignadas a unidades existentes:** UC-18 A8 y A9 (patrones de URL e idioma en el perfil) y UC-19 A11 (usuario y contraseña del sitio) van en U6, porque los perfiles y el almacén de credenciales ya están allí; SUP-U06 también.
 - **Sin unidad:** SUP-C11 (nombres de archivo portables) es una propiedad transversal de U3, que crea los nombres y las reclamaciones; SUP-C13 (condiciones técnicas de Google Play) y R-36 no son de E3: aplican solo si se elige ese canal.
 - **Prioridad de las propuestas:** U13 es la que conviene decidir antes de empezar E3, porque toca la identidad (U3) y la admisión (U7); decidirla tarde supondría rehacer esas migraciones. U14 a U16 pueden aprobarse después sin retrabajo, porque solo añaden tablas o adaptadores.
 - **Tareas T52 a T67:** no cambian. Ninguna duplica una propuesta; T-ids nuevos solo se crearán al aprobar las unidades.

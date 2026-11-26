@@ -1612,7 +1612,7 @@ El descubrimiento funcional ([análisis de requisitos, §15](../requirements/req
 | Progreso | Sin cambio: las etapas ya se exponen en la observación (§5.3); las referencias confirman la necesidad (Open Video Downloader `media_progress_stage`) | — |
 | Errores | Ampliación del catálogo con las restricciones que distingue NewPipeExtractor (de pago, privado, de miembros, cuenta cerrada, confirmación de no-bot) | Catálogo de condiciones de fallo |
 | Capacidades | Recepción de solicitudes externas, apertura y compartición de resultados, disparador de emergencia | SUP-I06; UC-02 A15, UC-25 A7 a A9, UC-20 A10 |
-| Configuración y perfiles | Patrones de URL y preferencias de idioma en el perfil; modo privado | UC-18 A8, A9; UC-20 A8; SUP-U06 |
+| Configuración y perfiles | Patrones de URL y preferencias de idioma en el perfil; usuario y contraseña del sitio por referencia al almacén; modo privado, global o por job; acción al terminar la cola | UC-18 A8, A9; UC-19 A11; UC-20 A8; UC-14 A9; SUP-U06 |
 
 Las interfaces futuras siguen sin interpretar la salida de texto: todo lo anterior se expone con el contrato estructurado (SUP-I01, ADR-0032).
 
@@ -1639,6 +1639,7 @@ Para las suscripciones (UC-30, UC-31), el contenido conocido se identifica con l
 - ADR-0032 (motor reutilizable), ADR-0033 (identidad y referencias de almacenamiento) y ADR-0034 (coordinación única con ejecución intercambiable).
 - **Aclaración de ADR-0034:** la evidencia muestra ventajas de la ejecución aislada en procesos (cancelación de operaciones bloqueadas, descendientes, fallos nativos). No demuestra que el pool persistente sea superior a cualquier otra modalidad aislada: la opción B (un proceso por job) también cumplía los requisitos obligatorios. El pool se conserva como mecanismo de escritorio por continuidad y coste de migración, no por exclusividad.
 - No se introduce `asyncio` ni se sustituyen yt-dlp, FFmpeg o deno.
+- **Android (historial de Ghost-Downloader-3):** esa referencia pasó de PySide6 con python-for-android (retirado el 2026-09-08) a Chaquopy, y conserva ffmpeg en `nativeLibraryDir`. Su ADR-0005 borrado ejecutaba binarios descargados mediante `linker64`; no se adopta, porque elude la restricción de ejecución del sistema (R-35). Sigue vigente lo de §15: ejecutables incluidos en el paquete y cualificados en dispositivo.
 
 ### 17.5 Clean Code y principios de nombres
 

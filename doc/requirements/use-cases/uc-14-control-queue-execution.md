@@ -7,7 +7,7 @@
 - **Significativo para la arquitectura:** no (reutiliza las job requests de UC-05 y la interrupción de UC-05 A6)
 - **Estado:** aceptado (Responsable, 2026-11-26). Implementación: ausente (la interrupción con `Ctrl+C` de UC-05 A6 sí existe). Condición técnica: D-6.
 - **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
-- **Propuestas pendientes de aprobación (2.5.0):** A7, A8 y E2, marcadas como propuestas; [análisis de requisitos, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
+- **Propuestas pendientes de aprobación (2.5.0):** A7, A8, A9 y E2, marcadas como propuestas; [análisis de requisitos, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
 - **Origen:**
   - referencias: Seal (estados reanudables de sus tareas) y la interfaz gráfica futura que reutilizará el motor ([visión](../vision.md));
   - análisis de continuidad: [análisis de requisitos, §7](../requirements-analysis.md#7-continuidad-reintentos-y-recuperación).
@@ -40,6 +40,7 @@
 - **A6. `list` y `show` durante la pausa** `[estado: ausente]` (UC-08, UC-09): indican que la cola está en pausa.
 - **A7. Pausar o reanudar un job concreto** `[estado: ausente; propuesto]` (paso 1): el User pausa un job pendiente o activo sin pausar la cola. Uno activo se interrumpe como en A1 y conserva sus parciales; el job pausado deja de ser elegible hasta que el User lo reanuda. Evidencia: NewPipe (`pauseMission` y `resumeMission` en `DownloadManager`) y VidBee (estado `paused`; `:download pause <id> --reason` en su CLI de `d483045`); [análisis, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
 - **A8. Cambiar el orden de ejecución** `[estado: ausente; propuesto]` (paso 1): el User mueve un job pendiente al principio, al final o a una posición de la cola. El orden se conserva tras un reinicio y solo decide entre jobs elegibles ([BR-46](../business-rules.md)). Evidencia: YTDLnis (`queueOrder`, `putAtTopOfQueue`, `putQueueDownloadAtPosition`) y VidBee (prioridad por procedencia con orden de llegada como desempate).
+- **A9. Acción del equipo al terminar la cola** `[estado: ausente; propuesto]` (paso 6): el User elige qué hacer cuando `run` termina sin jobs pendientes: nada, cerrar la interfaz, bloquear, suspender o apagar el equipo. La acción solo se ejecuta si ningún job quedó aplazado o en pausa, avisa antes con un plazo para cancelarla y no aplica en móvil (variación de plataforma). Evidencia: Open Video Downloader, versión Electron (`modules/DoneAction.js`, borrado en `1f81e84`); [análisis, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
 
 ## Excepciones
 

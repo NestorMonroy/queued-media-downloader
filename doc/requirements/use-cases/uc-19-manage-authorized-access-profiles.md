@@ -11,6 +11,7 @@
 - **Significativo para la arquitectura:** sí: ciclo de vida de credenciales, aislamiento por worker y limpieza tras un cierre
 - **Estado:** aceptado (Responsable, 2026-11-26). Implementación: ausente. Condiciones técnicas: D-1 y D-7; la lectura de cookies del navegador (A10) queda condicionada.
 - **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
+- **Propuestas pendientes de aprobación (2.5.0):** A11, marcada como propuesta; [análisis de requisitos, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
 - **Origen:**
   - análisis del acceso, [§7.4](../requirements-analysis.md#74-acceso-proxy-y-cookies-en-una-cola-persistente);
   - VoiceStudio y VoiceBlueprintPro: `cookies.txt` efímero;
@@ -47,6 +48,7 @@ Un perfil de acceso tiene un nombre, los sitios a los que se aplica y una refere
 - **A8. Cierre inesperado:** `[estado: ausente]` las copias temporales que queden se borran al arrancar `run` (UC-06), antes de enviar ningún job.
 - **A9. Cancelación:** `[estado: ausente]` como el paso 5.
 - **A10. Cookies del navegador** `[estado: ausente; condicionado]` (condición técnica de D-1: las cookies `v20` de Chrome y Edge no se descifran en Windows; requiere evidencia en Windows): el perfil indica el navegador y el perfil del navegador. El sistema informa de las limitaciones conocidas en Windows.
+- **A11. Usuario y contraseña del sitio** `[estado: ausente; propuesto]` (paso 1): el perfil referencia, por nombre, un usuario y una contraseña del almacén de credenciales del sistema, para los sitios cuyo extractor de yt-dlp admite inicio de sesión (`username` y `password`). La contraseña nunca se guarda en el perfil ni aparece en logs, exportaciones o diagnósticos (BR-34, BR-35). Si el extractor no admite inicio de sesión, el sistema lo informa y propone cookies (A10). Evidencia: Parabolic (credenciales con nombre en un llavero cifrado; su documentación indica que YouTube no lo admite; `newDownload.page` y `keyring.page`, borradas en `7cbeb47b`); [análisis, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
 
 ## Excepciones
 

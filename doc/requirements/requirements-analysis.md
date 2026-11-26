@@ -1422,7 +1422,7 @@ La cobertura de T52 a T67 se reconcilia en el [plan de E3](../project-management
 |---|---|
 | 10.18 Document Analysis | Lectura de manifiestos, recursos, preferencias, README y políticas oficiales, con su localizador en §15.4 |
 | 10.4 Benchmarking and Market Analysis | Inventario de capacidades de diez referencias antes de compararlas con el modelo (dirección B, §15.4) |
-| 10.22 Functional Decomposition | Capacidad → responsabilidad → operación → objetivo, para normalizar 166 evidencias en 85 capacidades (§15.6) |
+| 10.22 Functional Decomposition | Capacidad → responsabilidad → operación → objetivo, para normalizar 191 evidencias en 94 capacidades (§15.6) |
 | 10.47 Use Cases and Scenarios | Prueba de independencia de cada candidato (§15.7): actor, objetivo, valor y relación con los casos aceptados |
 | 10.34 Process Analysis y 10.35 Process Modelling | Reconstrucción de los flujos L3 de §15.5 (conflicto de nombres, recuperación, observación de fuentes, duplicados, actualización) |
 | 10.44 State Modelling | Comparación de estados de job de las referencias (`MissionState`, `Status` de YTDLnis, `TaskStatus` de VidBee) con los nuestros; de ahí la pausa de un job y la elegibilidad |
@@ -1443,7 +1443,7 @@ La cobertura de T52 a T67 se reconcilia en el [plan de E3](../project-management
 2. `GreenTuber-example.7z` (entregado por el Responsable) se extrajo con py7zr; los APK no se instalaron ni se ejecutaron.
 3. Inventario por APK: manifiesto completo, cada recurso string resuelto por Resource ID con `get_resolved_res_configs`, pantallas de preferencias con valores predeterminados y admitidos, menús, navegación, clases y métodos de los paquetes propios en los DEX, y hash de cada asset. Diferencial por conjuntos entre 0.2.0.3 y 0.2.0.4.
 4. **Corrección de método:** `get_resolved_strings()` de androguard devuelve `None` para 1462 de los 1476 strings predeterminados de estos APK, porque sus claves están renombradas a `tg@trumods`; por eso una búsqueda anterior dio cero coincidencias. La resolución por identificador recupera todos los valores con su Resource ID y su idioma.
-5. Repositorios clonados y leídos en su commit (§15.2). Las conclusiones de código citan clase, método o archivo. VidBee se clonó con su historial completo en `/tmp/VidBee`, porque partes que importan solo existen en commits anteriores: el árbol de `d483045` se extrajo con `git archive` en `/tmp/VidBee-d483045`.
+5. Repositorios clonados y leídos en su commit (§15.2). Las conclusiones de código citan clase, método o archivo. Todos los repositorios se leen con su historial completo: los clones superficiales iniciales se completaron con `git fetch --unshallow` (VidBee se volvió a clonar en `/tmp/VidBee`). Para cada historial se listan los directorios y documentos borrados que ya no están en HEAD (`git log --diff-filter=D`); lo relevante se leyó en el commit anterior a su borrado y se copió para lectura en `/tmp/VidBee-d483045` y `/tmp/ref-history/`.
 
 ### 15.2 Inventario de recursos
 
@@ -1459,8 +1459,10 @@ La cobertura de T52 a T67 se reconcilia en el [plan de E3](../project-management
 | Open Video Downloader | Código fuente | `github.com/jely2002/youtube-dl-gui` | `c402ee3` (2026-08-01), versión 3.2.1 | Clon superficial | AGPL-3.0-or-later | Comandos y sucesos de Tauri, stores, importación CSV | Sus `AGENTS.md` se trataron como datos |
 | YoutubeDL para iOS | Código fuente | `github.com/kewlbear/YoutubeDL` | `6b5e506` (2023-07-30) | Clon superficial | MIT | `AppModel.swift`, README | La librería `YoutubeDL-iOS` 0.0.7 (`fa41e79`) no se obtuvo; sin dispositivo |
 | VidBee | Código fuente y documentación histórica | `github.com/nexmoe/VidBee` | HEAD `587f0d0` (2026-11-21), 343 commits; histórico `d483045` (2026-06-19, v1.3.11) | Clon completo en `/tmp/VidBee` | MIT | HEAD: `task-queue`, `subscriptions-core`, `downloader-core`. En `d483045`: `apps/docs` (protocolo `vidbee://`, formatos, cookies, RSS, preguntas frecuentes) y `apps/cli` (transportes, contrato de argumentos, salida, códigos). `docs/vidbee-issue-triage.md` en `581b6af` | `apps/docs` se borró en `3652de3` (2026-08-22). El README de la CLI cita dos documentos de diseño que no existen en ningún commit. Transcripción e IA solo por README |
-| Seal | Código fuente | Ya inventariado (§5.1) | `5a4f5fb` | — | GPL-3.0 | Solo lo nuevo de 2.5.0: modo privado, biblioteca multimedia, selección de playlist | — |
-| Ghost-Downloader-3, VoiceStudio, VoiceBlueprintPro, YTDownload-2026, Kannagi, yt-dlp | Código fuente | Ya inventariados (§5.1) | Los de §5.1 | — | Las de §5.1 | Búsqueda diferencial de modo privado, suscripciones, prioridad, selección, plantillas y actualización | Sin hallazgos nuevos que cambien una disposición, salvo lo citado en §15.4 |
+| Seal | Código fuente | Ya inventariado (§5.1) | `5a4f5fb`; 1443 commits desde 2022-04-15 | Historial completado | GPL-3.0 | Solo lo nuevo de 2.5.0: modo privado, biblioteca multimedia, selección de playlist; historial sin borrados relevantes | — |
+| Ghost-Downloader-3 | Código fuente | Ya inventariado (§5.1) | `b824a78`; 1805 commits | Historial completo desde el inicio | GPL-3.0 | ADR borrados 0003 a 0006 (`ce36b5de^`), `android/BUILD.md` (`9c176477^`), ADR-0038 y `app/platform/android.py` en HEAD | El Android con Qt y python-for-android se retiró el 2026-09-08; en HEAD el anfitrión es Chaquopy en un repositorio Android que no está aquí |
+| VoiceStudio | Código fuente | Ya inventariado (§5.1) | `d906140`; 8419 commits desde 2026-04-10 | Historial completado | AGPL-3.0 | `config/distributions.mjs` (HEAD); `docs/STORE-PUBLISHING-HANDOVER.md` y especificaciones de actualización borradas en `8ca40db62` | La disposición de Microsoft Store sobre actualizaciones de EXE es declarada por VoiceStudio, no verificada en la fuente oficial |
+| VoiceBlueprintPro, YTDownload-2026, Kannagi, yt-dlp | Código fuente | Ya inventariados (§5.1) | Los de §5.1; VoiceBlueprintPro y YTDownload-2026 con historial completo y sin borrados relevantes | — | Las de §5.1 | Búsqueda diferencial de modo privado, suscripciones, prioridad, selección, plantillas y actualización | Kannagi y el sdist de yt-dlp no tienen historial Git |
 | FFmpeg | Binarios | `vendor/ffmpeg` | n9.0.2-39 LGPL | Git LFS | LGPL | Sin cambios | El checkout de código de §5.1 ya no está en `/tmp` |
 | BABOK v3 | Documentación | Copia del Responsable (`/tmp/babok`) | — | PDF `66109762…` | IIBA | Índice: capítulos 5, 7 y 10 | — |
 | Políticas oficiales | Documentación | Google Play, Android Developers, Apple, Microsoft (§15.9) | Consultadas el 2026-11-26 | — | — | Disposiciones citadas en §15.9 | Sin lectura jurídica completa |
@@ -1569,7 +1571,7 @@ Cada fila es una evidencia, antes de normalizar. N-ID enlaza con la capacidad no
 | N75 | L1 | `REQUEST_INSTALL_PACKAGES`, `UPDATE_PACKAGES_WITHOUT_USER_ACTION`; `feature_updates` |
 | N69 | L1 | «Downloading %1$s%% of %2$s», «Waiting for install» |
 
-**YTDLnis** (43 evidencias)
+**YTDLnis** (44 evidencias)
 
 | N-ID | Nivel | Localizador |
 |---|---|---|
@@ -1616,8 +1618,9 @@ Cada fila es una evidencia, antes de normalizar. N-ID enlaza con la capacidad no
 | N55 | L1 | `recommendations_home` |
 | N80 | L1 | `display_over_apps` |
 | N79 | L1 | `ytdlnis_theme`, `high_contrast` |
+| N92 | L1 | `BUILD_PYTHON.md`, `BUILD_FFMPEG.md` (83055c0a^): Python y FFmpeg compilados con paquetes de Termux para youtubedl-android |
 
-**Parabolic** (11 evidencias)
+**Parabolic** (23 evidencias)
 
 | N-ID | Nivel | Localizador |
 |---|---|---|
@@ -1632,8 +1635,20 @@ Cada fila es una evidencia, antes de normalizar. N-ID enlaza con la capacidad no
 | N22 | L2 | `DownloadStatus`: Queued, Running, Paused, Stopped, Error, Success |
 | N69 | L2 | Eventos `DownloadAdded`, `DownloadProgressChanged`, `DownloadCompleted` |
 | N06 | L2 | `AddDownloadDialogController`, `DiscoveryService` |
+| N01 | L1 | `docs/yelp/C/newDownload.page` (7cbeb47b^): archivo por lotes `URL | carpeta | nombre` tratado como una playlist |
+| N04 | L1 | `newDownload.page` (7cbeb47b^): pega la URL del portapapeles al abrir el diálogo |
+| N86 | L1 | `newDownload.page` y `keyring.page` (7cbeb47b^): usuario y contraseña por descarga, credenciales con nombre en un llavero (SQLCipher y el gestor de credenciales del sistema); YouTube no lo admite |
+| N36 | L1 | `newDownload.page` (7cbeb47b^): «Exclude from History» por descarga |
+| N48 | L1 | `newDownload.page` (7cbeb47b^): «Write M3U Playlist File» |
+| N87 | L1 | `newDownload.page` (7cbeb47b^): recuerda tipo, formatos, subtítulos y carpeta de la descarga anterior |
+| N29 | L1 | `downloads.page` (7cbeb47b^): «Overwrite Existing Files», activado por defecto |
+| N15 | L1 | `downloads.page` (7cbeb47b^): limitar los nombres a los caracteres de Windows (solo en Linux) |
+| N14 | L1 | `downloads.page` (7cbeb47b^): incluir el id del contenido en el título |
+| N41 | L1 | `downloader.page` (7cbeb47b^): cookies del navegador no disponibles en plataformas confinadas |
+| N88 | L1 | `converter.page` (7cbeb47b^): «Remove Source Data» (comment, description, synopsis, purl) |
+| N89 | L1 | `aria.page` (7cbeb47b^): aria2c en lugar del descargador de yt-dlp |
 
-**Open Video Downloader** (8 evidencias)
+**Open Video Downloader** (12 evidencias)
 
 | N-ID | Nivel | Localizador |
 |---|---|---|
@@ -1645,8 +1660,12 @@ Cada fila es una evidencia, antes de normalizar. N-ID enlaza con la capacidad no
 | N69 | L2 | Sucesos `media_progress`, `media_progress_stage`, `media_size` |
 | N01 | L1 | `url-import-test.csv` (título, URL, notas) |
 | N06 | L2 | Comandos `media_info`, `media_playlist_expand` |
+| N93 | L3 | `modules/DoneAction.js` (1f81e84^, versión Electron): suspender, bloquear, apagar, reiniciar o cerrar al terminar |
+| N27 | L3 | `modules/persistence/TaskList.js` (1f81e84^): guarda la cola y pregunta si restaurarla al abrir |
+| N94 | L2 | `modules/exceptions/errorDefinitions.json` (1f81e84^): 47 definiciones (DRM, solo incrustable, firewall, archivo en uso, 429…) |
+| N04 | L2 | `modules/ClipboardWatcher.js`, `AppUpdater.js` (1f81e84^) |
 
-**YoutubeDL para iOS** (6 evidencias)
+**YoutubeDL para iOS** (7 evidencias)
 
 | N-ID | Nivel | Localizador |
 |---|---|---|
@@ -1656,6 +1675,7 @@ Cada fila es una evidencia, antes de normalizar. N-ID enlaza con la capacidad no
 | N46 | L2 | `AppModel.share()` |
 | N62 | L1 | README: descarga el módulo yt-dlp de GitHub en tiempo de ejecución |
 | N44 | L3 | `--no-check-certificates` en los argumentos |
+| N77 | L1 | `helloworld/` (eedece7, 2020-11-19, «runs on device»): youtube_dl 2020.3.8 con Briefcase y Toga |
 
 **VidBee** (30 evidencias)
 
@@ -1701,6 +1721,23 @@ Cada fila es una evidencia, antes de normalizar. N-ID enlaza con la capacidad no
 | N01 | L2 | `PlaylistSelectionPage` |
 | N46 | L1 | Compartir resultados |
 
+**Ghost-Downloader-3** (5 evidencias)
+
+| N-ID | Nivel | Localizador |
+|---|---|---|
+| N90 | L1 | `docs/adr/0005-android-native-binary-exec-via-linker64.md` (ce36b5de^): Android 10+ solo ejecuta desde `nativeLibraryDir`; binarios descargados con `linker64`; ffmpeg incluido |
+| N92 | L1 | `android/BUILD.md` (9c176477^): PySide6 y python-for-android, Android 10 mínimo; receta `gd3ffmpeg` en `nativeLibraryDir`; parche de `onNewIntent` para compartir |
+| N61 | L2 | `docs/adr/0038-android-patch-uses-hdiffpatch.md` (HEAD): actualización de la app en Android por parches de HDiffPatch verificados por SHA-256 |
+| N20 | L2 | `app/platform/android.py` (HEAD): Chaquopy (`com.chaquo.python`), `nativeLibraryDir`, red no medida |
+| N02 | L1 | `chrome_extension` y `firefox_extension` (eliminadas en 8f6bd92e, 2026-03-24) |
+
+**VoiceStudio** (2 evidencias)
+
+| N-ID | Nivel | Localizador |
+|---|---|---|
+| N91 | L3 | `config/distributions.mjs` (HEAD): perfiles `direct`, `microsoft-store`, `snap-store`, `mac-app-store` con `applicationUpdates`, `runtimeCode`, `fileAccess`, `signing` |
+| N61 | L1 | `docs/STORE-PUBLISHING-HANDOVER.md` (8ca40db62^): en Snap y Mac App Store la tienda actualiza; en la Mac App Store el código de ejecución va incluido (`bundled-only`); feed de actualización propio por canal |
+
 ### 15.5 Flujos reconstruidos (L3)
 
 - **Conflicto de nombre al descargar (NewPipe, `DownloadDialog`):** Si ya hay una misión con el mismo archivo: terminada o pendiente → ofrece sobrescribir; en curso → ofrece generar un nombre único; ninguna, pero el archivo existe → ofrece sobrescribir el archivo ajeno o un nombre único. Nuestro UC-03 A7 nunca sobrescribe lo que el job no escribió (ADR-0030); la sobrescritura autorizada queda como D-22.
@@ -1709,6 +1746,8 @@ Cada fila es una evidencia, antes de normalizar. N-ID enlaza con la capacidad no
 - **Duplicados al encolar (YTDLnis, `DownloadQueueUtil`):** Con el archivo de descargas o con URL y tipo (más historial con archivo existente), el elemento se guarda con estado `Duplicate` para que el User decida. Nuestro modelo informa del duplicado sin crear otro job (BR-13): disposición parcial, sin flujo nuevo.
 - **Comprobación de actualizaciones (NewPipe, `NewVersionWorker`):** Solo si la instalación es la del canal propio (`isReleaseApk`): lee un JSON publicado, compara `version_code`, notifica y abre la URL del paquete en el navegador; no instala. Origen de UC-32 y BR-51.
 - **Modo privado (YTDLnis `DownloadWorker`; Seal `DownloadUtil`):** Con el modo activo, al terminar no se inserta historial (Seal y YTDLnis) ni se guarda el log del job (YTDLnis). Origen de UC-20 A8 y BR-49.
+- **Acción al terminar la cola (Open Video Downloader, `modules/DoneAction.js` de la versión Electron):** Al vaciarse la cola ejecuta la acción elegida por plataforma: en Windows, suspender (`powrprof.dll,SetSuspendState`), bloquear, apagar (`shutdown /s /f /t 0`) o reiniciar; también cerrar la aplicación o nada. Origen de UC-14 A9.
+- **Perfil de distribución (VoiceStudio, `config/distributions.mjs`):** Cada canal declara quién actualiza la aplicación (la aplicación o la tienda), la política de código en tiempo de ejecución (descarga iniciada por el User o solo incluido), el acceso a archivos y la firma; el canal se elige al compilar y un valor desconocido es un error. Origen de la ampliación de SUP-C12.
 - **Envío por prioridad (VidBee, `scheduler.ts`):** Montículo de listos ordenado por prioridad (User 0, suscripción 10, segundo plano 20) y por secuencia de llegada; al bajar el límite de concurrencia se degrada a `paused` el de menor prioridad. Origen de BR-46; la degradación no se adopta.
 
 Los elementos que no se pudieron determinar (por ejemplo, los valores predeterminados de las listas ofuscadas de GreenTuber o el comportamiento de `YoutubeDL-iOS`) figuran como desconocidos en la tabla de §15.4; no se completaron pasos.
@@ -1717,10 +1756,10 @@ Los elementos que no se pudieron determinar (por ejemplo, los valores predetermi
 
 | N-ID | Capacidad | Evidencias (referencia y nivel) | Disposición | Requisito canónico o motivo |
 |---|---|---|---|---|
-| N01 | Encolar una o varias URLs, también desde un archivo | Open Video Downloader L1; Parabolic L2; Seal L2 | Cubierta | UC-02 (A5) |
-| N02 | Solicitud de encolado desde otra aplicación (compartir, enlace, extensión, esquema propio) | GreenTuber L1; NewPipe L3; Parabolic L2; VidBee L0; VidBee L1; YTDLnis L1 | Nuevo alternativo | UC-02 A15, E1; BR-48; SUP-I06 |
+| N01 | Encolar una o varias URLs, también desde un archivo | Open Video Downloader L1; Parabolic L1; Parabolic L2; Seal L2 | Cubierta | UC-02 (A5) |
+| N02 | Solicitud de encolado desde otra aplicación (compartir, enlace, extensión, esquema propio) | Ghost-Downloader-3 L1; GreenTuber L1; NewPipe L3; Parabolic L2; VidBee L0; VidBee L1; YTDLnis L1 | Nuevo alternativo | UC-02 A15, E1; BR-48; SUP-I06 |
 | N03 | Acción recordada para las solicitudes externas («siempre» o «solo esta vez») | NewPipe L3 | Ampliar flujo | UC-02 A15 |
-| N04 | Sugerencia de encolado desde el portapapeles | Open Video Downloader L2; VidBee L1; YTDLnis L1 | Nuevo alternativo | UC-02 A16 |
+| N04 | Sugerencia de encolado desde el portapapeles | Open Video Downloader L2; Parabolic L1; VidBee L1; YTDLnis L1 | Nuevo alternativo | UC-02 A16 |
 | N05 | Encolar para más tarde sin que el job sea elegible | YTDLnis L3 | Nuevo alternativo | UC-02 A17 |
 | N06 | Inspeccionar y elegir formato o calidad por contenido | GreenTuber L2; Open Video Downloader L2; Parabolic L2; VidBee L2; YoutubeDL para iOS L3 | Cubierta | UC-15; UC-02 A9 |
 | N07 | Descarga inmediata con los valores predeterminados | VidBee L1; YTDLnis L1 | Cubierta | UC-02; UC-18 A5 |
@@ -1730,41 +1769,41 @@ Los elementos que no se pudieron determinar (por ejemplo, los valores predetermi
 | N11 | Subtítulos, miniatura, metadatos y descripción; letras incrustadas | GreenTuber L2; NewPipeExtractor L2; YTDLnis L1 | Parcial | UC-02 A7, UC-24; letras sin requisito (solo L1 en YTDLnis) |
 | N12 | Preferencia de pista de audio (original o idioma) | GreenTuber L1; NewPipeExtractor L2; YTDLnis L1 | Nuevo alternativo | UC-18 A9; SUP-U06 |
 | N13 | Idioma y país de consulta, distintos del idioma de la interfaz | GreenTuber L1; NewPipeExtractor L2; YTDLnis L1 | Nuevo suplementario | SUP-U06; vocabulario §1.2 |
-| N14 | Plantillas de nombre por tipo de resultado | VidBee L1; VidBee L2; YTDLnis L1 | Cubierta | UC-18 (plantilla en el perfil) |
-| N15 | Caracteres admitidos, carácter de reemplazo y longitud de los nombres | GreenTuber L1; YTDLnis L1 | Nuevo suplementario | SUP-C11 |
+| N14 | Plantillas de nombre por tipo de resultado | Parabolic L1; VidBee L1; VidBee L2; YTDLnis L1 | Cubierta | UC-18 (plantilla en el perfil) |
+| N15 | Caracteres admitidos, carácter de reemplazo y longitud de los nombres | GreenTuber L1; Parabolic L1; YTDLnis L1 | Nuevo suplementario | SUP-C11 |
 | N16 | Destino por tipo de contenido y «preguntar dónde guardar» | GreenTuber L1; VidBee L1; YTDLnis L1 | Parcial | UC-18 (destino del perfil); preguntar cada vez es variación de interfaz |
 | N17 | Concurrencia, hilos por descarga y cola de uno en uno | GreenTuber L1; NewPipe L2; VidBee L1; YTDLnis L1 | Cubierta | SUP-P; parámetros de concurrencia |
 | N18 | Límite de velocidad | YTDLnis L1 | Cubierta | BR-43; SUP-P06 |
 | N19 | Pausa entre descargas | YTDLnis L1 | Cubierta | Ritmo de peticiones (vocabulario); ADR-0031 |
-| N20 | Redes medidas o solo Wi-Fi | GreenTuber L1; NewPipe L3; YTDLnis L1 | Cubierta | UC-21 A9; UC-11 |
+| N20 | Redes medidas o solo Wi-Fi | Ghost-Downloader-3 L2; GreenTuber L1; NewPipe L3; YTDLnis L1 | Cubierta | UC-21 A9; UC-11 |
 | N21 | Pausar y reanudar un job concreto | Aptoide L1; NewPipe L3; VidBee L1; VidBee L2 | Nuevo alternativo | UC-14 A7 |
 | N22 | Pausar e iniciar toda la cola | NewPipe L3; Parabolic L2 | Cubierta | UC-14 |
 | N23 | Orden manual de la cola | YTDLnis L3 | Nuevo alternativo | UC-14 A8, E2; BR-46 |
 | N24 | Prioridad según la procedencia del job, con orden de llegada como desempate | VidBee L1; VidBee L3 | Nueva regla | BR-46; vocabulario (procedencia) |
 | N25 | Reintento con máximo configurable | GreenTuber L1; YTDLnis L1 | Cubierta | UC-07; parámetros |
 | N26 | Reintento programado según `Retry-After` | VidBee L2 | Cubierta | BR-41; ADR-0031 |
-| N27 | Recuperar descargas tras un cierre | NewPipe L3; Parabolic L2 | Cubierta | UC-06 |
+| N27 | Recuperar descargas tras un cierre | NewPipe L3; Open Video Downloader L3; Parabolic L2 | Cubierta | UC-06 |
 | N28 | Volver a resolver una URL caducada conservando el progreso | NewPipe L3 | Cubierta | UC-06 (A1, A2) |
-| N29 | Conflicto de nombre: sobrescribir o generar un nombre único | NewPipe L3 | Parcial | UC-03 A7; sobrescribir un archivo ajeno con autorización es D-22 |
+| N29 | Conflicto de nombre: sobrescribir o generar un nombre único | NewPipe L3; Parabolic L1 | Parcial | UC-03 A7; sobrescribir un archivo ajeno con autorización es D-22 |
 | N30 | Duplicados retenidos como jobs para que el User decida | YTDLnis L3 | Parcial | UC-03 A1 y UC-02 informan del duplicado; retener registros duplicados contradice BR-13 |
 | N31 | Programar un job concreto | YTDLnis L3 | Nuevo alternativo | UC-21 A10 |
 | N32 | Ventana horaria de la cola | YTDLnis L1 | Cubierta | UC-21 |
 | N33 | Cancelar o purgar una selección de jobs | Open Video Downloader L2; YTDLnis L2 | Nuevo alternativo | UC-05 A10; UC-10 A7 (reintentar varios ya es UC-07) |
 | N34 | Modificar jobs pendientes, también varios a la vez | YTDLnis L3 | Caso de uso candidato | UC-29; BR-47 |
 | N35 | Historial de descargas con retención | Parabolic L2; VidBee L1; YTDLnis L2 | Cubierta | UC-08, UC-10; D-21 |
-| N36 | Modo privado: sin historial ni logs de actividad | Seal L3; YTDLnis L3 | Nuevo alternativo | UC-20 A8; BR-49; SUP-D02 |
+| N36 | Modo privado: sin historial ni logs de actividad | Parabolic L1; Seal L3; YTDLnis L3 | Nuevo alternativo | UC-20 A8; BR-49; SUP-D02 |
 | N37 | Borrar caché, temporales e historiales por categoría | GreenTuber L1; YTDLnis L1 | Nuevo alternativo | UC-20 A9 |
 | N38 | Disparador de emergencia de otra aplicación | GreenTuber L2; NewPipe L3 | Nuevo alternativo | UC-20 A10 (Android) |
 | N39 | Exportar, importar y restablecer datos y ajustes | NewPipe L1; YTDLnis L2 | Cubierta | UC-23; UC-20 A2, A5; UC-18 A7 |
 | N40 | Credenciales guardadas cifradas | Open Video Downloader L2; Parabolic L2 | Cubierta | UC-19; SUP-SEC |
-| N41 | Cookies del navegador o inicio de sesión en una vista web | GreenTuber L1; VidBee L1; VidBee L2; YTDLnis L2 | Parcial | UC-19 A10; la vista web es variación de Android |
+| N41 | Cookies del navegador o inicio de sesión en una vista web | GreenTuber L1; Parabolic L1; VidBee L1; VidBee L2; YTDLnis L2 | Parcial | UC-19 A10; la vista web es variación de Android |
 | N42 | Proxy | YTDLnis L1 | Cubierta | D-7; BR-40 |
 | N43 | Tráfico de descarga por Tor | GreenTuber L0 | Cubierta | Proxy explícito de D-7; sin integración específica |
 | N44 | Desactivar la verificación de certificados o forzar IPv4 | YTDLnis L1; YoutubeDL para iOS L3 | Evidencia insuficiente | Sin necesidad sustentada; solo L1 y L3 sin justificación |
 | N45 | Abrir un resultado | NewPipe L2; VidBee L1 | Nuevo alternativo | UC-25 A7 |
 | N46 | Compartir resultados | Seal L1; YoutubeDL para iOS L2 | Nuevo alternativo | UC-25 A8; BR-52 |
 | N47 | Exportar una copia a otra ubicación o a la galería | YoutubeDL para iOS L2 | Nuevo alternativo | UC-25 A9, E4; BR-52 |
-| N48 | Exportar los resultados como lista M3U | Parabolic L2 | Nuevo alternativo | UC-25 A10 |
+| N48 | Exportar los resultados como lista M3U | Parabolic L1; Parabolic L2 | Nuevo alternativo | UC-25 A10 |
 | N49 | Registrar el resultado en la biblioteca multimedia del sistema | Seal L3; YTDLnis L3 | Variación de plataforma | Postcondición de UC-03 en Android e iOS |
 | N50 | Avisos de progreso, fin y error | NewPipe L2 | Cubierta | UC-28 |
 | N51 | Suscripciones a fuentes: alta, grupos, importación y exportación | GreenTuber L2; NewPipe L2; NewPipeExtractor L2; VidBee L1; VidBee L2; YTDLnis L3 | Caso de uso candidato | UC-30; BR-50 |
@@ -1777,7 +1816,7 @@ Los elementos que no se pudieron determinar (por ejemplo, los valores predetermi
 | N58 | Reproducción integrada, en segundo plano, en ventana, con cola y gestos | GreenTuber L2; NewPipe L2 | Evidencia insuficiente | Decisión estratégica pendiente D-23 |
 | N59 | Historial y posiciones de reproducción | GreenTuber L1; NewPipe L2 | Evidencia insuficiente | Depende de D-23 |
 | N60 | Colecciones y playlists locales; marcadores de playlists remotas | GreenTuber L2; NewPipe L2 | Evidencia insuficiente | Sin necesidad propia demostrada; UC-25 A10 cubre lo observado |
-| N61 | Actualizar la aplicación | GreenTuber L2; NewPipe L3; Open Video Downloader L2; VidBee L1; YTDLnis L2 | Caso de uso candidato | UC-32; BR-51; SUP-C12 |
+| N61 | Actualizar la aplicación | Ghost-Downloader-3 L2; GreenTuber L2; NewPipe L3; Open Video Downloader L2; VidBee L1; VoiceStudio L1; YTDLnis L2 | Caso de uso candidato | UC-32; BR-51; SUP-C12 |
 | N62 | Actualizar yt-dlp y los binarios | Open Video Downloader L2; YTDLnis L1; YoutubeDL para iOS L1 | Cubierta | UC-27 (condición de canal R-35) |
 | N63 | Perfil elegido según la URL | YTDLnis L3 | Nuevo alternativo | UC-18 A8 |
 | N64 | Comandos personalizados y terminal de yt-dlp | YTDLnis L1 | No aplicable | UC-18 A6 da opciones explícitas validadas |
@@ -1793,7 +1832,7 @@ Los elementos que no se pudieron determinar (por ejemplo, los valores predetermi
 | N74 | Servidor web y API con interfaz web | VidBee L1 | No aplicable | Fuera de las plataformas de la visión; consumidores programáticos con el contrato estructurado (ADR-0032) |
 | N75 | Instalar y actualizar otras aplicaciones (tienda) | Aptoide L1 | No aplicable | El producto no es una tienda (instrucción 2.5.0, §35) |
 | N76 | Modo restringido por edad como control predeterminado | GreenTuber L1 | No aplicable | Sin restricciones de contenido por defecto (2.5.0, §58); el acceso autorizado es UC-19 |
-| N77 | Unión y transcodificación sin ejecutable externo (iOS) | YoutubeDL para iOS L3 | Diseño | Evidencia para R-31 |
+| N77 | Unión y transcodificación sin ejecutable externo (iOS) | YoutubeDL para iOS L1; YoutubeDL para iOS L3 | Diseño | Evidencia para R-31 |
 | N78 | Deshacer una eliminación | NewPipe L3 | Diseño | Interfaz; no cambia los contratos |
 | N79 | Tema, idioma de la interfaz, modo tableta y alto contraste | GreenTuber L1; YTDLnis L1 | Diseño | Interfaces futuras; idioma de la interfaz en SUP-U06 |
 | N80 | Ventana superpuesta a otras aplicaciones | YTDLnis L1 | Diseño | Interfaz de Android |
@@ -1802,6 +1841,15 @@ Los elementos que no se pudieron determinar (por ejemplo, los valores predetermi
 | N83 | Ocultar secretos de argumentos y de parámetros de URL (`token=`, `signature=`) antes de persistir | VidBee L2 | Parcial | BR-34, SUP-SEC01; los parámetros de URL como secreto no están enumerados |
 | N84 | Esperar al final del job desde la misma invocación o volver al encolar | VidBee L1 | Diseño | Hoy `enqueue` vuelve y `run` ejecuta; una espera es una opción de la interfaz sobre el contrato de observación |
 | N85 | Contenedor automático: MP4 y MKV si los códecs no caben; solo remux, sin recodificar | VidBee L1 | Cubierta | UC-02 A14; R-29 |
+| N86 | Usuario y contraseña del sitio, guardados con nombre en un almacén seguro | Parabolic L1 | Nuevo alternativo | UC-19 A11 |
+| N87 | Recordar las últimas opciones elegidas al encolar | Parabolic L1 | Parcial | UC-18 A5 (predeterminado explícito); recordar implícitamente es de interfaz |
+| N88 | Quitar los metadatos que identifican la descarga (comentario, descripción, URL) | Parabolic L1 | Parcial | UC-24 A8 deriva o corrige metadatos; borrar los identificativos no está especificado |
+| N89 | Descargador externo aria2c | Parabolic L1 | Evidencia insuficiente | Sin necesidad que el descargador de yt-dlp no cubra; añadiría un ejecutable |
+| N90 | Ejecutar binarios descargados en Android mediante `linker64` | Ghost-Downloader-3 L1 | No aplicable | Elude la restricción de ejecución del sistema (W^X/SELinux); los ejecutables van en `nativeLibraryDir` (R-35, R-36) |
+| N91 | Perfil de distribución por canal: quién actualiza, política de código en tiempo de ejecución, acceso a archivos y firma | VoiceStudio L3 | Nuevo suplementario | SUP-C12 (ampliado); BR-51; R-35 |
+| N92 | Compilar Python y FFmpeg para Android | Ghost-Downloader-3 L1; YTDLnis L1 | Diseño | R-36; SUP-C13 |
+| N93 | Acción del equipo al terminar la cola (suspender, bloquear, apagar, cerrar) | Open Video Downloader L3 | Nuevo alternativo | UC-14 A9 |
+| N94 | Contenido con DRM o solo incrustable | Open Video Downloader L2 | Diseño | Catálogo de condiciones de fallo (propuesta) |
 
 ### 15.7 Cualificación de los candidatos de la instrucción
 
@@ -1848,7 +1896,7 @@ Consultadas el 2026-11-26. Son condiciones del canal, no reglas del motor (instr
 
 ### D-22. Sobrescritura autorizada de archivos ajenos
 
-NewPipe permite sobrescribir un archivo existente que ninguna descarga escribió, tras una confirmación (§15.5). UC-03 A7 y ADR-0030 nunca lo permiten. La evidencia no resuelve si el producto debe ofrecerlo: afecta a la garantía de protección de archivos ajenos. **Estado:** pendiente del Responsable; mientras tanto se mantiene la garantía vigente.
+NewPipe permite sobrescribir un archivo existente que ninguna descarga escribió, tras una confirmación (§15.5); Parabolic lo hace por defecto («Overwrite Existing Files», activado, según su documentación borrada en `7cbeb47b`). UC-03 A7 y ADR-0030 nunca lo permiten. La evidencia no resuelve si el producto debe ofrecerlo: afecta a la garantía de protección de archivos ajenos. **Estado:** pendiente del Responsable; mientras tanto se mantiene la garantía vigente.
 
 ### D-23. Alcance de consumo: reproducción, catálogos, transcripción e IA
 
@@ -1864,7 +1912,7 @@ GreenTuber incluye anuncios, compras y suscripción comercial (N71), y R-34 y R-
 - Se explicó la ausencia de Seal y Ghost-Downloader-3 en Google Play por esa política: sin evidencia; retirado.
 - `greentuber.apk` se trató por su nombre como GreenTuber: es Aptoide 10.0.3.
 - Una búsqueda de textos de descarga dio cero coincidencias por un error de método (§15.1, paso 4); corregido.
-- VidBee se analizó primero con un clon superficial: sin historial no se vio `apps/docs` ni la CLI de `d483045`; se repitió con el historial completo y sus hallazgos están en §15.4 y §15.6.
+- YTDLnis, Parabolic, Open Video Downloader, YoutubeDL para iOS, VidBee, NewPipe, NewPipeExtractor, Seal y VoiceStudio se analizaron primero con clones superficiales: sin historial no se vieron la documentación y los módulos borrados. Se completaron los historiales y se revisaron los borrados de cada uno; los hallazgos están en §15.4 y §15.6.
 - R-33 decía que los hilos son «la única opción en iOS»: queda como evidencia documental sin experimento propio, con otros mecanismos sin cualificar (lista de riesgos 1.9).
 - Se marcó como evidencia de borrado el disparador de pánico de NewPipe: su código solo cierra la tarea; corregido en UC-20 A10.
 
@@ -1873,20 +1921,20 @@ GreenTuber incluye anuncios, compras y suscripción comercial (N71), y R-34 y R-
 | Medida | Valor |
 |---|---|
 | Referencias inventariadas (con las ya analizadas en §5.1) | 17 |
-| Referencias investigadas en esta instrucción dentro de su alcance | 10 (GreenTuber, NewPipe, NewPipeExtractor, Aptoide delimitado, YTDLnis, Parabolic, Open Video Downloader, YoutubeDL para iOS, VidBee, Seal diferencial) |
-| Referencias investigadas parcialmente | 7 (Ghost-Downloader-3, VoiceStudio, VoiceBlueprintPro, YTDownload-2026, Kannagi, yt-dlp y FFmpeg: solo búsqueda diferencial) |
-| Evidencias antes de normalizar | 166 |
-| Capacidades normalizadas | 85 |
+| Referencias investigadas en esta instrucción dentro de su alcance, con historial | 12 (GreenTuber, NewPipe, NewPipeExtractor, Aptoide delimitado, YTDLnis, Parabolic, Open Video Downloader, YoutubeDL para iOS, VidBee, Seal, Ghost-Downloader-3 y VoiceStudio diferenciales) |
+| Referencias investigadas parcialmente | 5 (VoiceBlueprintPro, YTDownload-2026, Kannagi, yt-dlp y FFmpeg: solo búsqueda diferencial) |
+| Evidencias antes de normalizar | 191 |
+| Capacidades normalizadas | 94 |
 | Cubiertas | 32 |
-| Parcialmente cubiertas | 9 |
-| Con nuevos flujos, reglas o suplementarios (nuevo alternativo, ampliar flujo, nueva regla, nuevo suplementario) | 20 |
+| Parcialmente cubiertas | 11 |
+| Con nuevos flujos, reglas o suplementarios (nuevo alternativo, ampliar flujo, nueva regla, nuevo suplementario) | 23 |
 | Casos de uso candidatos | 4 |
-| Diseño | 7 |
+| Diseño | 9 |
 | Variaciones de plataforma | 1 |
 | Condiciones de distribución | 1 |
-| No aplicables, con justificación | 5 |
-| Evidencia insuficiente (incluye las que dependen de D-23 y D-24) | 6 |
-| Flujos alternativos nuevos en casos aceptados (propuestos) | 17 |
+| No aplicables, con justificación | 6 |
+| Evidencia insuficiente (incluye las que dependen de D-23 y D-24) | 7 |
+| Flujos alternativos nuevos en casos aceptados (propuestos) | 19 |
 | Excepciones nuevas en casos aceptados (propuestas) | 3 |
 | Flujos de los candidatos UC-29 a UC-32 | 4 básicos, 24 alternativos, 10 excepciones |
 | Reglas de negocio nuevas (propuestas) | 7 (BR-46 a BR-52) |
@@ -1902,16 +1950,19 @@ GreenTuber incluye anuncios, compras y suscripción comercial (N71), y R-34 y R-
 | NewPipe | 22 | 3 | 5 | 3 | Completo dentro de su alcance |
 | NewPipeExtractor | 10 | 1 | 2 | 0 | Completo dentro de su alcance |
 | Aptoide | 4 | 0 | 1 | 0 | Delimitado (§35) |
-| YTDLnis | 43 | 4 | 12 | 1 | Completo dentro de su alcance |
-| Parabolic | 11 | 0 | 2 | 0 | Completo dentro de su alcance |
-| Open Video Downloader | 8 | 1 | 2 | 0 | Completo dentro de su alcance |
+| YTDLnis | 44 | 4 | 12 | 1 | Completo dentro de su alcance |
+| Parabolic | 21 | 0 | 6 | 1 | Completo dentro de su alcance |
+| Open Video Downloader | 11 | 1 | 3 | 0 | Completo dentro de su alcance |
 | YoutubeDL para iOS | 6 | 0 | 2 | 1 | Completo dentro de su alcance |
 | VidBee | 24 | 3 | 5 | 1 | Completo dentro de su alcance |
-| Seal | 4 | 0 | 2 | 0 | Parcial (diferencial) |
+| Seal | 4 | 0 | 2 | 0 | Diferencial con historial |
+| Ghost-Downloader-3 | 5 | 1 | 1 | 0 | Diferencial con historial |
+| VoiceStudio | 2 | 1 | 1 | 0 | Diferencial con historial |
 
 ### 15.13 Completitud y limitaciones
 
 - **Examinado:** manifiestos, recursos, preferencias y DEX de los tres APK; en el código fuente, las responsabilidades de §15.2.
+- **Historiales:** cada repositorio se revisó entero en busca de directorios y documentos borrados; se leyeron los relevantes (documentación de usuario de Parabolic, ADR de Android de Ghost-Downloader-3, documentos de tiendas de VoiceStudio, módulos Electron de Open Video Downloader, documentación y CLI de VidBee, guías de compilación de YTDLnis). Los borrados de NewPipe, NewPipeExtractor, Seal, VoiceBlueprintPro y YTDownload-2026 son plantillas, capturas o reorganizaciones sin capacidades nuevas.
 - **No examinado:** la ejecución de cualquier APK o proyecto; el APK de GreenTuber de Google Play; la librería `YoutubeDL-iOS`; las interfaces WinUI y GNOME de Parabolic más allá de su estructura; la lectura jurídica completa de las políticas.
 - **Recursos inaccesibles:** `vidbee.org` no se pudo leer directamente; su documentación se leyó en el historial del repositorio (`d483045`). El checkout de código de FFmpeg de §5.1 ya no está en `/tmp`.
 - **Razón de terminación:** cada capacidad observada tiene una disposición (§15.6); seguir inspeccionando las mismas referencias no cambiaría ninguna disposición sin ejecutar código, que no está autorizado.

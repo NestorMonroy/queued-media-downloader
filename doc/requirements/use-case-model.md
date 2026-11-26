@@ -242,12 +242,12 @@ Que un requisito esté aceptado o especificado no significa que esté implementa
 | UC-09 | aceptado | 6 | 2 | 4 | 1 | 0 | 0 | 3 | 0 | 0 | 0 | 1 | 3 | 2 | prueba en desarrollo | Sí |
 | UC-10 | aceptado | 7 | 2 | 6 | 0 | 0 | 0 | 3 | 0 | 0 | 1 | 2 | 1 | 3 | prueba en desarrollo | Sí |
 | UC-11 | aceptado | 9 | 4 | 0 | 0 | 0 | 0 | 13 | 0 | 0 | 0 | 10 | 7 | 5 | sin evidencia | Sí |
-| UC-14 | aceptado | 8 | 2 | 0 | 0 | 0 | 0 | 10 | 0 | 0 | 3 | 3 | 2 | 4 | sin evidencia | Sí |
+| UC-14 | aceptado | 9 | 2 | 0 | 0 | 0 | 0 | 11 | 0 | 0 | 4 | 3 | 2 | 4 | sin evidencia | Sí |
 | UC-15 | aceptado | 6 | 3 | 0 | 0 | 0 | 0 | 9 | 0 | 0 | 0 | 3 | 3 | 3 | sin evidencia | Sí |
 | UC-16 | aceptado | 2 | 1 | 0 | 0 | 0 | 0 | 3 | 0 | 0 | 0 | 0 | 3 | 3 | sin evidencia | No |
 | UC-17 | aceptado | 10 | 2 | 0 | 0 | 0 | 0 | 12 | 0 | 0 | 0 | 8 | 4 | 5 | sin evidencia | Sí |
 | UC-18 | aceptado | 9 | 3 | 0 | 0 | 0 | 0 | 12 | 0 | 0 | 2 | 2 | 2 | 3 | sin evidencia | No |
-| UC-19 | aceptado | 10 | 3 | 0 | 0 | 0 | 0 | 13 | 0 | 1 | 0 | 3 | 3 | 4 | sin evidencia | Sí |
+| UC-19 | aceptado | 11 | 3 | 0 | 0 | 0 | 0 | 14 | 0 | 1 | 1 | 3 | 3 | 4 | sin evidencia | Sí |
 | UC-20 | aceptado | 10 | 2 | 0 | 0 | 0 | 0 | 12 | 0 | 0 | 3 | 4 | 4 | 3 | sin evidencia | No |
 | UC-21 | aceptado | 10 | 2 | 0 | 0 | 0 | 0 | 12 | 0 | 0 | 1 | 3 | 2 | 3 | sin evidencia | Sí |
 | UC-22 | aceptado | 6 | 3 | 0 | 0 | 0 | 0 | 9 | 0 | 0 | 0 | 4 | 2 | 4 | sin evidencia | No |
@@ -261,7 +261,7 @@ Que un requisito esté aceptado o especificado no significa que esté implementa
 | UC-30 | candidato | 8 | 3 | 0 | 0 | 0 | 0 | 11 | 0 | 0 | 0 | 1 | 0 | 4 | sin evidencia | No |
 | UC-31 | candidato | 7 | 2 | 0 | 0 | 0 | 0 | 9 | 0 | 0 | 0 | 3 | 0 | 4 | sin evidencia | No |
 | UC-32 | candidato | 5 | 3 | 0 | 0 | 0 | 0 | 8 | 0 | 0 | 0 | 2 | 2 | 3 | sin evidencia | No |
-| **Total** | **30** | **242** | **65** | **72** | **2** | **2** | **2** | **229** | **0** | **4** | **20** | — | — | **100** | **10 con prueba** | **18 de 30** |
+| **Total** | **30** | **244** | **65** | **72** | **2** | **2** | **2** | **231** | **0** | **4** | **22** | — | — | **100** | **10 con prueba** | **18 de 30** |
 <!-- completeness-matrix:end -->
 
 Las columnas Reglas y Suplementarios cuentan los identificadores distintos que enlaza cada caso de uso.
