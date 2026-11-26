@@ -28,7 +28,7 @@ El User cancela uno o varios jobs. Si el job aún no empezó, se cancela de inme
 - **A1. Job `PENDING`** (paso 4): pasa directamente a `CANCELLED`.
 - **A2. Sin confirmación en `cancellation_grace_seconds`** (paso 5): por ejemplo, durante la extracción o mientras ffmpeg une archivos. El sistema termina el process tree del worker (worker, ffmpeg y deno), marca el job `CANCELLED` y arranca un worker de reemplazo.
 - **A3. El job termina antes de ver la bandera** (paso 5): llega `JobCompleted` y el job queda `COMPLETED`.
-- **A4. Cancelar una playlist** (paso 2): se registra `CANCEL` para la expansión y para cada hijo no terminado.
+- **A4. Cancelar una playlist** (paso 2): se registra `CANCEL` para la expansión y para cada hijo no terminado. La expansión termina (`COMPLETED`) en cuanto crea sus entradas, normalmente en segundos: si ya terminó, se registra `CANCEL` solo para sus descendientes no terminados, la expansión sigue `COMPLETED` y `cancel` informa de cuántas entradas se cancelan. Si no queda ninguna, es A7.
 - **A5. `run` no está en ejecución** (paso 3): la job request se procesa al arrancar el siguiente `run`.
 - **A6. `Ctrl+C` durante `run` (interrupción, no cancelación):** el sistema deja de enviar jobs y detiene los jobs en curso con el mismo mecanismo que la cancelación (pasos 5 y A2), pero **sin cancelarlos**: siguen `RUNNING`, con sus archivos parciales, y no se registra ninguna job request. Un segundo `Ctrl+C` termina el árbol de cada worker de inmediato; los siguientes se ignoran hasta que `run` sale. `run` termina con código `130`, y los jobs interrumpidos se recuperan y se reanudan en el siguiente `run` (UC-06; interrupción recuperable, [ADR-0029](../../notes/adr-0029-process-tree-termination-on-windows.md)).
 - **A7. Job ya terminado** (`COMPLETED`, `FAILED`, `SKIPPED`, `CANCELLED`): no se registra job request; `cancel` informa al User de que el job ya terminó. Si el job terminó entre el registro y el procesamiento, `run` marca la job request procesada sin cambios. Un job `FAILED` conserva su failure reason: no se cancela, se reintenta (UC-07). Ver la tabla de estados terminados, reintentables y cancelables del [vocabulario, §1.1](../../design/00-vocabulary.md#11-estados-terminados-reintentables-y-cancelables).
@@ -45,7 +45,7 @@ El User cancela uno o varios jobs. Si el job aún no empezó, se cancela de inme
 | Entrada | Efecto | Código |
 |---|---|---|
 | `cancel ID...` con jobs no terminados | Una job request `CANCEL` por job (y por cada hijo no terminado de una playlist), en una sola transacción | `0` |
-| Algún id terminado | Se informa por cada uno; los demás se registran | `0` |
+| Algún id terminado | Se informa por cada uno; los demás se registran. Una playlist terminada con entradas no terminadas registra las de sus entradas (A4) | `0` |
 | Algún id inexistente | Nada se registra | `2` |
 | Base de datos bloqueada | Nada se registra | `1` |
 

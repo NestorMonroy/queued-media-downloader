@@ -122,3 +122,26 @@ def test_missing_job_registers_nothing() -> None:
         CancelJob(job_store, inbox).execute([existing, JobId(99)])
 
     assert inbox.all_requests() == []
+
+
+def test_cancelling_an_expanded_playlist_requests_its_unfinished_entries() -> None:
+    # A4 tras la expansión: la playlist ya está COMPLETED en cuanto crea sus
+    # entradas, pero cancelarla debe detener las que faltan (T42-D10).
+    job_store = InMemoryJobStore()
+    playlist = store_job(job_store, status=JobStatus.COMPLETED)
+    done = store_job(
+        job_store, parent_id=playlist, kind=JobKind.DOWNLOAD, status=JobStatus.COMPLETED
+    )
+    running = store_job(
+        job_store, parent_id=playlist, kind=JobKind.DOWNLOAD, status=JobStatus.RUNNING
+    )
+    pending = store_job(job_store, parent_id=playlist, kind=JobKind.DOWNLOAD)
+    inbox = InMemoryJobRequestInbox(job_store)
+
+    result = CancelJob(job_store, inbox).execute([playlist])
+
+    assert cancelled_job_ids(inbox) == [running, pending]
+    assert done not in cancelled_job_ids(inbox)
+    assert result.requested == {}
+    assert result.entries_of_finished_playlists == {playlist: 2}
+    assert result.already_finished == []

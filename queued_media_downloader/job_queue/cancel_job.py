@@ -26,6 +26,9 @@ class CancelJobResult:
     requested: dict[JobId, int]
     # Jobs pedidos que ya habían terminado (A7): no se registra nada.
     already_finished: list[Job]
+    # Playlists ya expandidas (terminadas) con su número de entradas no
+    # terminadas, que sí se cancelan (A4).
+    entries_of_finished_playlists: dict[JobId, int]
 
 
 class CancelJob:
@@ -40,7 +43,9 @@ class CancelJob:
         """Registra las cancelaciones en una sola transacción.
 
         Una expansión arrastra a todos sus descendientes no terminados (A4),
-        también los de sus playlists anidadas.
+        también los de sus playlists anidadas. Una playlist termina en cuanto
+        crea sus entradas: si ya terminó, se cancelan solo las entradas que
+        faltan.
 
         Raises:
             JobNotFoundError: Si algún job no existe; no se registra nada.
@@ -48,15 +53,20 @@ class CancelJob:
         jobs = [self._job_store.get(job_id) for job_id in job_ids]
         requested: dict[JobId, int] = {}
         already_finished: list[Job] = []
+        entries_of_finished_playlists: dict[JobId, int] = {}
         cancelled_job_ids: dict[JobId, None] = {}
         for job in jobs:
             assert job.job_id is not None
-            if job.is_finished():
+            descendant_ids = [d.job_id for d in self._unfinished_descendants(job)]
+            if job.is_finished() and not descendant_ids:
                 already_finished.append(job)
                 continue
-            descendant_ids = [d.job_id for d in self._unfinished_descendants(job)]
-            requested[job.job_id] = len(descendant_ids)
-            for job_id in (job.job_id, *descendant_ids):
+            if job.is_finished():
+                entries_of_finished_playlists[job.job_id] = len(descendant_ids)
+            else:
+                requested[job.job_id] = len(descendant_ids)
+                cancelled_job_ids[job.job_id] = None
+            for job_id in descendant_ids:
                 if job_id is not None:
                     cancelled_job_ids[job_id] = None
         self._job_request_inbox.create_many(
@@ -65,7 +75,11 @@ class CancelJob:
                 for job_id in cancelled_job_ids
             ]
         )
-        return CancelJobResult(requested=requested, already_finished=already_finished)
+        return CancelJobResult(
+            requested=requested,
+            already_finished=already_finished,
+            entries_of_finished_playlists=entries_of_finished_playlists,
+        )
 
     def _unfinished_descendants(self, job: Job) -> Iterator[Job]:
         """Descendientes no terminados de una expansión, en profundidad."""

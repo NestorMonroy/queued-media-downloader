@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -8,7 +9,8 @@ from queued_media_downloader.job_storage.sqlite_connection import open_database
 from queued_media_downloader.job_storage.sqlite_job_request_inbox import (
     SqliteJobRequestInbox,
 )
-from queued_media_downloader.jobs import Job, JobRequestType, JobStatus
+from queued_media_downloader.job_storage.sqlite_job_store import SqliteJobStore
+from queued_media_downloader.jobs import Job, JobId, JobKind, JobRequestType, JobStatus
 
 
 def unprocessed_requests(state_directory: Path) -> list[tuple[int, JobRequestType]]:
@@ -63,5 +65,41 @@ def test_cancel_of_a_finished_job_says_there_is_nothing_to_cancel(
     assert exit_code == 0
     assert unprocessed_requests(state_directory) == []
     assert "Job 1 already finished (COMPLETED); nothing to cancel" in (
+        capsys.readouterr().out
+    )
+
+
+def test_cancel_of_an_expanded_playlist_cancels_its_unfinished_entries(
+    state_directory: Path,
+    read_stored_job: Callable[[int], Job],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # A4 tras la expansión (T42-D10): en la validación en Windows, cancel de
+    # la playlist decía "nothing to cancel" y sus entradas seguían.
+    main(["enqueue", "https://media.example/playlist"])
+    connection = open_database(state_directory / "queue.sqlite3")
+    try:
+        job_store = SqliteJobStore(connection)
+        playlist = job_store.get(JobId(1))
+        job_store.update(replace(playlist, status=JobStatus.COMPLETED))
+        for _ in range(2):
+            job_store.create(
+                replace(
+                    playlist, job_id=None, kind=JobKind.DOWNLOAD, parent_id=JobId(1)
+                )
+            )
+    finally:
+        connection.close()
+    capsys.readouterr()
+
+    exit_code = main(["cancel", "1"])
+
+    assert exit_code == 0
+    assert unprocessed_requests(state_directory) == [
+        (2, JobRequestType.CANCEL),
+        (3, JobRequestType.CANCEL),
+    ]
+    assert read_stored_job(1).status is JobStatus.COMPLETED
+    assert "Cancellation requested for 2 unfinished playlist entries of job 1" in (
         capsys.readouterr().out
     )

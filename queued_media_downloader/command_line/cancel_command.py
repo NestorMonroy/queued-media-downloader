@@ -53,6 +53,12 @@ def _report(result: CancelJobResult) -> None:
             noun = "entry" if descendant_count == 1 else "entries"
             entries = f" and {descendant_count} playlist {noun}"
         print(f"Cancellation requested for job {job_id}{entries}")
+    for job_id, entry_count in result.entries_of_finished_playlists.items():
+        noun = "entry" if entry_count == 1 else "entries"
+        print(
+            f"Cancellation requested for {entry_count} unfinished playlist {noun} "
+            f"of job {job_id}"
+        )
     for finished_job in result.already_finished:
         print(
             f"Job {finished_job.job_id} already finished "

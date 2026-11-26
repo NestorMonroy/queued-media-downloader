@@ -174,7 +174,7 @@ En una terminal: `uv run queued-media-downloader run --keep-waiting`. En otra: `
 **5.5 Cancelar (UC-05; A1, A4, A5, A7)**
 
 - Con `run` parado: encolar una URL, `cancel 1`, `run`. **Se espera:** `Job 1: cancelled` sin descargar nada (A1, A5).
-- Con `run` descargando una playlist en otra terminal: `cancel <id de la playlist>`. **Se espera:** la expansión y sus entradas sin terminar quedan `CANCELLED` (A4).
+- Con `run` descargando una playlist en otra terminal: `cancel <id de la playlist>`. **Se espera:** `Cancellation requested for N unfinished playlist entries of job <id>`; la expansión sigue `COMPLETED` (terminó al crear las entradas), las entradas ya descargadas siguen `COMPLETED` y las demás quedan `CANCELLED`; `run` termina (A4).
 - `cancel` de un job `COMPLETED`. **Se espera:** `already finished … nothing to cancel` (A7).
 
 **5.6 Reintentar y purgar (UC-07, UC-10)**
