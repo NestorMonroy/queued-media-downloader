@@ -19,8 +19,9 @@ from queued_media_downloader.media_extraction.failure_classifier import (
     is_format_unavailable,
 )
 
-# Versión contra la que se comprobó FORMAT_UNAVAILABLE_MESSAGE.
-VERIFIED_YT_DLP_VERSION = "2026.10.26"
+# Versión contra la que se comprobó FORMAT_UNAVAILABLE_MESSAGE: las pruebas de
+# abajo lo comprueban con la librería instalada, no solo esta constante.
+VERIFIED_YT_DLP_VERSION = "2026.11.23"
 PYPROJECT_PATH = Path(__file__).parents[2] / "pyproject.toml"
 
 
