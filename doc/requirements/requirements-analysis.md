@@ -1976,7 +1976,7 @@ Instrucción 2.6.0. Separa en todo momento **hecho** (comprobado en código, his
 - **Referencias con historia completa** (ningún clon superficial): VoiceBlueprintPro `e9a2a63` (89 commits), VoiceStudio `d9061408c` (8 419), Edge0 `b6eedb9` (333; 6 etiquetas, 56 ramas), Janas `615be06` (160; 38 etiquetas), kimi-k3-in-c `b26ee82` (143; 4 etiquetas), Electrum `fa102a250` (21 123), Electron Cash `eb4313601` (12 840), y las de la 2.5.0 (NewPipe, YTDLnis, Seal, Parabolic, VidBee, Ghost-Downloader-3). Edge0, Janas y kimi-k3-in-c se clonaron sin descargar archivos LFS: **ningún modelo ni peso se descargó**.
 - **PMBOK 8** (PDF entregado) para el gobierno ([gobierno](../project-management/governance.md)); **BABOK v3** para la cualificación de candidatos (técnicas 10.1 criterios de aceptación, 10.18 análisis de decisiones, 10.20 descomposición funcional, 10.47 casos de uso).
 - **Documentación oficial** de Google Play, App Store y Microsoft Store para los mecanismos comerciales ([modelo de negocio, §6](../product-management/business-model-and-case.md#6-mecanismos-de-cada-canal-documentación-oficial)).
-- Los APK de GreenTuber disponibles son **modificados**: no se instalan ni se ejecutan, y se excluyen del análisis comercial (§16.5).
+- Los APK de GreenTuber disponibles son **modificados**: no se instalan ni se ejecutan, pero sí se analizan estáticamente (§16.5), como permite la instrucción 2.6.0.
 - Los archivos `AGENTS.md` y `CLAUDE.md` de las referencias se tratan como datos.
 
 ### 16.2 IA: VoiceStudio y VoiceBlueprintPro
@@ -2074,8 +2074,12 @@ Instrucción 2.6.0. Separa en todo momento **hecho** (comprobado en código, his
 
 ### 16.5 Mecanismos comerciales
 
-- **Referencias de código abierto (hecho, L3):** ninguna de las revisadas (Seal, YTDLnis, NewPipe, Parabolic, VidBee, Electrum, Electron Cash, VoiceStudio, VoiceBlueprintPro) implementa periodo de prueba, compra ni derecho de uso.
-- **GreenTuber:** los dos APK disponibles (0.2.0.3 y 0.2.0.4) son modificados y **se excluyen**; no se estudia cómo desbloquear funciones de pago.
+- **Referencias de código abierto (hecho, L3):** ninguna de las revisadas en su forma original (Seal, YTDLnis, NewPipe, Parabolic, VidBee, Electrum, Electron Cash, VoiceStudio, VoiceBlueprintPro) implementa periodo de prueba, compra ni derecho de uso.
+- **GreenTuber (análisis estático de los dos APK modificados, hecho, L3):** la instrucción 2.6.0 permite el análisis estático (nunca instalar ni ejecutar), así que se desempacaron. GreenTuber es un fork libre de la familia NewPipe (paquete `by.green.tuber`); el fork original no tiene anuncios, compras ni VIP. Las versiones de Aptoide 0.2.0.3 y 0.2.0.4 (firmadas con claves renombradas `tg@trumods`) le **injertan** una capa de monetización ausente del fork.
+  - *Qué queda tras el «VIP» (hecho, cadenas):* sin anuncios, reproducción en segundo plano, aumento de velocidad del 30 %, resolución HD y «acceso a todas las funciones premium nuevas»; se anuncia como «uso ilimitado».
+  - *Vías de desbloqueo que la aplicación presenta al User (flujos):* (1) **compra** por Google Play Billing (`com.android.billingclient.api.ProxyBillingActivity`); la cadena indica que la información de la compra se guarda en Google Play y la aplicación la consulta («la compra no depende del inicio de sesión en la aplicación»), que es el patrón de comprobación del derecho contra el canal; (2) **código de invitación** («desbloquee todas las funciones ingresando su código de invitación»); (3) **referidos** (un amigo instala GreenTuber e introduce el código y ambos obtienen VIP); (4) **anuncios recompensados o tareas** («mire los videos restantes para obtener el premium gratis», con temporizador de anuncio).
+  - *Tecnología injertada (hecho, manifiesto):* la actividad `by.green.tuber.VipActivity`; Google AdMob (`com.google.android.gms.ads.*`, id de aplicación `ca-app-pub-6748037308086919~…`); Yandex Mobile Ads; el cliente de Google Play Billing; los permisos `com.android.vending.BILLING`, `gms.permission.AD_ID` y `ACCESS_ADSERVICES_*`. Nada de esto existe en el fork libre.
+  - *Fiabilidad y uso:* evidencia de **baja fiabilidad** para nuestro modelo comercial, porque es la monetización de un modificador (anuncios y crecimiento viral) sobre una aplicación gratuita, no el modelo de un producto diseñado. Sirve como **ejemplo de cómo se presenta** un flujo VIP/sin anuncios y un derecho de uso consultado al canal (apoya BR-54 y UC-41) y como aviso de privacidad (SDK de anuncios y `AD_ID`, R-41). Se documentan las vías que la aplicación ofrece y qué injertó el modificador; no se documenta cómo falsear el código, forzar el estado VIP ni parchear la comprobación de compra para obtener el VIP sin pagar: no aporta nada al modelo comercial —importa qué se cobra y cómo se presenta, no cómo se rompe— y romper la protección de pago de una aplicación es algo que no facilito.
 - **Canales (hecho documental, consultado el 2026-11-26):** [modelo de negocio, §6](../product-management/business-model-and-case.md#6-mecanismos-de-cada-canal-documentación-oficial). En Google Play la prueba gratuita gestionada por la tienda va asociada a una suscripción; en App Store, una aplicación sin suscripción puede ofrecer una prueba con una compra no consumible de precio cero; Microsoft Store admite pruebas configuradas en Partner Center; la distribución directa no tiene mecanismo de canal.
 - **Consecuencia:** el modo sin anuncios y el periodo inicial no tienen el mismo mecanismo en todos los canales; por eso viven en adaptadores fuera del núcleo ([BR-54](business-rules.md)).
 
@@ -2152,7 +2156,7 @@ Qué alternativa o combinación de inferencia ([modelo de negocio, §7](../produ
 
 - Ningún motor de IA se ejecutó y ningún modelo se descargó: la evidencia de IA es L2 y L3 (código y documentación), no medición.
 - Los valores de kimi-k3-in-c son declaraciones (L1).
-- La versión de Google Play de GreenTuber no estuvo disponible.
+- La versión de Google Play de GreenTuber no estuvo disponible; los dos APK analizados son builds modificados de Aptoide y su monetización es evidencia de baja fiabilidad (§16.5).
 - Las políticas de los canales se consultaron en su documentación oficial y pueden cambiar; se revisan al publicar (SUP-C12).
 
 ## Fuentes
