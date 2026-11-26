@@ -188,17 +188,37 @@ uv run queued-media-downloader list
 
 **Se espera:** los jobs reintentados muestran `queued again (attempt N)`; `purge` borra los terminados y conserva los archivos descargados.
 
-**5.7 Base de datos bloqueada (UC-02 A3)**
+**5.7 Base de datos bloqueada (UC-02 A3; UC-05 E2; UC-07 E3; UC-10)**
 
-En una terminal, abrir la base de datos y retener un bloqueo de escritura:
+Cada orden debe tener algo que escribir: con nada que cambiar (`retry` de un job `PENDING`, `purge` sin jobs terminados), responde sin escribir y el bloqueo no la afecta. Antes del bloqueo, preparar un job `CANCELLED` (reintentable), uno `COMPLETED` (purgable) y uno `PENDING` (cancelable):
 
 ```powershell
-uv run python -c "import os,sqlite3,time; c=sqlite3.connect(os.path.join(os.environ['QUEUED_MEDIA_DOWNLOADER_STATE_DIRECTORY'],'queue.sqlite3')); c.execute('BEGIN IMMEDIATE'); print('locked'); time.sleep(30)"
+uv run queued-media-downloader enqueue "https://www.youtube.com/watch?v=jNQXAC9IVRw"
+uv run queued-media-downloader cancel 1
+uv run queued-media-downloader enqueue "https://www.youtube.com/watch?v=HQ_FRYebb3o"
+uv run queued-media-downloader run
+uv run queued-media-downloader enqueue "https://www.youtube.com/watch?v=gqZRlHBPVVE"
+uv run queued-media-downloader list
 ```
 
-Mientras dice `locked`, en otra terminal: `uv run queued-media-downloader enqueue "<URL>"`.
+**Se espera:** job 1 `CANCELLED`, job 2 `COMPLETED`, job 3 `PENDING`.
 
-**Se espera:** tras unos 5 s, `the queue is busy … no job was queued`, código `1`, y `list` sin el job nuevo. Repetir, mientras dure el bloqueo, con `cancel 1`, `retry 1` y `purge`: **se espera** `the queue is busy … nothing was changed`, código `1`, y la cola sin cambios.
+En la segunda ventana (con la cola del bloque, `Use-ValidationQueue "5.7"`), retener un bloqueo de escritura durante 60 s:
+
+```powershell
+uv run python -c "import os,sqlite3,time; c=sqlite3.connect(os.path.join(os.environ['QUEUED_MEDIA_DOWNLOADER_STATE_DIRECTORY'],'queue.sqlite3')); c.execute('BEGIN IMMEDIATE'); print('locked'); time.sleep(60)"
+```
+
+Mientras dice `locked`, en la primera ventana:
+
+```powershell
+uv run queued-media-downloader enqueue "https://www.youtube.com/watch?v=0qXESF0jcBE"; $LASTEXITCODE
+uv run queued-media-downloader cancel 3; $LASTEXITCODE
+uv run queued-media-downloader retry 1; $LASTEXITCODE
+uv run queued-media-downloader purge --completed; $LASTEXITCODE
+```
+
+**Se espera:** cada orden, tras unos 5 s, `the queue is busy … no job was queued` (`enqueue`) o `… nothing was changed` (las demás), y `1`. Al terminar el bloqueo, `list` igual que antes: 1 `CANCELLED`, 2 `COMPLETED`, 3 `PENDING`.
 
 ### Paso 6. Procesos tras cancelar (UC-05 A2; R-04; obligatorio)
 
