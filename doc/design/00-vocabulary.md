@@ -25,6 +25,7 @@ Este documento fija **una palabra por concepto** (principio #8). Todo identifica
 | **selected format** | Formato concreto que yt-dlp eligió para un job | chosen format, format code |
 | **failure reason** | Clasificación de dominio de un fallo | error type, error code |
 | **output claim** (reclamación) | Archivo exclusivo en `state/output-claims/` con el que un job se declara dueño de un nombre final antes de descargar ([ADR-0030](../notes/adr-0030-final-file-ownership-claims.md)) | lock (no es un bloqueo del sistema operativo), reservation |
+| **owner token** | Identidad de un job en los archivos que reclama: su id y el instante en que se guardó (`Job.owner_token`, `<id>@<created_at>`). Distingue a dos jobs con el mismo id tras restaurar una copia antigua de la base de datos | job id (a secas, para la propiedad) |
 | **interruption** (interrupción) | `Ctrl+C` durante `run`: detiene la cola sin cancelar ningún job; los jobs en curso conservan su estado y sus parciales y continúan en el siguiente `run` | cancel (no es una cancelación) |
 
 ### 1.1 Estados terminados, reintentables y cancelables

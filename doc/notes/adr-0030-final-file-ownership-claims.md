@@ -1,7 +1,7 @@
 # ADR-0030: Propiedad de los archivos finales mediante reclamaciones
 
 - **Estado:** Aceptada; validación en Windows pendiente (campaña T42, paso 11)
-- **Fecha:** 2026-11-26
+- **Fecha:** 2026-11-26 (revisada en T50 el mismo día: identidad del dueño, base de datos restaurada, migración 0004)
 - **Origen:** auditoría previa a la aceptación (T49), §7; riesgo R-14 de la [lista de riesgos](../project-management/risk-list.md)
 - **Complementa:** T44 (carpeta de parciales por job e índice `unique_output_path`, migración 0003)
 
@@ -16,13 +16,24 @@ Los postprocessors `before_dl` se ejecutan en `process_info` antes de la búsque
 Cada job de descarga **reclama su nombre final antes de descargar**, con el postprocessor `OutputOwnershipGuard` (`before_dl`):
 
 - **Qué se reclama:** la ruta final sin extensión (carpeta final + nombre base), canonizada con `os.path.realpath` y `os.path.normcase`. La extensión cambia al unir formatos o al extraer el audio. En Windows, mayúsculas y separadores no crean otro nombre, como en NTFS. No se normaliza Unicode, porque NTFS y ext4 tampoco lo hacen.
-- **Cómo:** un archivo `<sha256>.claim` en `state/output-claims/`, creado con `O_CREAT | O_EXCL` (atómico en NTFS y en sistemas POSIX locales), que contiene el id del job. El hash fija la longitud y evita los límites de ruta.
+- **Cómo:** un archivo `<sha256>.claim` en `state/output-claims/`, creado con `O_CREAT | O_EXCL` (atómico en NTFS y en sistemas POSIX locales), que contiene el **owner token** del job: su id y el instante en que el job store lo guardó (`Job.owner_token`). El hash fija la longitud y evita los límites de ruta.
 - **Reglas:**
   1. Si la reclamación es de otro job, el job falla con `FILESYSTEM` sin tocar nada y el mensaje nombra al dueño.
   2. Si la reclamación es nueva y ya existe en la carpeta final un archivo con ese nombre base (cualquier extensión), el archivo no es del job: falla con `FILESYSTEM` y suelta la reclamación.
   3. Si la reclamación ya era del job, el archivo existente es suyo (cierre tras moverlo y antes de registrar `JobCompleted`, UC-06): se completa sin descargar.
 - **Vida de la reclamación:** se conserva mientras el job es dueño del archivo; se suelta si el job falla o se cancela sin dejar su archivo final, y cuando `purge` borra el job (UC-10). Tras purgar, el archivo sigue protegido por la regla 2.
-- El índice `unique_output_path` se mantiene como segunda defensa. La migración 0003 libera, al actualizar una base de datos de E1, los archivos que dos jobs reclamaban a la vez: los conserva el job de id menor y los demás pasan a `FAILED` (reintentables).
+- El índice `unique_output_path` se mantiene como segunda defensa. Un archivo que varios jobs de E1 reclamaban a la vez no tiene dueño demostrable: la migración 0004 pasa a todos esos jobs a `FAILED` (reintentables), sin `output_path`, con un diagnóstico que nombra el archivo y a todos los jobs, y no toca el archivo. (La 0003, tal como se publicó, se lo daba al id menor; la 0004 lo deshace.)
+- **Carpetas de parciales:** `.partial/job-<id>` guarda el owner token en `.owner`. Un job solo reanuda desde una carpeta suya; otra con el mismo id (de un job perdido) se aparta como `orphan-job-<id>-<instante>` con todo su contenido, y la descarga empieza de cero. `purge` solo borra carpetas del job purgado.
+
+### Base de datos restaurada de una copia anterior
+
+Restaurar una copia antigua de `queue.sqlite3` no es una operación soportada, pero no puede perder datos en silencio. Al restaurarla, SQLite vuelve a dar los ids de los jobs perdidos (los creados después de la copia) a jobs nuevos. Con el owner token:
+
+- Un job nuevo nunca toma la reclamación ni el archivo final de un job perdido: falla con `FILESYSTEM` y el mensaje sugiere que la base de datos se restauró.
+- Un job nuevo nunca reanuda desde los parciales de un job perdido (el resultado sería un archivo corrupto): los aparta, intactos.
+- Un job de la copia que reaparece (mismo id y mismo instante de creación) es el mismo job: reconoce su reclamación y su archivo, como tras un cierre (UC-06 A4).
+- `purge` suelta las reclamaciones de los jobs perdidos; sus archivos siguen protegidos por la regla 2.
+- Un job `COMPLETED` cuyo archivo ya no existe no provoca ninguna acción sobre archivos.
 
 ## Alternativas descartadas
 
@@ -40,7 +51,10 @@ Cada job de descarga **reclama su nombre final antes de descargar**, con el post
 
 ## Restricciones (escenarios no soportados)
 
-- Dos colas distintas (dos `state_directory`) que comparten carpeta de descargas no se ven entre sí.
+Ninguna de estas situaciones permite que un job modifique o borre el archivo de otro job o del User por la vía de la reclamación; lo que no se garantiza es que la colisión se detecte antes de descargar.
+
+- **Una carpeta de descargas tiene una sola autoridad:** una cola (un `state_directory`). Dos colas que comparten carpeta no ven sus reclamaciones. Aun así, la regla 2 sigue protegiendo los archivos ya terminados de la otra cola; la carrera que no se cubre es la de dos jobs, uno de cada cola, descargando a la vez el mismo nombre.
+- **Restaurar una copia antigua de la base de datos** no se soporta como operación de copia de seguridad: los jobs perdidos se pierden. Sí es seguro (sección anterior): no se apropia, modifica ni borra ningún archivo, y los parciales de los jobs perdidos se conservan apartados.
 - Carpetas de descargas en recursos de red (SMB) o en sistemas de archivos sin `O_EXCL` atómico.
 - Carpetas NTFS con distinción de mayúsculas activada por directorio (`fsutil file setCaseSensitiveInfo`): `normcase` las trata como si no distinguieran.
 - Equivalencias de mayúsculas fuera de `str.lower()` de Python (la tabla de NTFS puede diferir en caracteres poco comunes).
@@ -48,4 +62,5 @@ Cada job de descarga **reclama su nombre final antes de descargar**, con el post
 ## Validación
 
 - **Linux:** pruebas unitarias de `OutputClaims` y de extremo a extremo con colas reales (`tests/command_line/test_output_ownership.py`), con huella de tamaño, fecha y SHA-256 del archivo protegido.
+- **Restauración de una copia (T50):** reclamación y parciales de un job perdido con el mismo id, en la MediaSource real; purge con una carpeta ajena; migración 0004 desde las versiones 2 y 3.
 - **Windows (pendiente, T42):** pruebas `windows` de mayúsculas y separadores, archivo existente con otra capitalización, ruta de más de 260 caracteres y archivo abierto por otro proceso; paso 11 de la campaña.

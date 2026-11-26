@@ -84,9 +84,9 @@ Lo que se sabe, con evidencia de solo lectura del 2026-11-26:
 |---|---|---|
 | Identidad de un job e ids reutilizados | `AUTOINCREMENT` y `sqlite_sequence` sembrado: un id purgado no se reutiliza | `test_job_ids_are_never_reused_after_deleting_the_last_job` |
 | Migraciones (0 → 3, 1 → 3, 2 → 3) | Datos, enlaces, peticiones e índices conservados; integridad referencial | `tests/job_storage/test_sqlite_connection.py` |
-| Base de E1 con un archivo reclamado dos veces | El id menor lo conserva; los demás, `FAILED` | Prueba de la migración 3 |
+| Base de E1 con un archivo reclamado dos veces | En T49, el id menor lo conservaba; **corregido en T50**: ningún dueño (migración 0004) | Pruebas de las migraciones 3 y 4 |
 | Base de datos nueva | Esquema 3 y reclamaciones vacías | Pruebas de conexión y de comandos |
-| **Base de datos restaurada de una copia anterior** | **No soportado:** los ids posteriores a la copia se volverían a usar, y sus carpetas de parciales y reclamaciones existen. **Restricción:** al restaurar una copia, borrar también `state/output-claims/` y las carpetas `.partial` de las descargas | Documentado aquí y en ADR-0030 |
+| **Base de datos restaurada de una copia anterior** | En T49 quedó como restricción manual. **Corregido en T50:** owner token (id e instante de creación) en reclamaciones y parciales; nada se apropia ni se pierde | Pruebas de T50 (ADR-0030) |
 | Configuraciones distintas entre jobs | Cada job guarda sus download options; las reclamaciones dependen solo de la ruta final canónica | Pruebas de reclamaciones |
 | Carpeta de descargas compartida por dos colas | **No soportado** (restricción de ADR-0030) | — |
 | Parciales de versiones anteriores (junto al archivo final, E1) | No se reutilizan ni se borran: cada job usa `.partial/job-<id>`; un archivo final de E1 con el mismo nombre se protege (regla 2) | `test_completion_never_touches_partial_files_of_another_job`, `test_a_file_the_queue_did_not_write_is_never_taken_or_modified` |

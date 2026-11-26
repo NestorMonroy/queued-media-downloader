@@ -32,7 +32,9 @@ Tras un cierre inesperado (corte de luz, cierre de la terminal, fallo), el User 
 - **A4. El cierre ocurrió después de mover el archivo final y antes de registrar `JobCompleted`** (paso 6): el job encuentra su propia reclamación y su archivo; yt-dlp lo da por descargado y el job termina `COMPLETED` sin descargar de nuevo ([ADR-0030](../../notes/adr-0030-final-file-ownership-claims.md)).
 - **A5. La interrupción fue un `Ctrl+C`** (paso 2): igual que un cierre inesperado; los jobs siguen `RUNNING` con sus parciales (UC-05 A6).
 - **A6. La base de datos necesita una migración** (paso 1): se aplica al abrirla; si falla, se deshace y `run` termina con código `1` sin ejecutar ningún job (UC-01 A8).
-- **A7. Base de datos de una versión anterior con un archivo final reclamado por dos jobs** (paso 1): la migración 0003 se lo deja al job de id menor y pasa los demás a `FAILED`, reintentables.
+- **A7. Base de datos de una versión anterior con un archivo final reclamado por dos o más jobs** (paso 1): los datos no permiten saber quién escribió el archivo. La migración 0004 no da la propiedad a ninguno: todos pasan a `FAILED` (reintentables), sin `output_path`, con un mensaje que nombra el archivo, a todos los jobs implicados y su estado conocido. El archivo no se toca; al reintentar, el job falla hasta que el User lo mueva o lo renombre (UC-03 A7).
+- **A8. Base de datos restaurada de una copia anterior** (paso 1): los jobs nuevos reciben ids de jobs perdidos. Ninguno hereda lo de esos jobs: su owner token (id e instante de creación) no coincide. Un nombre final reclamado por un job perdido hace fallar al job nuevo sin tocar el archivo; una carpeta de parciales de un job perdido se aparta como `.partial/orphan-job-<id>-<instante>`, sin borrar nada, y la descarga empieza de cero. `purge` suelta las reclamaciones de los jobs perdidos; sus archivos siguen protegidos ([ADR-0030](../../notes/adr-0030-final-file-ownership-claims.md)).
+- **A9. Un job `COMPLETED` cuyo archivo final ya no existe** (lo movió o borró el User): la cola no cambia nada; `show` sigue mostrando la ruta guardada. Ningún archivo se crea, se toca ni se borra por ello.
 
 ## Postcondiciones
 
@@ -46,7 +48,7 @@ Tras un cierre inesperado (corte de luz, cierre de la terminal, fallo), el User 
 ## Restricciones
 
 - La reanudación por bytes depende de que el sitio acepte `Range` y de que yt-dlp conserve el `.part`; si no, la descarga empieza de cero (A3).
-- Con dos colas (dos `state_directory`) sobre la misma carpeta de descargas, la propiedad de los archivos finales no se garantiza ([ADR-0030](../../notes/adr-0030-final-file-ownership-claims.md), restricciones).
+- Una carpeta de descargas tiene una sola autoridad: una cola (un `state_directory`). Con dos colas sobre la misma carpeta, la propiedad de los archivos finales no se garantiza ([ADR-0030](../../notes/adr-0030-final-file-ownership-claims.md), restricciones).
 
 ## Requisitos especiales
 
@@ -63,4 +65,5 @@ Tras un cierre inesperado (corte de luz, cierre de la terminal, fallo), el User 
 | Formato no disponible (A1) con `FakeMediaSource` | Cualquier sistema |
 | Cierre forzado de `run` en Windows y reanudación | **Windows**, al cerrar la iteración |
 | A4: cierre tras mover el archivo; el mismo job lo reconoce como suyo | Cualquier sistema |
-| A6 y A7: migración fallida deshecha; base de E1 con un archivo reclamado dos veces | Cualquier sistema |
+| A6 y A7: migración fallida deshecha; base de E1 con un archivo reclamado varias veces, también si ya tenía aplicada la 0003 | Cualquier sistema |
+| A8: id reutilizado tras restaurar una copia: reclamación y parciales del job perdido intactos | Cualquier sistema |

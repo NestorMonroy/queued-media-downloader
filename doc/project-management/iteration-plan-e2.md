@@ -106,6 +106,7 @@ Igual que en E1 ([ADR-0022](../notes/adr-0022-hybrid-approach-and-task-decomposi
 
 | ID | Tarea | Rol | Terminada cuando | Depende de |
 |---|---|---|---|---|
+| T50 | Consolidación del candidato T42: owner token en reclamaciones y parciales (base de datos restaurada), migración 0004 (propiedad sin decidir de un archivo reclamado varias veces), arranque de workers que falla al registrarse, guion y script de la campaña revisados, etiqueta `t42-candidate-1` publicada | Agente | Correcciones con sus pruebas y verificación de desarrollo sobre el commit etiquetado. **Hecha**: Linux ✔; Windows ⏳ (T42) | T49 |
 | T49 | Auditoría integral previa a la aceptación: trazabilidad por requisito, especificación completa de UC-07 a UC-10, aislamiento de las pruebas, propiedad de los archivos finales ([ADR-0030](../notes/adr-0030-final-file-ownership-claims.md)), contrato de `JobCompleted`, migraciones, `Ctrl+C` repetidos, cola ocupada en todos los comandos y preparación de T42 | Agente | Correcciones con sus pruebas, verificación de desarrollo y [informe de la auditoría](pre-acceptance-audit.md). **Hecha**: Linux ✔; deja `READY_FOR_WINDOWS_VALIDATION` | T45–T48 |
 | T42 | Campaña final de validación en Windows (§7), incluida la medición de memoria que viene de E1 y el experimento de T33 | Evaluador | Los criterios de la sección 5 cumplidos; SUP-P04 fijado; matriz de la §8 con evidencia real; lista de riesgos actualizada | Todas, incluido el slice F |
 
@@ -214,7 +215,7 @@ Se amplía con cada tarea. Cada uno se verifica en la campaña.
 
 ## 8. Matriz de casos de uso: implementación y validación
 
-Estado al 2026-11-26, tras la auditoría previa a la aceptación (T49): **todos los escenarios de UC-01 a UC-10 están implementados y probados en Linux**. Lo que falta es la validación en Windows, en la campaña (§7). Se actualiza con la evidencia de la campaña.
+Estado al 2026-11-26, tras la auditoría previa a la aceptación (T49) y la consolidación del candidato (T50): **todos los escenarios de UC-01 a UC-10 están implementados y probados en Linux**. Lo que falta es la validación en Windows, en la campaña (§7). Se actualiza con la evidencia de la campaña.
 
 | Estado del producto ([caso de desarrollo, §3](../process/development-case.md#estados-del-producto-cinco-conceptos-distintos)) | Valor | Evidencia |
 |---|---|---|
@@ -263,6 +264,7 @@ La aceptación final de todos los escenarios queda **pendiente** de la campaña 
 | A2 Fallos de red, no disponible, geo, no soportada | E1, T24 | Hecha | Linux ✔; Windows E1 ✔ (fallo controlado) | — |
 | A3 Extractor desactualizado | E1 | Hecha | Linux ✔ | — |
 | A4 Worker muere sin evento final | E1 (T20), T35 | Hecha; sus descendientes se terminan antes de sustituirlo (T35) | Linux ✔ | Pasos 5 y 6 |
+| Worker que muere mientras se registra en su terminador (Job Object) | T50 | Hecha: hasta 3 intentos; si todos fallan, `run` termina cada árbol de inmediato, informa con código 1 y los jobs en curso se recuperan en el siguiente `run` | Linux ✔ (dobles: `FakeProcessTreeTerminator`) | Criterio explícito de la campaña (comportamiento nativo) |
 | A5 `--keep-waiting` | T40 | Hecha; se termina con `Ctrl+C` | Linux ✔ (dos procesos reales) | Paso 5 |
 | A6 Reciclado de workers | T41 | Hecha (`max_jobs_per_worker`, 20 por defecto) | Linux ✔ (procesos reales) | Paso 5 y memoria (paso 13) |
 | A7 Nombre final de otro job o archivo ajeno | T49 (ADR-0030) | Hecha: reclamación antes de descargar; falla con `FILESYSTEM` sin tocar el archivo | Linux ✔ (huella de tamaño, fecha y SHA-256; dos jobs a la vez); `windows` ⏳ (mayúsculas, separadores, ruta larga, archivo abierto) | Paso 11 (obligatorio) |
@@ -308,7 +310,8 @@ La aceptación final de todos los escenarios queda **pendiente** de la campaña 
 | A3 Parciales borrados por el User | T32 | Hecha (yt-dlp descarga de cero) | Linux ✔ (sin `.part`) | — |
 | A4 Cierre tras mover el archivo final | T44, T49 | Hecha: el job reconoce su reclamación y su archivo | Linux ✔ | Paso 8 |
 | A6 Migración pendiente o fallida al arrancar | T49 | Hecha (rollback; `run` no ejecuta nada) | Linux ✔ | Paso 2 |
-| A7 Base de E1 con un archivo reclamado por dos jobs | T49 | Hecha (migración 0003 corregida) | Linux ✔ | — |
+| A7 Base de E1 con un archivo reclamado por varios jobs | T49, T50 | Hecha: ningún dueño, todos `FAILED` con diagnóstico, archivo intacto (migración 0004, también sobre bases que ya tenían la 0003) | Linux ✔ | — |
+| A8 Base de datos restaurada de una copia anterior | T50 | Hecha: owner token; un id reutilizado no hereda reclamaciones ni parciales (se apartan, sin borrar) | Linux ✔ | — |
 
 ### UC-07 a UC-10
 
@@ -370,18 +373,18 @@ Para los casos de uso, la trazabilidad está en las tablas anteriores (escenario
 | SUP-C05 Sin CI | Proceso | — | — | — | — | — |
 | SUP-L01–L03 Licencias | `LICENSE`, `vendor/ffmpeg/` | E1 | Revisión | Sí | — | — |
 
-### 8.2 Clasificación de las pruebas (2026-11-26)
+### 8.2 Clasificación de las pruebas (2026-11-26, candidato `t42-candidate-1`)
 
-543 pruebas recogidas en el commit publicado:
+554 pruebas recogidas en el commit del candidato:
 
 | Clase | Número | Estado |
 |---|---|---|
-| Ejecutables en Linux (sin `windows` ni `network`) | 530 | **Ejecutadas y pasadas** en el entorno de desarrollo (`scripts/run_checks.py`) |
-| `windows` | 10 | **No ejecutadas** (requieren Windows): 4 del terminador, 3 de la build de ffmpeg, 3 de reclamaciones de nombres finales. Campaña, paso 3 |
-| `network` | 3 | **Ejecutadas una vez, no ejecutables aquí:** fallan porque el proxy del entorno rechaza YouTube (`403 Forbidden`), no por el producto; no cuentan como pasadas ni como fallos del producto. Campaña, paso 3 |
-
-Las 530 incluyen, en Linux, pruebas que en Windows se omiten por diseño (4 de `Ctrl+C` con señales POSIX, 2 del localizador de ffmpeg con un script POSIX y 1 de nombres que distinguen mayúsculas): su equivalente en Windows son el paso 7 y las pruebas `windows` de reclamaciones.
+| `PASSED` (satisfactorias) | 541 | Ejecutadas y pasadas en el entorno de desarrollo (`scripts/run_checks.py`), todas las que no requieren Windows ni red |
+| `FAILED_PRODUCT_DEFECT` (fallidas por defectos del producto) | 0 | — |
+| `WINDOWS_PENDING` (pendientes de Windows) | 10 | No ejecutadas: 4 del terminador (Job Object), 3 de la build de ffmpeg, 3 de reclamaciones de nombres finales. Campaña, paso 3. También pendientes de validación real: SUP-P04 (paso 13) y los pasos manuales |
+| `BLOCKED_BY_ENVIRONMENT` (bloqueadas por el ambiente) | 3 | Las pruebas `network`: ejecutadas una vez, el proxy del entorno de desarrollo responde HTTP 403 al conectar con YouTube. No cuentan como pasadas ni como defectos. Campaña, paso 3 |
+| `SKIPPED_JUSTIFIED` (omitidas justificadamente) | 0 en Linux; 7 en Windows | En Windows se omiten por diseño 4 de `Ctrl+C` con señales POSIX (equivalente: paso 7), 2 del localizador de ffmpeg con un script POSIX y 1 de nombres que distinguen mayúsculas (equivalente: pruebas `windows` de reclamaciones) |
 
 ### 8.3 Verificación de desarrollo
 
-La última ejecución de `uv run python scripts/run_checks.py -- -q -m "not network and not windows"` sobre el commit publicado: formato, linter, tipos, reglas de importación y pruebas pasan (código 0 en cada una). La sesión de pruebas no detectó cambios en los datos reales del usuario.
+La última ejecución de `uv run python scripts/run_checks.py` sobre el commit del candidato `t42-candidate-1`: formato, linter, tipos, reglas de importación y pruebas pasan (código 0 en cada una; 541 pruebas). La sesión de pruebas no detectó cambios en los datos reales del usuario.
