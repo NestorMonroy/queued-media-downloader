@@ -108,10 +108,25 @@ def test_selected_format_is_recorded_without_changing_the_status() -> None:
 
 
 def test_complete_records_the_output_path() -> None:
-    job = RUNNING_EXPANSION.complete("downloads/video.mp4")
+    running_download = RUNNING_EXPANSION.found_single_media(MEDIA_KEY, "T").start()
+
+    job = running_download.complete("downloads/video.mp4")
 
     assert job.status is JobStatus.COMPLETED
     assert job.output_path == "downloads/video.mp4"
+
+
+def test_a_download_cannot_complete_without_its_output_file() -> None:
+    running_download = RUNNING_EXPANSION.found_single_media(MEDIA_KEY, "T").start()
+
+    with pytest.raises(ValueError, match="output file"):
+        running_download.complete(None)
+
+
+def test_an_expansion_completes_without_an_output_file() -> None:
+    assert RUNNING_EXPANSION.complete(None).output_path is None
+    with pytest.raises(ValueError, match="no output file"):
+        RUNNING_EXPANSION.complete("downloads/video.mp4")
 
 
 def test_fail_records_the_reason_and_message() -> None:

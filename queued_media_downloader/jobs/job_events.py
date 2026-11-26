@@ -82,8 +82,9 @@ class PostprocessingProgressed:
 class JobCompleted:
     """El job terminó bien.
 
-    output_path es la ruta del archivo descargado; None si el job no produce
-    un archivo.
+    Contrato: un job DOWNLOAD lo publica solo con la ruta de su archivo final,
+    ya movido fuera de su carpeta de parciales y con contenido; un job
+    EXPANSION, con None (no produce archivos). Job.complete lo comprueba.
     """
 
     output_path: str | None

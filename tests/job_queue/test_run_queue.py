@@ -221,15 +221,23 @@ def test_same_media_is_downloaded_once_as_video_and_once_as_audio() -> None:
     job_store = InMemoryJobStore()
     job_store.create(Job.new_expansion(URL, DOWNLOAD_OPTIONS))
     job_store.create(Job.new_expansion(URL, replace(DOWNLOAD_OPTIONS, audio_only=True)))
-    script = single_media_script(URL, "a")
-    # El guion no distingue video de audio, y en realidad sus rutas difieren
-    # (subcarpeta audio, T23); la ruta no es lo que prueba este caso.
-    script[(JobKind.DOWNLOAD, URL)][-1] = JobCompleted(output_path=None)
+    script: dict[ScriptKey, list[JobEvent]] = {
+        **single_media_script(URL, "a"),
+        # Como en realidad (subcarpeta audio, T23): cada uno guarda su archivo.
+        (JobKind.DOWNLOAD, URL, False): [JobCompleted(output_path="downloads/a.mp4")],
+        (JobKind.DOWNLOAD, URL, True): [
+            JobCompleted(output_path="downloads/audio/a.m4a")
+        ],
+    }
     worker_pool = ScriptedWorkerPool(1, script)
 
     RunQueue(job_store, worker_pool, InMemoryJobRequestInbox(job_store)).execute()
 
     assert {job.status for job in job_store.all_jobs()} == {JobStatus.COMPLETED}
+    assert [job.output_path for job in job_store.all_jobs()] == [
+        "downloads/a.mp4",
+        "downloads/audio/a.m4a",
+    ]
     downloads = [j for j in worker_pool.submitted_jobs if j.kind is JobKind.DOWNLOAD]
     assert [job.download_options.audio_only for job in downloads] == [False, True]
 

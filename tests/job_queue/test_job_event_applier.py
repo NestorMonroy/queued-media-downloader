@@ -134,3 +134,31 @@ def test_late_event_of_a_job_already_finished_is_ignored(job_event: JobEvent) ->
 
     assert updated_job is None
     assert job_store.get(job_id).status is JobStatus.CANCELLED
+
+
+@pytest.mark.parametrize(
+    ("kind", "output_path", "failure_reason"),
+    [
+        (JobKind.DOWNLOAD, None, FailureReason.FILESYSTEM),
+        (JobKind.EXPANSION, "a.mp4", FailureReason.UNKNOWN),
+    ],
+)
+def test_a_completion_that_breaks_the_contract_fails_the_job(
+    kind: JobKind, output_path: str | None, failure_reason: FailureReason
+) -> None:
+    job_store = InMemoryJobStore()
+    job_id = job_store.create(
+        Job.new_expansion("https://media.example/x", DOWNLOAD_OPTIONS)
+    )
+    job_store.update(
+        replace(job_store.get(job_id), kind=kind, status=JobStatus.RUNNING)
+    )
+
+    JobEventApplier(job_store).apply(
+        message(job_id, JobCompleted(output_path=output_path))
+    )
+
+    job = job_store.get(job_id)
+    assert job.status is JobStatus.FAILED
+    assert job.failure_reason is failure_reason
+    assert job.output_path is None

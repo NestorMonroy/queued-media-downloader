@@ -170,7 +170,20 @@ class Job:
         return replace(self, selected_format_id=selected_format_id)
 
     def complete(self, output_path: str | None) -> Self:
-        """El job terminó bien; output_path es None si no produjo un archivo."""
+        """El job terminó bien (contrato de JobCompleted).
+
+        Una descarga termina con la ruta de su archivo final; una expansión no
+        produce archivos y termina sin ruta.
+
+        Raises:
+            ValueError: Si una descarga no trae ruta o una expansión sí la trae.
+        """
+        if self.kind is JobKind.DOWNLOAD and output_path is None:
+            message = "A DOWNLOAD job completes only with its output file"
+            raise ValueError(message)
+        if self.kind is JobKind.EXPANSION and output_path is not None:
+            message = "An EXPANSION job produces no output file"
+            raise ValueError(message)
         return replace(self.transition_to(JobStatus.COMPLETED), output_path=output_path)
 
     def fail(self, failure_reason: FailureReason, failure_message: str) -> Self:

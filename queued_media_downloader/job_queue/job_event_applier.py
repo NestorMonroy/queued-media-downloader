@@ -14,6 +14,7 @@ from queued_media_downloader.jobs import (
     JobCancelled,
     JobCompleted,
     JobFailed,
+    JobKind,
     JobStatus,
     MediaKey,
     PlaylistEntriesFound,
@@ -125,6 +126,25 @@ class JobEventApplier:
             media_key, audio_only=expansion.download_options.audio_only
         )
 
+    @staticmethod
+    def _completed(job: Job, output_path: str | None) -> Job:
+        """El job completado o, si el evento rompe el contrato, fallido.
+
+        Un worker nunca debería publicarlo (YtDlpMediaSource lo comprueba
+        antes); si pasara, el job no puede quedar COMPLETED sin su archivo ni
+        detener la cola.
+        """
+        try:
+            return job.complete(output_path)
+        except ValueError as contract_error:
+            logger.error("Job %s: %s", job.job_id, contract_error)
+            if job.kind is JobKind.DOWNLOAD:
+                return job.fail(
+                    FailureReason.FILESYSTEM,
+                    "The download finished without an output file",
+                )
+            return job.fail(FailureReason.UNKNOWN, str(contract_error))
+
     def _job_after(self, job: Job, job_event: PersistentJobEvent) -> Job:
         """Devuelve el job tal como queda tras job_event.
 
@@ -146,7 +166,7 @@ class JobEventApplier:
             case FormatSelected(selected_format_id=selected_format_id):
                 return job.record_selected_format(selected_format_id)
             case JobCompleted(output_path=output_path):
-                return job.complete(output_path)
+                return self._completed(job, output_path)
             case JobFailed(failure_reason=failure_reason, failure_message=message):
                 return job.fail(failure_reason, message)
             case JobCancelled():

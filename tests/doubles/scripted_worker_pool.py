@@ -14,7 +14,9 @@ from queued_media_downloader.jobs import (
 )
 from queued_media_downloader.workers import NoIdleWorkerError, WorkerMessage
 
-ScriptKey = tuple[JobKind, str]
+# (tipo de job, URL) o, para distinguir video de solo audio, que en realidad
+# guardan archivos distintos, (tipo de job, URL, audio_only).
+ScriptKey = tuple[JobKind, str] | tuple[JobKind, str, bool]
 
 
 class ScriptPause(Enum):
@@ -66,11 +68,18 @@ class ScriptedWorkerPool:
             raise ValueError(message)
         self.submitted_jobs.append(job)
         self._busy_job_count += 1
-        for step in [JobStarted(), *self._script[(job.kind, job.url)]]:
+        for step in [JobStarted(), *self._steps_for(job)]:
             if isinstance(step, ScriptPause):
                 self._waiting_job_ids.add(job.job_id)
                 return
             self._publish(job.job_id, step)
+
+    def _steps_for(self, job: Job) -> Sequence[ScriptStep]:
+        """Guion del job: el de su audio_only si lo hay; si no, el de su URL."""
+        audio_only_key = (job.kind, job.url, job.download_options.audio_only)
+        if audio_only_key in self._script:
+            return self._script[audio_only_key]
+        return self._script[(job.kind, job.url)]
 
     def collect_events(self, timeout_seconds: float) -> list[WorkerMessage]:  # noqa: ARG002
         """Entrega todos los mensajes pendientes, sin esperar."""
