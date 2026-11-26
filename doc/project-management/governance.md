@@ -193,7 +193,8 @@ Las cinco áreas de enfoque (inicio, planificación, ejecución, seguimiento y c
 | Una deducción no es un hecho | Corrección del Responsable sobre Google Play (2.5.0) | Separar hecho, declaración e hipótesis; ninguna hipótesis se convierte en restricción |
 | Un clon superficial oculta documentos borrados | Corrección del Responsable sobre VidBee (2.5.0) | Historia completa y revisión de rutas borradas en cada referencia |
 | Analizar flujos y objetivos, no binarios | Corrección del Responsable sobre los APK | La ausencia de bibliotecas nativas en un APK no es un hallazgo |
-| Los APK modificados no son fuente de mecanismos comerciales | Instrucción 2.6.0 | Solo análisis estático; nunca instalar ni ejecutar; nunca estudiar cómo desbloquear |
+| Los APK modificados se analizan estáticamente, sin excluirlos | Corrección del Responsable (2.6.0) | Solo análisis estático; nunca instalar ni ejecutar; sin procedimientos para eludir pagos |
+| En la 2.6.0 se presentaron como hechos deducciones sobre GreenTuber (fork sin monetización, capa «injertada», «builds de Aptoide», facturación activa en las dos versiones) | Corrección del Responsable (2.6.0) | Cada afirmación lleva su fuente (manifiesto, firma, cadena); lo no comprobable se declara «no determinable» |
 
 ## 8. Registro de decisiones
 
