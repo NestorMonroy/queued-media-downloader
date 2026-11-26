@@ -68,17 +68,17 @@ class OutputOwnershipGuard(RecordingPostProcessor):
     detecta antes de que fixup o los postprocessors lo modifiquen (R-14).
     """
 
-    def __init__(self, output_claims: OutputClaims, job_id: int) -> None:
-        """Reclama en output_claims a nombre de job_id."""
+    def __init__(self, output_claims: OutputClaims, owner_token: str) -> None:
+        """Reclama en output_claims a nombre del job de owner_token."""
         super().__init__()
         self._output_claims = output_claims
-        self._job_id = job_id
+        self._owner_token = owner_token
         self.claim: OutputClaim | None = None
 
     def run(self, info: dict[str, Any]) -> tuple[list[str], dict[str, Any]]:
         """Reclama la ruta final que yt-dlp calculó con la plantilla del job."""
         final_path = Path(self._downloader.prepare_filename(info))
-        self.claim = self._output_claims.claim(self._job_id, final_path)
+        self.claim = self._output_claims.claim(self._owner_token, final_path)
         return [], info
 
 

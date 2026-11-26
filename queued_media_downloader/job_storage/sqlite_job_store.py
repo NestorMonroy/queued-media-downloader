@@ -28,7 +28,7 @@ SELECT_JOB_COLUMNS = """
     SELECT id, kind, status, url, parent_id, playlist_id, playlist_title,
            playlist_index, playlist_entry_count, extractor_key, media_id, title,
            selected_format_id, download_options, output_path, attempt_count,
-           failure_reason, failure_message
+           failure_reason, failure_message, created_at
     FROM jobs
 """
 
@@ -237,6 +237,7 @@ def _job_from_row(row: tuple[Any, ...]) -> Job:
         attempt_count,
         failure_reason,
         failure_message,
+        created_at,
     ) = row
     return Job(
         job_id=JobId(job_id),
@@ -262,6 +263,7 @@ def _job_from_row(row: tuple[Any, ...]) -> Job:
         failure_reason=FailureReason(failure_reason) if failure_reason else None,
         failure_message=failure_message,
         output_path=output_path,
+        created_at=created_at,
     )
 
 

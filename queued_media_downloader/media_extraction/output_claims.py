@@ -10,7 +10,9 @@ después, con el índice unique_output_path, llega tarde.
 Por eso cada job reclama su nombre final antes de descargar (postprocessor
 before_dl, OutputOwnershipGuard). La reclamación es un archivo creado de forma
 exclusiva (O_CREAT | O_EXCL, atómico en NTFS y en sistemas POSIX locales) en
-la carpeta de reclamaciones del estado, con el id del job dentro. Se reclama
+la carpeta de reclamaciones del estado, con el owner token del job dentro (id
+e instante de creación, Job.owner_token): si una copia antigua de la base de
+datos vuelve a dar el id a otro job, ese job no hereda la reclamación. Se reclama
 la ruta sin extensión (carpeta final + nombre base): la extensión final puede
 cambiar al unir formatos o extraer el audio.
 
@@ -79,12 +81,12 @@ class OutputClaims:
         """Guarda las reclamaciones en claims_directory (dentro del estado)."""
         self._claims_directory = claims_directory
 
-    def claim(self, job_id: int, final_path: Path) -> OutputClaim:
-        """Reclama para job_id el nombre final de final_path.
+    def claim(self, owner_token: str, final_path: Path) -> OutputClaim:
+        """Reclama para el job de owner_token el nombre final de final_path.
 
         Raises:
             OutputClaimedError: Si el nombre es de otro job o ya hay un archivo
-                con ese nombre base que no es de job_id.
+                con ese nombre base que no es de este job.
         """
         stem_path = canonical_stem_path(final_path)
         digest = hashlib.sha256(stem_path.encode("utf-8")).hexdigest()
@@ -100,15 +102,12 @@ class OutputClaims:
             )
         except FileExistsError:
             owner = self._owner_of(claim.claim_path)
-            if owner != job_id:
-                message = (
-                    f"{final_path.with_suffix('')}.* belongs to job {owner}; "
-                    "use an output template that keeps %(id)s"
-                )
+            if owner != owner_token:
+                message = _claimed_by_another_job(final_path, owner, owner_token)
                 raise OutputClaimedError(message) from None
             return claim
         with os.fdopen(descriptor, "w", encoding="utf-8") as claim_file:
-            claim_file.write(f"{job_id}\n{stem_path}\n")
+            claim_file.write(f"{owner_token}\n{stem_path}\n")
         existing = existing_files_with_stem(claim.final_directory, claim.stem)
         if existing:
             self.release(claim)
@@ -128,20 +127,21 @@ class OutputClaims:
         if not existing_files_with_stem(claim.final_directory, claim.stem):
             self.release(claim)
 
-    def release_all_of(self, job_id: int) -> None:
+    def release_all_of(self, owner_token: str) -> None:
         """Suelta todas las reclamaciones de un job que se borra de la cola."""
         for claim_path in self._claim_paths():
-            if self._owner_of(claim_path) == job_id:
+            if self._owner_of(claim_path) == owner_token:
                 claim_path.unlink(missing_ok=True)
 
-    def release_all_except(self, existing_job_ids: Collection[int]) -> None:
+    def release_all_except(self, existing_owner_tokens: Collection[str]) -> None:
         """Suelta las reclamaciones cuyo dueño ya no está en la cola (purge).
 
-        Una reclamación dañada, sin un id legible, también se suelta: ningún
-        job podría reconocerla como suya.
+        Una reclamación dañada, o de un job perdido al restaurar una copia de
+        la base de datos, también se suelta: ningún job podría reconocerla como
+        suya, y su archivo sigue protegido (un job nuevo no lo toma como suyo).
         """
         for claim_path in self._claim_paths():
-            if self._owner_of(claim_path) not in existing_job_ids:
+            if self._owner_of(claim_path) not in existing_owner_tokens:
                 claim_path.unlink(missing_ok=True)
 
     def _claim_paths(self) -> list[Path]:
@@ -150,10 +150,28 @@ class OutputClaims:
         return sorted(self._claims_directory.glob(f"*{CLAIM_SUFFIX}"))
 
     @staticmethod
-    def _owner_of(claim_path: Path) -> int | str:
-        """Id del job dueño; el texto leído si no es un id (archivo dañado)."""
+    def _owner_of(claim_path: Path) -> str:
+        """Owner token del dueño; vacío si el archivo no se puede leer."""
         try:
-            first_line = claim_path.read_text(encoding="utf-8").partition("\n")[0]
+            return claim_path.read_text(encoding="utf-8").partition("\n")[0]
         except OSError:
-            return "unknown"
-        return int(first_line) if first_line.isdigit() else repr(first_line)
+            return ""
+
+
+def _claimed_by_another_job(final_path: Path, owner: str, owner_token: str) -> str:
+    """Mensaje para un nombre que reclama otro job; distingue un id reutilizado."""
+    owner_id, _, owner_created_at = owner.partition("@")
+    job_id = owner_token.partition("@")[0]
+    if not owner_id.isdigit():
+        owner_description = "another job (damaged claim file)"
+    elif owner_id == job_id:
+        owner_description = (
+            f"an earlier job {owner_id} created at {owner_created_at or 'unknown'}, "
+            "not this one (was the queue database restored from an older copy?)"
+        )
+    else:
+        owner_description = f"job {owner_id}"
+    return (
+        f"{final_path.with_suffix('')}.* belongs to {owner_description}; "
+        "the file was left untouched; use an output template that keeps %(id)s"
+    )

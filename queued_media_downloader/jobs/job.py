@@ -51,6 +51,10 @@ class Job:
     failure_reason: FailureReason | None = None
     failure_message: str | None = None
     output_path: str | None = None
+    # Instante en que el job store lo guardó. Con job_id identifica al job
+    # aunque se restaure una copia antigua de la base de datos y se vuelva a
+    # dar su id a otro job (owner_token, ADR-0030).
+    created_at: str | None = None
 
     @classmethod
     def new_expansion(cls, url: str, download_options: DownloadOptions) -> Self:
@@ -121,6 +125,21 @@ class Job:
     def is_finished(self) -> bool:
         """Indica si el job ya terminó: no hay nada que cancelar (UC-05 A7)."""
         return self.status in FINISHED_STATUSES
+
+    def owner_token(self) -> str:
+        """Identidad del job en los archivos que reclama: id y creación.
+
+        Las reclamaciones de nombres finales y las carpetas de parciales la
+        guardan. Si una copia antigua de la base de datos hace que otro job
+        reciba el mismo id, su token es distinto y no hereda nada.
+
+        Raises:
+            ValueError: Si el job aún no está guardado.
+        """
+        if self.job_id is None:
+            message = "Only a stored job has an owner token"
+            raise ValueError(message)
+        return f"{self.job_id}@{self.created_at or ''}"
 
     def partial_directory(self) -> Path:
         """Carpeta propia de los archivos parciales del job (T44, riesgo R-14).

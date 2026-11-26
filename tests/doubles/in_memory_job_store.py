@@ -22,7 +22,10 @@ class InMemoryJobStore:
         """Guarda un job nuevo y devuelve el identificador asignado."""
         job_id = JobId(len(self._jobs) + 1)
         self._ensure_no_duplicate(job, job_id)
-        self._jobs[job_id] = replace(job, job_id=job_id)
+        # Como SqliteJobStore: el instante de creación completa la identidad.
+        self._jobs[job_id] = replace(
+            job, job_id=job_id, created_at=f"2026-11-26T00:00:00.{job_id:06d}+00:00"
+        )
         return job_id
 
     def create_many(self, jobs: Sequence[Job]) -> list[JobId]:

@@ -12,6 +12,10 @@ from queued_media_downloader.jobs import (
     JobStatus,
 )
 from queued_media_downloader.media_extraction import OutputClaims
+from queued_media_downloader.media_extraction.partial_files import (
+    PARTIAL_OWNER_FILE_NAME,
+    prepare_partial_directory,
+)
 from tests.doubles.in_memory_job_store import InMemoryJobStore
 
 
@@ -101,8 +105,9 @@ def test_finished_playlist_goes_with_its_entries_and_duplicates(tmp_path: Path) 
 def test_purge_removes_partial_files_but_never_downloaded_files(tmp_path: Path) -> None:
     job_store = InMemoryJobStore()
     cancelled = store(job_store, JobStatus.CANCELLED, tmp_path)
-    partial_directory = job_store.get(cancelled).partial_directory()
-    partial_directory.mkdir(parents=True)
+    cancelled_job = job_store.get(cancelled)
+    partial_directory = cancelled_job.partial_directory()
+    prepare_partial_directory(partial_directory, cancelled_job.owner_token())
     (partial_directory / "video.mp4.part").write_bytes(b"partial")
     downloaded = tmp_path / "video [abc].mp4"
     downloaded.write_bytes(b"finished")
@@ -152,8 +157,8 @@ def test_purge_releases_only_the_names_of_the_purged_jobs(tmp_path: Path) -> Non
     completed = store(job_store, JobStatus.COMPLETED, tmp_path)
     failed = store(job_store, JobStatus.FAILED, tmp_path)
     output_claims = OutputClaims(tmp_path / "output-claims")
-    output_claims.claim(int(completed), tmp_path / "a.mp4")
-    kept = output_claims.claim(int(failed), tmp_path / "b.mp4")
+    output_claims.claim(job_store.get(completed).owner_token(), tmp_path / "a.mp4")
+    kept = output_claims.claim(job_store.get(failed).owner_token(), tmp_path / "b.mp4")
 
     PurgeFinishedJobs(job_store, output_claims).execute({JobStatus.COMPLETED})
 
@@ -167,9 +172,29 @@ def test_purge_also_releases_names_left_by_jobs_no_longer_in_the_queue(
     job_store = InMemoryJobStore()
     pending = store(job_store, JobStatus.PENDING, tmp_path)
     output_claims = OutputClaims(tmp_path / "output-claims")
-    kept = output_claims.claim(int(pending), tmp_path / "a.mp4")
-    output_claims.claim(99, tmp_path / "b.mp4")
+    kept = output_claims.claim(job_store.get(pending).owner_token(), tmp_path / "a.mp4")
+    output_claims.claim("99@2026-01-01T00:00:00+00:00", tmp_path / "b.mp4")
 
     PurgeFinishedJobs(job_store, output_claims).execute({JobStatus.COMPLETED})
 
     assert sorted((tmp_path / "output-claims").iterdir()) == [kept.claim_path]
+
+
+def test_purge_keeps_a_partial_directory_of_another_job_with_the_same_id(
+    tmp_path: Path,
+) -> None:
+    # Copia antigua de la base de datos restaurada: la carpeta job-1 es de un
+    # job perdido, no del job 1 que se purga.
+    job_store = InMemoryJobStore()
+    cancelled = job_store.get(store(job_store, JobStatus.CANCELLED, tmp_path))
+    lost_partial = cancelled.partial_directory() / "other.mp4.part"
+    lost_partial.parent.mkdir(parents=True)
+    lost_partial.write_bytes(b"lost job")
+    (lost_partial.parent / PARTIAL_OWNER_FILE_NAME).write_text(
+        "1@2026-01-01T00:00:00+00:00", encoding="utf-8"
+    )
+
+    purge_use_case(job_store, tmp_path).execute({JobStatus.CANCELLED})
+
+    assert remaining(job_store) == []
+    assert lost_partial.read_bytes() == b"lost job"

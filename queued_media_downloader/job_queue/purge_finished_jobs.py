@@ -67,11 +67,11 @@ class PurgeFinishedJobs:
         # terminación forzada o un purge anterior interrumpido.
         self._job_store.delete(list(deleted))
         for removed in deleted.values():
-            remove_partial_directory(removed.partial_directory())
-        remaining_job_ids = {
-            int(job.job_id) for job in self._job_store.get_all() if job.job_id
+            remove_partial_directory(removed.partial_directory(), removed.owner_token())
+        remaining_owner_tokens = {
+            job.owner_token() for job in self._job_store.get_all() if job.job_id
         }
-        self._output_claims.release_all_except(remaining_job_ids)
+        self._output_claims.release_all_except(remaining_owner_tokens)
         return PurgeResult(
             deleted_job_count=len(deleted), kept_playlists=kept_playlists
         )

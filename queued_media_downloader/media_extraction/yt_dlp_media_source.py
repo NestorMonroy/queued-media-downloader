@@ -26,6 +26,7 @@ from queued_media_downloader.media_extraction.media_source_settings import (
 )
 from queued_media_downloader.media_extraction.output_claims import OutputClaims
 from queued_media_downloader.media_extraction.partial_files import (
+    prepare_partial_directory,
     remove_partial_directory,
 )
 from queued_media_downloader.media_extraction.progress_event_translator import (
@@ -100,7 +101,7 @@ class YtDlpMediaSource:
         if job.job_id is None:
             message = "Only a stored job can be downloaded"
             raise ValueError(message)
-        guard = OutputOwnershipGuard(self._output_claims, int(job.job_id))
+        guard = OutputOwnershipGuard(self._output_claims, job.owner_token())
         completed = False
         try:
             completed = self._download_owned(job, _cancellable(publish), guard)
@@ -113,6 +114,7 @@ class YtDlpMediaSource:
     ) -> bool:
         """Descarga con guard ya preparado; indica si publicó JobCompleted."""
         partial_directory = job.partial_directory()
+        prepare_partial_directory(partial_directory, job.owner_token())
         retry_with_format_selector = False
         try:
             final_path = self._download_with_format(
@@ -148,7 +150,7 @@ class YtDlpMediaSource:
         if unfinished_failure is not None:
             publish(unfinished_failure)
             return False
-        remove_partial_directory(partial_directory)
+        remove_partial_directory(partial_directory, job.owner_token())
         publish(JobCompleted(output_path=final_path))
         return True
 

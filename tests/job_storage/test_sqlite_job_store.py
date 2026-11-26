@@ -74,7 +74,13 @@ def test_created_job_reads_back_equal_with_its_assigned_id(
 
     job_id = job_store.create(new_job)
 
-    assert job_store.get(job_id) == replace(new_job, job_id=job_id)
+    stored_job = job_store.get(job_id)
+    assert stored_job == replace(
+        new_job, job_id=job_id, created_at=stored_job.created_at
+    )
+    # El instante de creación completa la identidad del job (owner_token).
+    assert stored_job.created_at is not None
+    assert stored_job.owner_token() == f"{job_id}@{stored_job.created_at}"
 
 
 def test_playlist_child_reads_back_with_its_parent_and_context(
@@ -95,7 +101,10 @@ def test_playlist_child_reads_back_with_its_parent_and_context(
 
     child_id = job_store.create(child)
 
-    assert job_store.get(child_id) == replace(child, job_id=child_id)
+    stored_child = job_store.get(child_id)
+    assert stored_child == replace(
+        child, job_id=child_id, created_at=stored_child.created_at
+    )
 
 
 def test_job_without_playlist_has_no_parent_nor_context(

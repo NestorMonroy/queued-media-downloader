@@ -30,6 +30,11 @@ from queued_media_downloader.media_extraction import (
 from queued_media_downloader.media_extraction import (
     yt_dlp_media_source as yt_dlp_media_source_module,
 )
+from queued_media_downloader.media_extraction.output_claims import OutputClaims
+from queued_media_downloader.media_extraction.partial_files import (
+    PARTIAL_OWNER_FILE_NAME,
+    prepare_partial_directory,
+)
 from queued_media_downloader.media_extraction.recording_postprocessors import (
     FinalPathRecorder,
 )
@@ -73,6 +78,16 @@ def download_job(
 def partial_directory(download_directory: Path, job_id: int = 1) -> Path:
     """Carpeta de parciales de un job (Job.partial_directory)."""
     return download_directory / ".partial" / f"job-{job_id}"
+
+
+def own_partial_directory(download_directory: Path, job_id: int = 1) -> Path:
+    """Carpeta de parciales que un intento anterior del job dejó a medias.
+
+    Lleva el owner token de los jobs de download_job (sin created_at).
+    """
+    directory = partial_directory(download_directory, job_id)
+    prepare_partial_directory(directory, f"{job_id}@")
+    return directory
 
 
 def media_source(
@@ -265,7 +280,7 @@ def test_interrupted_download_continues_from_its_partial_file(
     # Lo que deja un run interrumpido: el .part del job, en su carpeta.
     published_events: list[JobEvent] = []
     partial_path = partial_directory(tmp_path) / "sample [sample].mp4.part"
-    partial_path.parent.mkdir(parents=True)
+    own_partial_directory(tmp_path)
     partial_path.write_bytes(SAMPLE_MEDIA_CONTENT[:5000])
     job = download_job(
         f"{local_media_server}/sample.mp4", tmp_path, selected_format_id="mp4"
@@ -339,7 +354,7 @@ def test_leftovers_of_an_interrupted_cleanup_go_with_the_next_completion(
     first_run_events: list[JobEvent] = []
     media_source(tmp_path).download(job, first_run_events.append)
     abandoned_partial = partial_directory(tmp_path) / "sample [sample].f999.webm.part"
-    abandoned_partial.parent.mkdir(parents=True)
+    own_partial_directory(tmp_path)
     abandoned_partial.write_bytes(b"abandoned format")
     published_events: list[JobEvent] = []
 
@@ -358,7 +373,7 @@ def test_unavailable_saved_format_is_retried_once_with_the_original_selector(
     # A1: el formato del primer intento (999) ya no se ofrece.
     published_events: list[JobEvent] = []
     abandoned_partial = partial_directory(tmp_path) / "sample [sample].webm.part"
-    abandoned_partial.parent.mkdir(parents=True)
+    own_partial_directory(tmp_path)
     abandoned_partial.write_bytes(b"abandoned format")
     job = download_job(
         f"{local_media_server}/sample.mp4", tmp_path, selected_format_id="999"
@@ -393,7 +408,7 @@ def test_completion_never_touches_partial_files_of_another_job(
     # R-14: el job 1 tiene a medias otro contenido con el mismo nombre de
     # archivo que el job 2, que abandona un formato y termina.
     other_job_partial = partial_directory(tmp_path, job_id=1) / shared_partial_name
-    other_job_partial.parent.mkdir(parents=True)
+    own_partial_directory(tmp_path, job_id=1)
     other_job_partial.write_bytes(SAMPLE_MEDIA_CONTENT[:5000])
     job = download_job(
         f"{local_media_server}/other.mp4", tmp_path, selected_format_id="999", job_id=2
@@ -421,7 +436,7 @@ def test_failed_retry_publishes_one_failure_and_is_not_retried_again(
 ) -> None:
     published_events: list[JobEvent] = []
     partial_path = partial_directory(tmp_path) / "sample [sample].webm.part"
-    partial_path.parent.mkdir(parents=True)
+    own_partial_directory(tmp_path)
     partial_path.write_bytes(b"maybe still useful")
     job = download_job(
         f"{local_media_server}/sample.mp4", tmp_path, selected_format_id="999"
@@ -729,5 +744,60 @@ def test_a_job_that_finds_another_jobs_file_fails_without_touching_it(
     assert "belongs to job 1" in failure.failure_message
     assert not any(isinstance(e, JobCompleted) for e in published_events)
     assert (output_path.stat().st_mtime_ns, output_path.read_bytes()) == before
-    # Falla antes de descargar: su carpeta de parciales, si existe, está vacía.
-    assert list(partial_directory(tmp_path, job_id=2).glob("**/*")) == []
+    # Falla antes de descargar: su carpeta de parciales no tiene parciales.
+    assert [
+        path.name for path in partial_directory(tmp_path, job_id=2).glob("**/*")
+    ] == [PARTIAL_OWNER_FILE_NAME]
+
+
+# Base de datos restaurada de una copia anterior (ADR-0030): un job nuevo recibe
+# el id de un job perdido, que dejó su reclamación y su carpeta de parciales.
+LOST_JOB_TOKEN = "1@2026-01-01T00:00:00+00:00"
+
+
+def test_a_reused_id_never_takes_the_final_file_of_the_lost_job(
+    local_media_server: str, tmp_path: Path
+) -> None:
+    lost_job_file = tmp_path / "sample [sample].mp4"
+    claims = OutputClaims(tmp_path / "state" / "output-claims")
+    claims.claim(LOST_JOB_TOKEN, lost_job_file)
+    lost_job_file.write_bytes(b"downloaded by the lost job 1")
+    job = replace(
+        download_job(f"{local_media_server}/sample.mp4", tmp_path),
+        created_at="2026-11-26T00:00:00+00:00",
+    )
+    published_events: list[JobEvent] = []
+
+    media_source(tmp_path).download(job, published_events.append)
+
+    failure = published_events[-1]
+    assert isinstance(failure, JobFailed)
+    assert failure.failure_reason is FailureReason.FILESYSTEM
+    assert "restored" in failure.failure_message
+    assert lost_job_file.read_bytes() == b"downloaded by the lost job 1"
+
+
+def test_a_reused_id_never_resumes_from_the_partial_files_of_the_lost_job(
+    local_media_server: str, tmp_path: Path
+) -> None:
+    lost_partial = partial_directory(tmp_path) / "sample [sample].mp4.part"
+    lost_partial.parent.mkdir(parents=True)
+    lost_partial.write_bytes(b"another content" * 100)
+    (lost_partial.parent / PARTIAL_OWNER_FILE_NAME).write_text(
+        LOST_JOB_TOKEN, encoding="utf-8"
+    )
+    job = replace(
+        download_job(f"{local_media_server}/sample.mp4", tmp_path),
+        created_at="2026-11-26T00:00:00+00:00",
+    )
+    published_events: list[JobEvent] = []
+
+    media_source(tmp_path).download(job, published_events.append)
+
+    output_path = tmp_path / "sample [sample].mp4"
+    assert published_events[-1] == JobCompleted(output_path=str(output_path))
+    assert output_path.read_bytes() == SAMPLE_MEDIA_CONTENT
+    [set_aside] = (tmp_path / ".partial").glob("orphan-job-1-*")
+    assert (set_aside / "sample [sample].mp4.part").read_bytes() == (
+        b"another content" * 100
+    )
