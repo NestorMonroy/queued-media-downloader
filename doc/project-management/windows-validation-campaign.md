@@ -52,6 +52,7 @@ La raíz es, por orden: el parámetro `-EvidenceRoot` de `Start-ValidationRun`, 
 | `Start-ValidationRun [-EvidenceRoot <ruta>] [-AllowUnpublishedCommit]` | Hace `git fetch`; se detiene si hay cambios locales, un `config.toml`, o si el clon no está en `origin/main` (salvo `-AllowUnpublishedCommit`, que lo registra como no publicado); crea la carpeta de la ejecución y guarda el entorno | `run.txt`, `environment.txt` (Windows, PowerShell, uv, Python, git, git-lfs), `dependencies.log` (`uv pip freeze`: yt-dlp, yt-dlp-ejs, deno…), `diagnose.log` (ffmpeg, ffprobe, yt-dlp, yt-dlp-ejs, deno y esquema) |
 | `Resume-ValidationRun [-RunDirectory <ruta>]` | Retoma la ejecución en otra ventana (sin ruta, la más reciente) | — |
 | `New-ValidationQueue "<bloque>"` | Cola aislada (sección anterior) | Carpeta `queues\<bloque>` |
+| `Use-ValidationQueue "<bloque>"` | Vuelve a una cola ya creada: en una segunda ventana (tras `Resume-ValidationRun`) o para continuar un bloque | — |
 | `Invoke-ValidationSuites` | `scripts/run_checks.py`, `pytest -m windows` y `pytest -m network`, cada uno con su código de salida real; borra de la sesión las variables de la cola | `suite-*.log`, `exit-codes.txt` |
 | `Invoke-ProcessTreeExperiment` | Experimento de terminación de árboles de procesos (ADR-0029) | `process-tree-termination.log` y `.json` |
 | `Invoke-ValidationStep "<nombre>" @("programa", "arg"…)` | Ejecuta un programa, muestra y guarda su salida y anota su código de salida real | `<nombre>.log`, `exit-codes.txt` |
@@ -126,7 +127,7 @@ Invoke-ProcessTreeExperiment
 
 ### Paso 5. Casos de uso
 
-Antes de cada bloque, partir de una cola vacía y aislada: `New-ValidationQueue "<número del bloque>"`. Al terminar cada bloque: `Save-ValidationQueueState "<número del bloque>"`. No borrar ninguna carpeta real.
+Antes de cada bloque, partir de una cola vacía y aislada: `New-ValidationQueue "<número del bloque>"`. Al terminar cada bloque: `Save-ValidationQueueState "<número del bloque>"`. No borrar ninguna carpeta real. Una orden del programa en una ventana sin cola activa usa la carpeta real del usuario: en la segunda ventana de 5.4, 5.5 y 5.7, ejecutar antes `Resume-ValidationRun` y `Use-ValidationQueue "<bloque>"`. `Invoke-ValidationSuites` deja activa la cola que había.
 
 **5.1 Video con unión de audio y video, como solo audio y duplicado (UC-02, UC-03; A1)**
 

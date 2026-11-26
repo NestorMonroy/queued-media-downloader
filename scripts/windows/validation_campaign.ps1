@@ -19,6 +19,8 @@ Set-StrictMode -Version Latest
 $script:DefaultEvidenceRoot = "C:\qmd-validation"
 $script:RunDirectory = $null
 $script:RunCommit = $null
+# Bloque de la cola activa en esta sesión (New- o Use-ValidationQueue).
+$script:ValidationQueue = $null
 
 function Get-ValidationEvidenceRoot {
     param([string]$EvidenceRoot)
@@ -159,14 +161,31 @@ function New-ValidationQueue {
     if (Test-Path $root) {
         throw "$root already exists; use another block name, such as '$Block-r2' (nothing was deleted)"
     }
-    $state = Join-Path $root "state"
-    $downloads = Join-Path $root "downloads"
-    New-Item -ItemType Directory -Path $state, $downloads | Out-Null
-    $env:QUEUED_MEDIA_DOWNLOADER_STATE_DIRECTORY = $state
-    $env:QUEUED_MEDIA_DOWNLOADER_DOWNLOAD_DIRECTORY = $downloads
+    New-Item -ItemType Directory -Path (Join-Path $root "state"), (Join-Path $root "downloads") | Out-Null
+    Set-ValidationQueue $Block $root
+}
+
+function Use-ValidationQueue {
+    # Vuelve a una cola ya creada de la ejecución: en otra ventana, o después
+    # de las suites, que dejan la sesión sin cola.
+    param([Parameter(Mandatory)][string]$Block)
+    Assert-ValidationRun
+    $root = Join-Path (Join-Path $script:RunDirectory "queues") $Block
+    if (-not (Test-Path (Join-Path $root "state"))) {
+        throw "There is no queue for block $Block in this run; create it with New-ValidationQueue"
+    }
+    Set-ValidationQueue $Block $root
+}
+
+function Set-ValidationQueue {
+    # Apunta el programa a la cola del bloque en esta sesión de PowerShell.
+    param([string]$Block, [string]$Root)
+    $env:QUEUED_MEDIA_DOWNLOADER_STATE_DIRECTORY = Join-Path $Root "state"
+    $env:QUEUED_MEDIA_DOWNLOADER_DOWNLOAD_DIRECTORY = Join-Path $Root "downloads"
+    $script:ValidationQueue = $Block
     Write-Host "Queue for block ${Block}:"
-    Write-Host "  state     $state"
-    Write-Host "  downloads $downloads"
+    Write-Host "  state     $env:QUEUED_MEDIA_DOWNLOADER_STATE_DIRECTORY"
+    Write-Host "  downloads $env:QUEUED_MEDIA_DOWNLOADER_DOWNLOAD_DIRECTORY"
 }
 
 function Invoke-ValidationStep {
@@ -207,9 +226,13 @@ function Invoke-ValidationStep {
 
 function Invoke-ValidationSuites {
     # Las cinco verificaciones y las pruebas windows y network. Las pruebas
-    # crean sus propias carpetas: se ejecutan sin las variables de la cola.
+    # crean sus propias carpetas: se ejecutan sin las variables de la cola, y
+    # la cola activa se restablece al terminar. Si la sesión quedara sin cola,
+    # las órdenes siguientes usarían la carpeta real del usuario.
     Assert-ValidationRun
+    $previousQueue = $script:ValidationQueue
     Remove-Item Env:QUEUED_MEDIA_DOWNLOADER_STATE_DIRECTORY, Env:QUEUED_MEDIA_DOWNLOADER_DOWNLOAD_DIRECTORY -ErrorAction SilentlyContinue
+    $script:ValidationQueue = $null
     $results = [ordered]@{}
     $results["run_checks"] = Invoke-ValidationStep "suite-run-checks" @("uv", "run", "python", "scripts/run_checks.py")
     $results["pytest_windows"] = Invoke-ValidationStep "suite-pytest-windows" @("uv", "run", "pytest", "-m", "windows", "-o", "addopts=")
@@ -221,7 +244,12 @@ function Invoke-ValidationSuites {
     if ($failed.Count -gt 0) {
         Write-Warning "At least one suite failed: record it and classify the defects"
     }
-    Write-Host "Call New-ValidationQueue before the next step: the queue variables were cleared"
+    if ($previousQueue) {
+        Use-ValidationQueue $previousQueue
+    }
+    else {
+        Write-Host "No queue is active: call New-ValidationQueue before the next step"
+    }
 }
 
 function Invoke-ProcessTreeExperiment {

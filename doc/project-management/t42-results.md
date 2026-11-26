@@ -111,6 +111,19 @@ Consola del Evaluador; sin archivo de evidencia todavía. `Start-ValidationRun` 
 | T42-D7 | 5.2 | *Producto, general* (contrato con yt-dlp) | Menor | Un timeout de conexión al servidor de video quedó como `UNKNOWN` en lugar de `NETWORK`. Cuando el downloader HTTP de yt-dlp agota los reintentos, lanza el `DownloadError` fuera de un bloque `except` (`FileDownloader.report_retry` → `YoutubeDL.trouble`): el error de red original se pierde y solo queda el texto `[download] Got error: …` | Corregido: ese texto se clasifica como `NETWORK` (`DOWNLOAD_RETRIES_EXHAUSTED_MESSAGE`); prueba de contrato con el código real de yt-dlp, `test_yt_dlp_download_retry_contract.py`, añadida al procedimiento de actualización. **Pendiente de confirmar en Windows** (requiere un corte de red durante una descarga; si no se reproduce, queda cubierto por la prueba de contrato) |
 | T42-D8 | 5.2 | *Procedimiento de validación* | Menor | En la evidencia, las rayas (`—`) de los títulos salen como `�` y los emojis como `?`: Python escribe en cp1252 y PowerShell lee la tubería con otra codificación | Corregido en `Invoke-ValidationStep`: los programas escriben y PowerShell lee en UTF-8 durante cada paso. No se pudo ejecutar PowerShell en el entorno de desarrollo: **pendiente de confirmar en Windows** |
 
+### Suites y pasos 5.3 y 5.4 en la misma ejecución (consola del Evaluador; evidencia sin las descargas pendiente de recibir)
+
+| Paso | Resultado | Evidencia | Observaciones |
+|---|---|---|---|
+| 3 Suites | **pasa** | `suite-run-checks.log` (538 pasan, 7 omitidas, código 0), `suite-pytest-windows.log` (16, código 0), `suite-pytest-network.log` (4, código 0) | Incluye `test_output_encoding.py` y `test_youtube_challenge_solving.py` en Windows |
+| 5.6 Reintentar y purgar | **no ejecutado** (T42-D9) | — | Las órdenes se ejecutaron sin cola activa, contra la carpeta de estado por omisión del usuario: estaba vacía (`No jobs`, `Purged 0 jobs`), así que no se cambió ningún dato. Se repite sobre la cola 5.2, que conserva los 9 fallos |
+| 5.3 `--playlist` | **pasa** | `queue-5.3.log` (código 0) | El job del video con `&list=` sin `--playlist` resolvió solo el video y quedó `SKIPPED` por duplicado (la playlist, encolada antes, ya lo tenía); con `--playlist`, la lista entera (15 entradas, todas `SKIPPED`). **UC-04 A2 entre playlists distintas**: "Functions (review)", en dos playlists, se descargó una vez (job 22) y la otra copia quedó `SKIPPED` (job 24). Las 9 descargas que fallaron por red en 5.2 terminaron bien, entre ellas la del título con emojis |
+| 5.4 `--keep-waiting` | **pasa** (falta confirmar en la evidencia que la playlist se encoló con `run` ya esperando) | `queue-5.4.log` (código 0) | `run --keep-waiting` tomó la playlist encolada desde otra ventana, la descargó y siguió esperando; un `Ctrl+C` terminó con código 130 |
+
+| Id | Paso | Origen | Gravedad | Descripción | Estado |
+|---|---|---|---|---|---|
+| T42-D9 | 5.6 | *Procedimiento de validación* | Mayor | `Invoke-ValidationSuites` borra las variables de la cola para las pruebas y no las restablecía: las órdenes siguientes del programa usaron la carpeta real del usuario. El guion pedía volver a la cola 5.2 sin dar una forma de hacerlo | Corregido: las suites restablecen la cola activa, y `Use-ValidationQueue "<bloque>"` vuelve a una cola ya creada (también para la segunda ventana de 5.4, 5.5 y 5.7). **Pendiente de confirmar en Windows** |
+
 ### Pendiente en Windows tras esta ejecución
 
-Las correcciones de T42-D7 y T42-D8 están en un commit posterior a `ddffe96`. Para no repetir pasos, la ejecución `20261125-222227-ddffe96cb470` sigue con los pasos 5.3 a 13 sin actualizar el clon; T42-D7 y T42-D8 se confirman en la siguiente ejecución, junto con las correcciones que salgan de esos pasos.
+Las correcciones de T42-D7, T42-D8 y T42-D9 están en un commit posterior a `ddffe96`. Para no repetir pasos, la ejecución `20261125-222227-ddffe96cb470` sigue con los pasos 5.3 a 13 sin actualizar el clon; T42-D7 a T42-D9 se confirman en la siguiente ejecución, junto con las correcciones que salgan de esos pasos.
