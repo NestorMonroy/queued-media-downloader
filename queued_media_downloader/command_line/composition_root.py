@@ -32,7 +32,10 @@ from queued_media_downloader.job_storage.sqlite_job_store import (
     LOCKED_DATABASE_MESSAGE,
     SqliteJobStore,
 )
-from queued_media_downloader.media_extraction import MediaSourceSettings
+from queued_media_downloader.media_extraction import (
+    MediaSourceSettings,
+    installed_yt_dlp_versions,
+)
 from queued_media_downloader.media_extraction.yt_dlp_javascript_runtime import (
     find_deno,
 )
@@ -188,6 +191,7 @@ def create_diagnose_environment(settings: Settings) -> DiagnoseEnvironment:
     """Diagnóstico con el ffmpeg, el deno y la base de datos que usará run."""
     return DiagnoseEnvironment(
         ffmpeg_locator=create_ffmpeg_locator(settings),
+        find_yt_dlp_versions=installed_yt_dlp_versions,
         find_javascript_runtime=find_deno,
         open_database=functools.partial(
             read_database_schema_version, settings.state_directory

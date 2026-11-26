@@ -19,6 +19,10 @@ from queued_media_downloader.media_extraction.output_claims import OutputClaims
 from queued_media_downloader.media_extraction.partial_files import (
     remove_partial_directory,
 )
+from queued_media_downloader.media_extraction.yt_dlp_versions import (
+    YtDlpVersions,
+    installed_yt_dlp_versions,
+)
 
 __all__ = [
     "JavaScriptRuntime",
@@ -27,5 +31,7 @@ __all__ = [
     "MediaSourceSettings",
     "OutputClaims",
     "Publish",
+    "YtDlpVersions",
+    "installed_yt_dlp_versions",
     "remove_partial_directory",
 ]

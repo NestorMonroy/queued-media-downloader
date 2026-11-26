@@ -12,7 +12,7 @@ from queued_media_downloader.ffmpeg_discovery import (
     FfmpegSource,
     FfmpegUnavailableError,
 )
-from queued_media_downloader.media_extraction import JavaScriptRuntime
+from queued_media_downloader.media_extraction import JavaScriptRuntime, YtDlpVersions
 
 BUNDLED_FFMPEG = FfmpegInstallation(
     source=FfmpegSource.VENDORED,
@@ -60,14 +60,19 @@ def failing_database() -> int:
     raise sqlite3.OperationalError(message)
 
 
+INSTALLED_YT_DLP = YtDlpVersions(yt_dlp="2026.11.23", challenge_solver="0.8.0")
+
+
 def diagnose(
     ffmpeg_locator: FakeFfmpegLocator | None = None,
     javascript_runtime: JavaScriptRuntime | None = SUPPORTED_DENO,
     open_database: Callable[[], int] = database_at_version_2,
+    yt_dlp_versions: YtDlpVersions = INSTALLED_YT_DLP,
 ) -> dict[str, EnvironmentCheck]:
     """Ejecuta el diagnóstico con dobles y devuelve las comprobaciones por nombre."""
     checks = DiagnoseEnvironment(
         ffmpeg_locator=ffmpeg_locator or FakeFfmpegLocator(),
+        find_yt_dlp_versions=lambda: yt_dlp_versions,
         find_javascript_runtime=lambda: javascript_runtime,
         open_database=open_database,
     ).execute()
@@ -77,7 +82,7 @@ def diagnose(
 def test_every_component_passes_in_a_ready_environment() -> None:
     checks = diagnose()
 
-    assert list(checks) == ["ffmpeg", "ffprobe", "deno", "database"]
+    assert list(checks) == ["ffmpeg", "ffprobe", "yt-dlp", "deno", "database"]
     assert {check.outcome for check in checks.values()} == {CheckOutcome.PASSED}
     # Las rutas se muestran con el separador del sistema (barra invertida en Windows).
     assert checks["ffmpeg"].detail == (
@@ -145,3 +150,20 @@ def test_database_that_cannot_be_opened_fails_with_the_reason() -> None:
 
     assert checks["database"].outcome is CheckOutcome.FAILED
     assert "unable to open database file" in checks["database"].detail
+
+
+def test_yt_dlp_and_its_challenge_solver_versions_are_reported() -> None:
+    check = diagnose()["yt-dlp"]
+
+    assert check.outcome is CheckOutcome.PASSED
+    assert check.detail == "yt-dlp 2026.11.23 with yt-dlp-ejs 0.8.0"
+
+
+def test_missing_challenge_solver_fails_and_asks_for_uv_sync() -> None:
+    check = diagnose(
+        yt_dlp_versions=YtDlpVersions(yt_dlp="2026.11.23", challenge_solver=None)
+    )["yt-dlp"]
+
+    assert check.outcome is CheckOutcome.FAILED
+    assert "yt-dlp-ejs" in check.detail
+    assert "uv sync" in check.detail

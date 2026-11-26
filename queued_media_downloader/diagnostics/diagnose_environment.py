@@ -11,7 +11,7 @@ from queued_media_downloader.ffmpeg_discovery import (
     FfmpegSource,
     FfmpegUnavailableError,
 )
-from queued_media_downloader.media_extraction import JavaScriptRuntime
+from queued_media_downloader.media_extraction import JavaScriptRuntime, YtDlpVersions
 
 # Cómo se nombra cada origen de ffmpeg en el detalle de la comprobación.
 FFMPEG_SOURCE_NAMES = {
@@ -19,6 +19,10 @@ FFMPEG_SOURCE_NAMES = {
     FfmpegSource.VENDORED: "bundled",
     FfmpegSource.SYSTEM_PATH: "from PATH, version not validated",
 }
+CHALLENGE_SOLVER_NOT_FOUND = (
+    "yt-dlp-ejs is not installed, so YouTube challenges cannot be solved. "
+    "Run 'uv sync' in the project folder"
+)
 DENO_NOT_FOUND = (
     "not found. Run 'uv sync' in the project folder to install the deno of the project"
 )
@@ -42,7 +46,7 @@ class EnvironmentCheck:
 
 
 class DiagnoseEnvironment:
-    """Comprueba ffmpeg, ffprobe, deno y la base de datos (UC-01, pasos 6 a 9).
+    """Comprueba ffmpeg, ffprobe, yt-dlp, deno y la base de datos (UC-01, 6 a 9).
 
     Cada comprobación se ejecuta aunque falle otra, para que el usuario vea
     todos los problemas de una vez.
@@ -52,6 +56,7 @@ class DiagnoseEnvironment:
         self,
         *,
         ffmpeg_locator: FfmpegLocator,
+        find_yt_dlp_versions: Callable[[], YtDlpVersions],
         find_javascript_runtime: Callable[[], JavaScriptRuntime | None],
         open_database: Callable[[], int],
     ) -> None:
@@ -59,11 +64,14 @@ class DiagnoseEnvironment:
 
         Args:
             ffmpeg_locator: Localiza y verifica ffmpeg y ffprobe.
+            find_yt_dlp_versions: Devuelve las versiones instaladas de yt-dlp
+                y de su solucionador de retos de JavaScript.
             find_javascript_runtime: Devuelve el deno que usará yt-dlp.
             open_database: Abre la base de datos, aplica las migraciones que
                 falten y devuelve la versión del esquema.
         """
         self._ffmpeg_locator = ffmpeg_locator
+        self._find_yt_dlp_versions = find_yt_dlp_versions
         self._find_javascript_runtime = find_javascript_runtime
         self._open_database = open_database
 
@@ -71,6 +79,7 @@ class DiagnoseEnvironment:
         """Devuelve una comprobación por componente, en orden de UC-01."""
         return [
             *self._check_ffmpeg(),
+            self._check_yt_dlp(),
             self._check_deno(),
             self._check_database(),
         ]
@@ -88,6 +97,16 @@ class DiagnoseEnvironment:
             EnvironmentCheck("ffmpeg", outcome, _describe_ffmpeg(installation)),
             EnvironmentCheck("ffprobe", outcome, installation.ffprobe_version),
         ]
+
+    def _check_yt_dlp(self) -> EnvironmentCheck:
+        """Versión fijada de yt-dlp y su solucionador, necesario para YouTube."""
+        versions = self._find_yt_dlp_versions()
+        if versions.challenge_solver is None:
+            return EnvironmentCheck(
+                "yt-dlp", CheckOutcome.FAILED, CHALLENGE_SOLVER_NOT_FOUND
+            )
+        detail = f"yt-dlp {versions.yt_dlp} with yt-dlp-ejs {versions.challenge_solver}"
+        return EnvironmentCheck("yt-dlp", CheckOutcome.PASSED, detail)
 
     def _check_deno(self) -> EnvironmentCheck:
         """Deno es necesario para YouTube; una versión antigua no sirve."""
