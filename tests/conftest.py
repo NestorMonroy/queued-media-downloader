@@ -12,6 +12,12 @@ from typing import Any
 
 import pytest
 
+from tests.real_environment_guard import (
+    RealDataSnapshot,
+    isolate_environment,
+    real_locations,
+)
+
 SAMPLE_MEDIA_NAME = "sample.mp4"
 SAMPLE_MEDIA_CONTENT = b"\x00\x00\x00\x18ftypmp42" + bytes(range(256)) * 64
 # Contenido que el servidor envía despacio, para interrumpir una descarga a
@@ -96,6 +102,45 @@ class SlowReader:
     def close(self) -> None:
         """Cierra el archivo de origen."""
         self._source.close()
+
+
+_REAL_DATA_BEFORE: dict[str, RealDataSnapshot] = {}
+
+
+def pytest_sessionstart() -> None:
+    """Toma la huella de los datos reales y exige que no haya config.toml."""
+    locations = real_locations()
+    if locations["config"].exists():
+        # Las pruebas que lanzan el programa en otro proceso (Ctrl+C real)
+        # leerían ese archivo: no se puede aislar de él.
+        message = (
+            f"{locations['config']} exists; run the tests from a checkout "
+            "without a config.toml"
+        )
+        raise pytest.UsageError(message)
+    _REAL_DATA_BEFORE["snapshot"] = RealDataSnapshot.take(locations)
+
+
+def pytest_sessionfinish(session: pytest.Session) -> None:
+    """Hace fallar la sesión si algún dato real cambió durante las pruebas."""
+    before = _REAL_DATA_BEFORE.get("snapshot")
+    if before is None:
+        return
+    differences = before.differences(RealDataSnapshot.take(real_locations()))
+    if differences:
+        reporter = session.config.pluginmanager.get_plugin("terminalreporter")
+        lines = "\n".join(f"  {difference}" for difference in differences)
+        if reporter is not None:
+            reporter.write_line(
+                f"REAL USER DATA CHANGED DURING THE TESTS:\n{lines}", red=True
+            )
+        session.exitstatus = pytest.ExitCode.TESTS_FAILED
+
+
+@pytest.fixture(autouse=True)
+def isolated_environment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Toda prueba usa estado, descargas y config.toml propios (auditoría §5)."""
+    return isolate_environment(tmp_path, monkeypatch)
 
 
 def _slowed_down_if_requested(path: str, body: Any) -> Any:

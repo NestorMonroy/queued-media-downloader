@@ -19,22 +19,15 @@ from queued_media_downloader.jobs import Job, JobId
 ENVIRONMENT_PREFIX = "QUEUED_MEDIA_DOWNLOADER_"
 
 
-@pytest.fixture(autouse=True)
-def state_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Aísla toda prueba de comandos del entorno real: estado y descargas en tmp_path.
+@pytest.fixture
+def state_directory(isolated_environment: Path) -> Path:
+    """Carpeta de estado propia de la prueba.
 
-    Es autouse: una prueba que olvide pedirla no puede escribir en la cola
-    real del usuario (pasó en T45 y T46).
+    El aislamiento lo da isolated_environment (tests/conftest.py), autouse
+    para todas las pruebas: una prueba que olvide pedirlo no puede escribir
+    en la cola real del usuario (pasó en T45 y T46).
     """
-    for variable in list(os.environ):
-        if variable.startswith(ENVIRONMENT_PREFIX):
-            monkeypatch.delenv(variable)
-    state_directory = tmp_path / "state"
-    monkeypatch.setenv(f"{ENVIRONMENT_PREFIX}STATE_DIRECTORY", str(state_directory))
-    monkeypatch.setenv(
-        f"{ENVIRONMENT_PREFIX}DOWNLOAD_DIRECTORY", str(tmp_path / "downloads")
-    )
-    return state_directory
+    return isolated_environment
 
 
 @pytest.fixture
