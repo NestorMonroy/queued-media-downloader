@@ -7,7 +7,7 @@
 - **Significativo para la arquitectura:** sí: introduce la fuente de contenido y su conjunto de contenido conocido en el modelo de información.
 - **Estado:** candidato (propuesta de la instrucción 2.5.0, pendiente de aprobación del Responsable). Implementación: ausente.
 - **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
-- **Origen:** NewPipe (`SubscriptionEntity`, `FeedGroupEntity`, importar y exportar suscripciones), GreenTuber (`SubsFragment`), YTDLnis (`ObserveSourcesItem`) y VidBee (suscripciones RSS con directorio y plantilla por suscripción); evidencia y nivel en el [análisis de requisitos, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
+- **Origen:** NewPipe (`SubscriptionEntity`, `FeedGroupEntity`, importar y exportar suscripciones), GreenTuber (`SubsFragment`), YTDLnis (`ObserveSourcesItem`) y VidBee (suscripciones RSS con directorio, plantilla, filtro de palabras y etiquetas por suscripción; una URL de feed solo se admite una vez, según su documentación de `d483045`); evidencia y nivel en el [análisis de requisitos, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
 - **Independencia:** UC-04 expande una playlist una vez; UC-18 guarda preferencias de descarga; UC-21 programa la ejecución de jobs existentes. Ninguno conserva una fuente ni lo que ya se conoce de ella. La suscripción es local: no requiere una cuenta en el servicio ni lo modifica.
 
 ## Breve descripción

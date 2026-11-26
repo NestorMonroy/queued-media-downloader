@@ -1616,6 +1616,8 @@ El descubrimiento funcional ([análisis de requisitos, §15](../requirements/req
 
 Las interfaces futuras siguen sin interpretar la salida de texto: todo lo anterior se expone con el contrato estructurado (SUP-I01, ADR-0032).
 
+**Transporte entre interfaces y motor** (cuestión de diseño, sin cambio): la CLI de VidBee en `d483045` llega a la misma cola por tres transportes: la aplicación de escritorio por loopback, con un descriptor local (pid y hash de un token con caducidad); una API remota; o el motor dentro del proceso. Para nuestra CLI bastan las peticiones a la cola por la base de datos (SUP-C04). Si una interfaz gráfica llega a alojar el motor, la CLI tendrá que localizarlo y autenticarse; esa pregunta se responde al diseñar la interfaz gráfica, no en E3.
+
 ### 17.2 Invariantes de identidad antes de las migraciones
 
 Para UC-29 (ADR-0033, D-16):
