@@ -73,11 +73,16 @@ class CancelWhen:
     """
 
     def __init__(
-        self, inbox: SqliteJobRequestInbox, event_type: type[object], skip: int
+        self,
+        inbox: SqliteJobRequestInbox,
+        event_type: type[object],
+        skip: int,
+        before_cancelling: Callable[[], None] | None = None,
     ) -> None:
         self._inbox = inbox
         self._event_type = event_type
         self._remaining_skips = skip
+        self._before_cancelling = before_cancelling
         self.requested_at: float | None = None
 
     def __call__(self, message: WorkerMessage, job: Job | None) -> None:
@@ -89,6 +94,8 @@ class CancelWhen:
         if self._remaining_skips > 0:
             self._remaining_skips -= 1
             return
+        if self._before_cancelling is not None:
+            self._before_cancelling()
         cancel = JobRequest(job_id=message.job_id, request_type=JobRequestType.CANCEL)
         self._inbox.create_many([cancel])
         self.requested_at = time.monotonic()
@@ -102,6 +109,7 @@ def run_cancelling(
     cancel_on: type[object],
     cancellation_grace_seconds: float,
     skip: int = 0,
+    before_cancelling: Callable[[], None] | None = None,
 ) -> tuple[Job, float]:
     """Encola url, ejecuta la cola y cancela la descarga al ver cancel_on."""
     with opened_queue(tmp_path / "queue.sqlite3") as (job_store, inbox):
@@ -109,7 +117,7 @@ def run_cancelling(
         pool = ProcessWorkerPool(
             1, media_source_factory, platform_process_tree_terminator
         )
-        cancel_download = CancelWhen(inbox, cancel_on, skip)
+        cancel_download = CancelWhen(inbox, cancel_on, skip, before_cancelling)
         try:
             RunQueue(
                 job_store,
@@ -169,6 +177,14 @@ def test_job_without_progress_is_terminated_with_its_child_after_the_grace_perio
         ],
         ("download", url): SpawnChild(str(pid_file), then_crash=False),
     }
+    watched_children: list[WatchedProcess] = []
+
+    def watch_child_before_cancelling() -> None:
+        # El handle se abre con el hijo vivo: tras terminarlo, su PID ya no
+        # existe y Windows no deja abrirlo (T42-D1, WinError 87).
+        child_id = wait_for_roles(pid_file, ("child",))["child"]
+        watched_children.append(WatchedProcess(child_id))
+
     job, seconds_to_stop = run_cancelling(
         tmp_path,
         functools.partial(FakeMediaSource, script),
@@ -177,8 +193,9 @@ def test_job_without_progress_is_terminated_with_its_child_after_the_grace_perio
         cancel_on=JobStarted,
         cancellation_grace_seconds=1.0,
         skip=1,
+        before_cancelling=watch_child_before_cancelling,
     )
-    child = WatchedProcess(wait_for_roles(pid_file, ("child",))["child"])
+    [child] = watched_children
 
     try:
         assert job.kind is JobKind.DOWNLOAD
