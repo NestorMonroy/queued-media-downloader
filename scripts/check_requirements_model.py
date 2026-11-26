@@ -21,30 +21,39 @@ Comprobaciones (todas con stop-on-error en el código de salida):
    las tablas entre <!-- uc-realization:start --> y <!-- uc-realization:end -->
    y entre <!-- platform-applicability:start --> y
    <!-- platform-applicability:end --> tienen una fila por cada caso de uso
-   aceptado, y solo esas, con estados de su vocabulario (DESIGN_STATES y
-   PLATFORM_STATES). «Disponible» en Windows CLI exige que el caso de uso tenga
+   aceptado o candidato, y solo esas, con estados de su vocabulario (DESIGN_STATES
+   y PLATFORM_STATES). Un candidato tiene el estado de diseño «Candidato» y un
+   aceptado no. «Disponible» en Windows CLI exige que el caso de uso tenga
    pruebas automáticas (campo Verificación).
 5. Plan de E3 (doc/project-management/iteration-plan-e3.md): la tabla entre
    <!-- e3-coverage:start --> y <!-- e3-coverage:end --> asigna una sola unidad
-   a cada flujo no implementado de cada caso de uso aceptado, y «Básico» a los
-   casos cuyo campo Estado dice «Implementación: ausente» o «parcial»; no
-   asigna flujos implementados ni inexistentes. La tabla entre
+   a cada flujo no implementado de cada caso de uso aceptado o candidato, y
+   «Básico» a los casos cuyo campo Estado dice «Implementación: ausente» o
+   «parcial»; no asigna flujos implementados ni inexistentes. Su columna Alcance
+   separa lo aprobado de las propuestas: «Aceptado» para los flujos aprobados de
+   un caso aceptado y «Propuesto» para los flujos marcados como propuestos y para
+   todos los de un candidato. La tabla entre
    <!-- e3-dependencies:start --> y <!-- e3-dependencies:end --> define las
    unidades y sus dependencias, sin ciclos ni unidades desconocidas, y cada
    unidad cubre algún flujo. Cada regla de «Reglas aprobadas sin implementar» y
-   cada requisito suplementario pendiente (sin implementar, parcial, pendiente
-   de medición, divergente o condicionado) aparece en el plan. Es consistencia
+   de «Reglas propuestas», y cada requisito suplementario pendiente (sin
+   implementar, parcial, pendiente de medición, divergente, condicionado o
+   propuesto) aparece en el plan. Una regla propuesta no está también entre las
+   aprobadas y un requisito propuesto no se declara aceptado. Es consistencia
    documental, no evidencia de implementación.
 
 Estado de un flujo (alternativo o de excepción): la marca explícita
-`[estado: IMPLEMENTACIÓN]` o `[estado: IMPLEMENTACIÓN; condicionado]` justo después
-de su título en negrita. IMPLEMENTACIÓN es implementado, parcial, defecto,
-divergente, ausente o sin cualificar; «condicionado» indica que el flujo tiene una
-condición técnica pendiente. Un flujo sin marca, o con un valor desconocido, es un
-error: el estado nunca se deduce del texto libre.
+`[estado: IMPLEMENTACIÓN]`, con los sufijos opcionales `; condicionado` y
+`; propuesto` en ese orden, justo después de su título en negrita. IMPLEMENTACIÓN
+es implementado, parcial, defecto, divergente, ausente o sin cualificar;
+«condicionado» indica que el flujo tiene una condición técnica pendiente;
+«propuesto», que es una ampliación pendiente de aprobación del Responsable.
+Un flujo sin marca, o con un valor desconocido, es un error: el estado nunca se
+deduce del texto libre.
 
 Definición de un caso de uso: la primera palabra de su campo Estado (aceptado,
-retirado...). Verificación: «prueba en desarrollo» si su campo Verificación
+candidato, retirado...). Un candidato es un objetivo propuesto, documentado y
+pendiente de aprobación. Verificación: «prueba en desarrollo» si su campo Verificación
 menciona pruebas automáticas; si no, «sin evidencia».
 
 Uso, desde la raíz del repositorio:
@@ -76,7 +85,9 @@ MATRIX_END = "<!-- completeness-matrix:end -->"
 DESIGN = Path("doc/design/03-target-architecture-and-evolution.md")
 REALIZATION_TABLE = "uc-realization"
 APPLICABILITY_TABLE = "platform-applicability"
-DESIGN_STATES = ("Realizado", "Definido", "Condicionado")
+DESIGN_STATES = ("Realizado", "Definido", "Condicionado", "Candidato")
+CANDIDATE_DESIGN_STATE = "Candidato"
+SCOPES = ("Aceptado", "Propuesto")
 PLATFORM_STATES = (
     "Disponible",
     "Parcial",
@@ -91,7 +102,7 @@ COVERAGE_TABLE = "e3-coverage"
 DEPENDENCY_TABLE = "e3-dependencies"
 BASIC_FLOW = "Básico"
 PENDING_SUPPLEMENTARY = re.compile(
-    r"sin implementar|parcial|pendiente de medición|divergente|condicionado",
+    r"sin implementar|parcial|pendiente de medición|divergente|condicionado|propuesto",
     re.IGNORECASE,
 )
 
@@ -103,7 +114,8 @@ FLOW_STATES = (
     "ausente",
     "sin cualificar",
 )
-FLOW_STATE = re.compile(r"^\s*`\[estado: ([a-z ]+?)(; condicionado)?\]`")
+FLOW_STATE = re.compile(r"^\s*`\[estado: ([a-z ]+?)(; condicionado)?(; propuesto)?\]`")
+PROPOSED_RULES = "5. Reglas propuestas"
 LINK = re.compile(r"\]\(([^)\s]+)\)")
 HEADING = re.compile(r"^#{1,6} (.+)$", re.MULTILINE)
 CODE_BLOCK = re.compile(r"```.*?```", re.DOTALL)
@@ -127,9 +139,11 @@ class UseCaseCounts:
     exceptions: int = 0
     states: Counter[str] = field(default_factory=Counter)
     conditioned: int = 0
+    proposed: int = 0
     verification: str = "sin evidencia"
     problems: list[str] = field(default_factory=list)
     pending_flows: list[str] = field(default_factory=list)
+    proposed_flows: list[str] = field(default_factory=list)
     basic_pending: bool = False
     rules: int = 0
     supplementary: int = 0
@@ -245,12 +259,12 @@ def section(text: str, title: str) -> str:
     return match.group(1) if match else ""
 
 
-def flow_state(text: str) -> tuple[str, bool] | None:
-    """Estado de implementación y condición técnica según la marca explícita."""
+def flow_state(text: str) -> tuple[str, bool, bool] | None:
+    """Estado de implementación, condición técnica y propuesta según la marca."""
     match = FLOW_STATE.match(text)
     if match is None or match.group(1) not in FLOW_STATES:
         return None
-    return match.group(1), match.group(2) is not None
+    return match.group(1), match.group(2) is not None, match.group(3) is not None
 
 
 def use_case_counts(path: Path) -> UseCaseCounts:
@@ -279,8 +293,12 @@ def use_case_counts(path: Path) -> UseCaseCounts:
             continue
         counts.states[state[0]] += 1
         counts.conditioned += state[1]
+        counts.proposed += state[2]
         if state[0] != "implementado":
-            counts.pending_flows.append(flow)
+            if state[2]:
+                counts.proposed_flows.append(flow)
+            else:
+                counts.pending_flows.append(flow)
     status_line = re.search(r"^- \*\*Estado:\*\* ([^\n]+)", text, re.MULTILINE)
     counts.basic_pending = bool(
         status_line
@@ -309,10 +327,11 @@ def completeness_matrix(root: Path) -> str:
     header = (
         "| UC | Definición | Alternativos | Excepciones | "
         + " | ".join(state.capitalize() for state in FLOW_STATES)
-        + " | Condicionados | Reglas | Suplementarios | Criterios | Verificación"
+        + " | Condicionados | Propuestos | Reglas | Suplementarios | Criterios"
+        + " | Verificación"
         + " | Necesita Windows |"
     )
-    separator = "|" + "---|" * (10 + len(FLOW_STATES))
+    separator = "|" + "---|" * (11 + len(FLOW_STATES))
     lines = [header, separator]
     for row in rows:
         cells = [
@@ -322,6 +341,7 @@ def completeness_matrix(root: Path) -> str:
             str(row.exceptions),
             *(str(row.states[state]) for state in FLOW_STATES),
             str(row.conditioned),
+            str(row.proposed),
             str(row.rules),
             str(row.supplementary),
             str(row.criteria),
@@ -336,6 +356,7 @@ def completeness_matrix(root: Path) -> str:
         f"**{sum(row.exceptions for row in rows)}**",
         *(f"**{sum(row.states[state] for row in rows)}**" for state in FLOW_STATES),
         f"**{sum(row.conditioned for row in rows)}**",
+        f"**{sum(row.proposed for row in rows)}**",
         "—",
         "—",
         f"**{sum(row.criteria for row in rows)}**",
@@ -381,7 +402,7 @@ def marked_table_rows(text: str, name: str) -> list[list[str]] | None:
 def coverage_problems(
     name: str, rows: list[list[str]], accepted: set[str]
 ) -> list[str]:
-    """Casos de uso aceptados ausentes, repetidos o desconocidos en una tabla."""
+    """Casos de uso aceptados o candidatos ausentes, repetidos o desconocidos."""
     found = Counter(row[0] for row in rows)
     problems = [
         f"{DESIGN}: {name} lacks {identifier}"
@@ -393,7 +414,8 @@ def coverage_problems(
         if count > 1
     ]
     problems += [
-        f"{DESIGN}: {name} has {identifier}, which is not an accepted use case"
+        f"{DESIGN}: {name} has {identifier}, which is not an accepted or candidate"
+        " use case"
         for identifier in sorted(set(found) - accepted)
     ]
     return problems
@@ -406,6 +428,11 @@ def design_problems(root: Path) -> list[str]:
         return [f"{DESIGN}: missing"]
     text = design_path.read_text("utf-8")
     use_cases = {row.identifier: row for row in use_case_rows(root)}
+    candidates = {
+        identifier
+        for identifier, row in use_cases.items()
+        if row.definition == "candidato"
+    }
     accepted = {
         identifier
         for identifier, row in use_cases.items()
@@ -416,17 +443,27 @@ def design_problems(root: Path) -> list[str]:
     if realization is None:
         problems.append(f"{DESIGN}: missing {REALIZATION_TABLE} markers")
     else:
-        problems += coverage_problems(REALIZATION_TABLE, realization, accepted)
+        problems += coverage_problems(
+            REALIZATION_TABLE, realization, accepted | candidates
+        )
         problems += [
             f"{DESIGN}: {row[0]} has unknown design state {row[-1]!r}"
             for row in realization
             if row[-1] not in DESIGN_STATES
         ]
+        problems += [
+            f"{DESIGN}: {row[0]} must be {CANDIDATE_DESIGN_STATE!r} only if it is"
+            " a candidate"
+            for row in realization
+            if (row[0] in candidates) != (row[-1] == CANDIDATE_DESIGN_STATE)
+        ]
     applicability = marked_table_rows(text, APPLICABILITY_TABLE)
     if applicability is None:
         problems.append(f"{DESIGN}: missing {APPLICABILITY_TABLE} markers")
         return problems
-    problems += coverage_problems(APPLICABILITY_TABLE, applicability, accepted)
+    problems += coverage_problems(
+        APPLICABILITY_TABLE, applicability, accepted | candidates
+    )
     for row in applicability:
         for platform, state in zip(
             PLATFORMS, row[1 : 1 + len(PLATFORMS)], strict=False
@@ -482,12 +519,15 @@ def has_cycle(edges: dict[str, set[str]]) -> bool:
 
 
 def pending_identifiers(root: Path) -> tuple[set[str], set[str]]:
-    """Reglas aprobadas sin implementar y suplementarios pendientes."""
-    rules_text = section(
-        (root / BUSINESS_RULES).read_text("utf-8"),
-        "2. Reglas aprobadas sin implementar",
-    )
-    rules = set(re.findall(r"^\| (BR-\d{2}) \|", rules_text, re.MULTILINE))
+    """Reglas aprobadas sin implementar o propuestas y suplementarios pendientes."""
+    rules_document = (root / BUSINESS_RULES).read_text("utf-8")
+    rules = set()
+    for title in ("2. Reglas aprobadas sin implementar", PROPOSED_RULES):
+        rules |= set(
+            re.findall(
+                r"^\| (BR-\d{2}) \|", section(rules_document, title), re.MULTILINE
+            )
+        )
     supplementary = {
         match.group(1)
         for match in re.finditer(
@@ -526,17 +566,22 @@ def flow_coverage_problems(
     """Cada flujo pendiente con una sola unidad conocida; cada unidad con flujos."""
     problems: list[str] = []
     assigned: dict[str, Counter[str]] = {}
-    for identifier, flows, unit, *_ in coverage:
+    scopes: dict[tuple[str, str], str] = {}
+    for identifier, flows, unit, *rest in coverage:
+        scope = rest[0] if rest else ""
         if unit not in units:
             problems.append(f"{PLAN}: {identifier} uses unknown unit {unit}")
-        assigned.setdefault(identifier, Counter()).update(
-            flow.strip() for flow in flows.split(",")
-        )
+        if scope not in SCOPES:
+            problems.append(f"{PLAN}: {identifier} has unknown scope {scope!r}")
+        names = [flow.strip() for flow in flows.split(",")]
+        assigned.setdefault(identifier, Counter()).update(names)
+        scopes.update({(identifier, name): scope for name in names})
     for use_case in use_case_rows(root):
-        if use_case.definition == "aceptado":
+        if use_case.definition in ("aceptado", "candidato"):
             problems += use_case_coverage_problems(
                 use_case, assigned.get(use_case.identifier, Counter())
             )
+            problems += scope_problems(use_case, scopes)
     covered_units = {row[2] for row in coverage}
     problems += [
         f"{PLAN}: {unit} covers no flow" for unit in sorted(units - covered_units)
@@ -544,11 +589,37 @@ def flow_coverage_problems(
     return problems
 
 
+def expected_scopes(use_case: UseCaseCounts) -> dict[str, str]:
+    """Alcance que debe tener en el plan cada flujo pendiente de un caso de uso."""
+    candidate = use_case.definition == "candidato"
+    expected = {
+        flow: "Propuesto" if candidate else "Aceptado"
+        for flow in use_case.pending_flows
+    }
+    expected |= dict.fromkeys(use_case.proposed_flows, "Propuesto")
+    if use_case.basic_pending:
+        expected[BASIC_FLOW] = "Propuesto" if candidate else "Aceptado"
+    return expected
+
+
+def scope_problems(
+    use_case: UseCaseCounts, scopes: dict[tuple[str, str], str]
+) -> list[str]:
+    """Flujos asignados con un alcance distinto del que les corresponde."""
+    return [
+        f"{PLAN}: {use_case.identifier} {flow} must have scope {scope}"
+        for flow, scope in sorted(expected_scopes(use_case).items())
+        if (use_case.identifier, flow) in scopes
+        and scopes[(use_case.identifier, flow)] in SCOPES
+        and scopes[(use_case.identifier, flow)] != scope
+    ]
+
+
 def use_case_coverage_problems(
     use_case: UseCaseCounts, found: Counter[str]
 ) -> list[str]:
     """Flujos pendientes sin unidad, repetidos o que no están pendientes."""
-    expected = set(use_case.pending_flows)
+    expected = set(use_case.pending_flows) | set(use_case.proposed_flows)
     if use_case.basic_pending:
         expected.add(BASIC_FLOW)
     identifier = use_case.identifier
@@ -587,6 +658,41 @@ def plan_problems(root: Path) -> list[str]:
         f"{PLAN}: {identifier} has no strategy in the plan"
         for identifier in sorted((rules | supplementary) - mentioned)
     ]
+    return problems + proposal_problems(root)
+
+
+def proposal_problems(root: Path) -> list[str]:
+    """Propuestas mezcladas con requisitos aprobados."""
+    rules_document = (root / BUSINESS_RULES).read_text("utf-8")
+    approved = set(
+        re.findall(
+            r"^\| (BR-\d{2}) \|",
+            section(rules_document, "2. Reglas aprobadas sin implementar")
+            + section(rules_document, "1. Reglas vigentes"),
+            re.MULTILINE,
+        )
+    )
+    proposed = set(
+        re.findall(
+            r"^\| (BR-\d{2}) \|", section(rules_document, PROPOSED_RULES), re.MULTILINE
+        )
+    )
+    problems = [
+        f"{BUSINESS_RULES}: {rule} is both proposed and approved"
+        for rule in sorted(approved & proposed)
+    ]
+    for match in re.finditer(
+        r"^\| (SUP-[A-Z]+\d{2}) \| ([^|]*)\|",
+        (root / SUPPLEMENTARY).read_text("utf-8"),
+        re.MULTILINE,
+    ):
+        status = match.group(2)
+        if re.search(r"propuesto", status, re.IGNORECASE) and re.search(
+            r"\baceptado\b", status, re.IGNORECASE
+        ):
+            problems.append(
+                f"{SUPPLEMENTARY}: {match.group(1)} is both proposed and accepted"
+            )
     return problems
 
 

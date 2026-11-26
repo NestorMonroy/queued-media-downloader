@@ -42,6 +42,8 @@ El Responsable pidió reevaluar el pool sin conservarlo por inercia ni sustituir
   - VoiceStudio solo termina antes de tiempo lo que corre en *sidecars*;
   - Ghost-Downloader-3 no interrumpe sus hilos de extracción.
 
+**Alcance de la evidencia** (aclaración, instrucción 2.5.0): los experimentos muestran ventajas de la ejecución aislada en procesos frente a los hilos y al event loop. No muestran que el pool persistente sea superior a cualquier otra modalidad aislada: B también cumple los obligatorios. A se elige por continuidad y coste de migración, no porque sea la única capaz de aislar y cancelar.
+
 ## Opciones consideradas
 
 | Opción | Resultado |

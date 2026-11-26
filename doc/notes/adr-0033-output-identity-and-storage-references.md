@@ -54,3 +54,7 @@ El `job_id` local no es una identidad portable. No hace falta UUID: la identidad
 - La detección de colisiones actual se conserva como el mecanismo de Windows para comparar ubicaciones.
 - No se introduce una abstracción de almacenamiento antes de implementar D-15: la implementación de Windows sigue usando rutas.
 - **Pendiente:** el contrato de reclamación en Android e iOS.
+
+## Impacto del descubrimiento funcional (instrucción 2.5.0)
+
+Los candidatos UC-29 (modificar jobs pendientes) y UC-30 y UC-31 (suscripciones) y las ampliaciones de UC-25 (compartir y exportar) no cambian esta decisión. Fijan cuatro invariantes antes de las migraciones de E3, en la [Parte 3, §17.2](../design/03-target-architecture-and-evolution.md#172-invariantes-de-identidad-antes-de-las-migraciones): el identificador del job no cambia al modificar su petición; la identidad se recalcula solo si cambia la especificación del resultado; solo se modifica un job sin reclamaciones; y el contenido conocido de una suscripción usa la misma media key que los duplicados. Compartir o exportar no crea outputs ni mueve reclamaciones (BR-52).

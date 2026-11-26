@@ -2,7 +2,7 @@
 
 - **Proyecto:** queued-media-downloader
 - **Fase RUP:** Inicio
-- **Versión:** 1.3 (2026-11-26; **orientación multiplataforma**, instrucción 2.3.0). 1.2: alcance de 26 casos de uso aceptado por el Responsable. 1.1: alcance revisado en la reconciliación de exclusiones. 1.0: 2026-11-23, borrador para revisión
+- **Versión:** 1.4 (2026-11-26; ampliaciones propuestas del descubrimiento funcional, instrucción 2.5.0, pendientes de aprobación). 1.3 (2026-11-26; **orientación multiplataforma**, instrucción 2.3.0). 1.2: alcance de 26 casos de uso aceptado por el Responsable. 1.1: alcance revisado en la reconciliación de exclusiones. 1.0: 2026-11-23, borrador para revisión
 
 ---
 
@@ -64,6 +64,11 @@ Formulación del alcance: **administrar de manera persistente, configurable, seg
 | Diagnóstico | UC-01 (instalar y verificar), UC-16 (informe de diagnóstico) |
 | Portabilidad de la información | UC-22 (exportar e importar), UC-23 (respaldo), UC-20 A5 (configuración) |
 | Dependencias | UC-01 y UC-27 (administración controlada y reversible) |
+
+**Ampliaciones propuestas, pendientes de aprobación** (instrucción 2.5.0, [análisis de requisitos, §15](requirements-analysis.md#15-descubrimiento-funcional-250)): no cambian la formulación del alcance y no lo reducen.
+- **Candidatos:** modificar jobs pendientes (UC-29), suscripciones a fuentes y obtención de contenido nuevo (UC-30, UC-31) y actualización de la aplicación (UC-32).
+- **Ampliaciones de casos aceptados:** solicitudes desde otras aplicaciones y portapapeles (UC-02), pausa y orden de jobs (UC-14), selecciones (UC-05, UC-10), perfiles por URL e idioma (UC-18), modo privado y borrado por categoría (UC-20), programación por job (UC-21), abrir, compartir y exportar resultados (UC-25).
+- **Sin decidir:** el alcance de consumo (reproducción, catálogos, transcripción, IA; D-23) y el modelo comercial y los canales en tiendas (D-24). La visión no se amplía a plataforma social, tienda, servicio de streaming ni sistema comercial sin esas decisiones.
 
 ## 5. Restricciones
 

@@ -59,10 +59,10 @@ PLAN = """# Plan
 <!-- e3-dependencies:end -->
 
 <!-- e3-coverage:start -->
-| UC | Flujos | Unidad |
-|---|---|---|
-| UC-01 | Básico, A2 | U1 |
-| UC-01 | E1 | U2 |
+| UC | Flujos | Unidad | Alcance |
+|---|---|---|---|
+| UC-01 | Básico, A2 | U1 | Aceptado |
+| UC-01 | E1 | U2 | Aceptado |
 <!-- e3-coverage:end -->
 """
 
@@ -143,7 +143,7 @@ def test_the_generated_matrix_counts_flows_by_state(repository: Path) -> None:
     model = (repository / "doc/requirements/use-case-model.md").read_text("utf-8")
 
     assert (
-        "| UC-01 | aceptado | 2 | 1 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 0 | 1 "
+        "| UC-01 | aceptado | 2 | 1 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 "
         "| prueba en desarrollo | Sí |" in model
     )
 
@@ -210,15 +210,17 @@ def test_an_outdated_matrix_fails_until_it_is_regenerated(repository: Path) -> N
     [
         (
             " `[estado: implementado]` con los valores por defecto",
-            ("implementado", False),
+            ("implementado", False, False),
         ),
-        (" `[estado: defecto]` **Defecto (R-28):** falla", ("defecto", False)),
-        (" `[estado: ausente; condicionado]` (D-1)", ("ausente", True)),
-        (" `[estado: sin cualificar]`", ("sin cualificar", False)),
+        (" `[estado: defecto]` **Defecto (R-28):** falla", ("defecto", False, False)),
+        (" `[estado: ausente; condicionado]` (D-1)", ("ausente", True, False)),
+        (" `[estado: sin cualificar]`", ("sin cualificar", False, False)),
+        (" `[estado: ausente; propuesto]`", ("ausente", False, True)),
+        (" `[estado: ausente; condicionado; propuesto]`", ("ausente", True, True)),
     ],
 )
 def test_flow_state_comes_only_from_the_explicit_mark(
-    text: str, state: tuple[str, bool]
+    text: str, state: tuple[str, bool, bool]
 ) -> None:
     assert load_script().flow_state(text) == state
 
@@ -290,7 +292,7 @@ DESIGN_PATH = "doc/design/03-target-architecture-and-evolution.md"
                 "<!-- uc-realization:end -->",
                 "| UC-44 | Otro | Definido |\n<!-- uc-realization:end -->",
             ),
-            "uc-realization has UC-44, which is not an accepted use case",
+            "uc-realization has UC-44, which is not an accepted or candidate use case",
         ),
         (
             ("<!-- platform-applicability:start -->", ""),
@@ -332,7 +334,7 @@ def test_available_on_windows_requires_automated_tests(repository: Path) -> None
     ("change", "messages"),
     [
         (
-            ("| UC-01 | E1 | U2 |\n", ""),
+            ("| UC-01 | E1 | U2 | Aceptado |\n", ""),
             ["UC-01 E1 has no unit", "U2 covers no flow"],
         ),
         (
@@ -388,3 +390,126 @@ def test_a_pending_rule_or_requirement_needs_a_strategy_in_the_plan(
     assert "SUP-F01 has no strategy in the plan" in result.stdout
     write(repository / PLAN_PATH, PLAN + "\nBR-01 y SUP-F01 en U1.\n")
     assert check(repository).returncode == 0
+
+
+PROPOSED_FLOW = "- **A3. Propuesto** `[estado: ausente; propuesto]`: amplía.\n\n"
+CANDIDATE = """# UC-02: Candidato
+
+- **Estado:** candidato (pendiente de aprobación). Implementación: ausente.
+- **Verificación:** sin evidencia.
+
+## Flujos alternativos
+
+- **A1. Una alternativa** `[estado: ausente]`: algo.
+"""
+
+
+def add_proposed_flow(repository: Path) -> None:
+    use_case = repository / "doc/requirements/use-cases/uc-01-enqueue.md"
+    use_case.write_text(
+        USE_CASE.replace("## Excepciones", PROPOSED_FLOW + "## Excepciones"),
+        encoding="utf-8",
+    )
+    subprocess.run(
+        [sys.executable, str(SCRIPT), "--root", str(repository), "--write"],
+        check=False,
+        capture_output=True,
+        timeout=60,
+    )
+
+
+def test_a_proposed_flow_needs_the_proposed_scope_in_the_plan(
+    repository: Path,
+) -> None:
+    add_proposed_flow(repository)
+    assert "UC-01 A3 has no unit" in check(repository).stdout
+
+    write(
+        repository / PLAN_PATH,
+        PLAN.replace(
+            "<!-- e3-coverage:end -->",
+            "| UC-01 | A3 | U2 | Aceptado |\n<!-- e3-coverage:end -->",
+        ),
+    )
+    assert "UC-01 A3 must have scope Propuesto" in check(repository).stdout
+
+    write(
+        repository / PLAN_PATH,
+        PLAN.replace(
+            "<!-- e3-coverage:end -->",
+            "| UC-01 | A3 | U2 | Propuesto |\n<!-- e3-coverage:end -->",
+        ),
+    )
+    assert check(repository).returncode == 0
+
+
+def test_an_unknown_scope_fails(repository: Path) -> None:
+    write(repository / PLAN_PATH, PLAN.replace("| U2 | Aceptado |", "| U2 | Quizá |"))
+
+    result = check(repository)
+
+    assert result.returncode == 1
+    assert "UC-01 has unknown scope 'Quizá'" in result.stdout
+
+
+def test_a_candidate_use_case_is_planned_as_a_proposal_and_designed_as_a_candidate(
+    repository: Path,
+) -> None:
+    write(repository / "doc/requirements/use-cases/uc-02-candidate.md", CANDIDATE)
+    subprocess.run(
+        [sys.executable, str(SCRIPT), "--root", str(repository), "--write"],
+        check=False,
+        capture_output=True,
+        timeout=60,
+    )
+    result = check(repository)
+    assert "UC-02 A1 has no unit" in result.stdout
+    assert "UC-02 Básico has no unit" in result.stdout
+    assert "uc-realization lacks UC-02" in result.stdout
+
+    write(
+        repository / PLAN_PATH,
+        PLAN.replace(
+            "<!-- e3-coverage:end -->",
+            "| UC-02 | Básico, A1 | U2 | Propuesto |\n<!-- e3-coverage:end -->",
+        ),
+    )
+    design = DESIGN.replace(
+        "<!-- uc-realization:end -->",
+        "| UC-02 | Propuesta | Definido |\n<!-- uc-realization:end -->",
+    ).replace(
+        "<!-- platform-applicability:end -->",
+        "| UC-02 | Futura | Futura | Futura | No demostrada | — |\n"
+        "<!-- platform-applicability:end -->",
+    )
+    write(repository / DESIGN_PATH, design)
+    assert (
+        "UC-02 must be 'Candidato' only if it is a candidate"
+        in check(repository).stdout
+    )
+
+    write(
+        repository / DESIGN_PATH,
+        design.replace(
+            "| UC-02 | Propuesta | Definido |", "| UC-02 | Propuesta | Candidato |"
+        ),
+    )
+    assert check(repository).returncode == 0
+
+
+def test_a_proposal_is_not_mixed_with_approved_requirements(repository: Path) -> None:
+    write(
+        repository / "doc/requirements/business-rules.md",
+        "# Reglas\n\n## 2. Reglas aprobadas sin implementar\n\n| BR-01 | C | Regla |\n"
+        "\n## 5. Reglas propuestas\n\n| BR-01 | C | Regla |\n| BR-02 | C | Otra |\n",
+    )
+    write(
+        repository / "doc/requirements/supplementary-specification.md",
+        "# Suplementarios\n\n| SUP-F01 | **Aceptado; propuesto:** salida |\n",
+    )
+
+    result = check(repository)
+
+    assert "BR-01 is both proposed and approved" in result.stdout
+    assert "SUP-F01 is both proposed and accepted" in result.stdout
+    assert "BR-02 has no strategy in the plan" in result.stdout

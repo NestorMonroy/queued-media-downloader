@@ -6,6 +6,7 @@
 - **Significativo para la arquitectura:** no
 - **Estado:** aceptado (Responsable, 2026-11-26). Implementación: los escenarios originales están implementados; los ampliados tienen la marca de su flujo (`[estado: …]`).
 - **Verificación:** escenarios implementados verificados con pruebas automáticas en desarrollo (Linux); validación en Windows pendiente de la campaña integral (T42 parcial, [registro](../../project-management/t42-results.md)).
+- **Propuestas pendientes de aprobación (2.5.0):** A7, marcadas como propuestas; [análisis de requisitos, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
 - **Decisiones relacionadas:** [ADR-0010](../../notes/adr-0010-sqlite-persistent-queue.md) (ids que no se reutilizan), [ADR-0030](../../notes/adr-0030-final-file-ownership-claims.md)
 - **Diseño:** [Parte 2, §4.1](../../design/02-flows-persistence-and-operations.md#41-comandos)
 
@@ -34,6 +35,7 @@ El User borra de la cola los jobs `COMPLETED` y/o `CANCELLED`. Los archivos desc
 - **A4. `run` en ejecución en otra terminal** `[estado: implementado]` (paso 4): el borrado espera hasta `busy_timeout` (SQLite en modo WAL); los jobs en curso no son purgables.
 - **A5. Purgar y borrar los archivos propios** `[estado: ausente]` (decisión D-11; el borrado de resultados es UC-25 A1, y este flujo lo aplica a los jobs purgados): `purge --delete-files` borra además el archivo final de cada job purgado, solo si el job lo escribió y conserva su reclamación con su owner token ([BR-17](../business-rules.md)). Primero muestra una vista previa (jobs, archivos y tamaño total) sin borrar nada, y solo borra con una confirmación explícita. Un archivo movido, ajeno o sin reclamación no se toca. Origen: Seal (borrar el registro con su archivo) y YTDownload-2026 (vista previa y confirmación en dos fases). A diferencia de YTDownload-2026, que borra la carpeta de salida completa, aunque sea la de una playlist entera, nunca se borra una carpeta ni un archivo que el job no escribió.
 - **A6. Purga automática** `[estado: ausente]` (prioridad baja): con `purge_completed_after_days`, `run` purga al arrancar los jobs `COMPLETED` más antiguos que ese plazo. No borra archivos. Satisface la necesidad del «modo privado» de Seal (no conservar el registro de lo descargado) sin perder la protección de los archivos (ADR-0030).
+- **A7. Purgar una selección** `[estado: ausente; propuesto]` (paso 1): el User purga solo los jobs terminados que selecciona; los que no son purgables se informan sin interrumpir el resto. Evidencia: YTDLnis (borrado por estado y por selección); [análisis, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
 
 ## Excepciones
 

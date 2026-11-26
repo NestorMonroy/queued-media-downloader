@@ -1,6 +1,6 @@
 # Diseño — Parte 3: arquitectura objetivo, contratos públicos y evolución multiplataforma
 
-- **Estado:** Analysis and Design cerrado (instrucciones 2.3.0 y 2.4.0; la 2.4.0 añade la cualificación de la arquitectura de ejecución, §16). Es diseño, no implementación: ningún componente marcado *propuesto* existe en el código.
+- **Estado:** Analysis and Design cerrado (instrucciones 2.3.0 y 2.4.0; la 2.4.0 añade la cualificación de la arquitectura de ejecución, §16; la 2.5.0, la reconciliación con el descubrimiento funcional, §17, y los candidatos UC-29 a UC-32 en §12 y §13). Es diseño, no implementación: ningún componente marcado *propuesto* existe en el código.
 - **Fecha:** 2026-11-26
 - **Base:**
   - [Parte 1](01-architecture.md): arquitectura vigente;
@@ -957,6 +957,8 @@ Ningún componente se clasifica **Replace**: no hay ninguna incompatibilidad dem
 
 ## 12. Realización de los 26 casos de uso
 
+La tabla incluye también los casos de uso candidatos UC-29 a UC-32, con el estado de diseño «Candidato»: están pendientes de aprobación y su reconciliación está en §17.
+
 Columnas:
 - **Componentes actuales:** los que ya realizan parte del caso.
 - **Contratos que faltan:** referencias a §5, §6 y §8.
@@ -993,7 +995,12 @@ Los datos, eventos, errores y pruebas de cada caso están en su especificación 
 | UC-25 | Administrar los outputs | `output_path` | Referencia de almacenamiento y autorización (§6.1, BR-17, BR-31) | Almacenamiento | Outputs | Pruebas compartidas de propiedad | U5 | Definido |
 | UC-26 | Verificar los outputs | `ffmpeg_discovery` | Verificación con ffprobe (§10.4) | Multimedia | Evidencia | ffprobe con archivos de prueba | U5 | Condicionado |
 | UC-27 | Administrar las dependencias | `diagnostics` | Procedimiento cualificado (D-8), capacidades | Distribución (§7.2) | Ninguna | Entorno aislado | U12 | Condicionado |
-| UC-28 | Recibir avisos | — | Canal de observación (§5.3), entrega (§8.6) | Avisos | Preferencias | Pruebas del canal; entrega sin permiso | U10 | Definido |<!-- uc-realization:end -->
+| UC-28 | Recibir avisos | — | Canal de observación (§5.3), entrega (§8.6) | Avisos | Preferencias | Pruebas del canal; entrega sin permiso | U10 | Definido |
+| UC-29 | Modificar la petición de jobs pendientes | `queue_store`, `run_queue` | Comando `modify` con resultado por job; suceso de modificación; recálculo de identidad (§17.2) | No | Sucesos del job | Pruebas de identidad conservada, duplicado y carrera con el envío | U13 | Candidato |
+| UC-30 | Registrar fuentes y su contenido conocido | — | Consultas y comandos de suscripción; documento de intercambio versionado | No | Suscripciones y contenido conocido (nuevas, sin esquema) | Pruebas con fuentes simuladas | U14 | Candidato |
+| UC-31 | Descubrir contenido nuevo y crear jobs con procedencia | `media_extraction` (listado sin descarga) | Procedencia en la creación de jobs; suceso de consulta | Programación (como UC-21) | Contenido conocido, consultas | Consultas sucesivas con fuente simulada | U14 | Candidato |
+| UC-32 | Comprobar y aplicar versiones del producto por canal | `diagnostics` | Identidad del canal de la instalación; consulta de versión | Canal de distribución | Ninguna nueva (migraciones existentes) | Canal simulado; migración desde la versión anterior | U16 | Candidato |
+<!-- uc-realization:end -->
 
 **Contratos compartidos.** Satisfacen a varios casos a la vez, y cada uno tiene una autoridad:
 
@@ -1054,6 +1061,10 @@ Esta matriz no autoriza implementar en Android ni en iOS.
 | UC-26 | Futura | Futura | Restringida | No demostrada | ffprobe como ejecutable en Android; iOS sin cualificar |
 | UC-27 | Futura | Futura | Restringida | Restringida | Políticas de tienda sobre código descargado |
 | UC-28 | Futura | Futura | Futura | Futura | Requiere permiso de notificaciones; el producto funciona sin él |
+| UC-29 | Futura | Futura | Futura | Futura | Candidato; mismo comando público en todas las interfaces |
+| UC-30 | Futura | Futura | Futura | Futura | Candidato |
+| UC-31 | Futura | Futura | Restringida | No demostrada | Candidato; en Android la consulta programada es inexacta (WorkManager); en iOS la ejecución en segundo plano no está demostrada (R-31) |
+| UC-32 | Futura | Futura | Restringida | Restringida | Candidato; en tiendas la instalación la hace la tienda (BR-51, R-35) |
 <!-- platform-applicability:end -->
 
 ---
@@ -1586,6 +1597,53 @@ Ninguna resolución funcional cambia. Cambia, o se precisa, la solución técnic
 | KISS y YAGNI (principle/kiss, yagni) | Sin framework de ejecutores, broker de mensajes ni registro de recursos; se conserva lo que funciona |
 | Composición (design-pattern/composition) | La ejecución se compone de `MediaSource`, `publish` y el pool; la cancelación cooperativa es la misma función en todo mecanismo |
 | Testability without framework (naming #13) | La coordinación ya se prueba con `ScriptedWorkerPool`; el programa cliente prueba la sesión sin CLI |
+
+## 17. Reconciliación con el descubrimiento funcional (instrucción 2.5.0)
+
+El descubrimiento funcional ([análisis de requisitos, §15](../requirements/requirements-analysis.md#15-descubrimiento-funcional-250)) propone ampliaciones y cuatro casos de uso candidatos. Esta sección dice qué contratos tocan, qué invariantes deben fijarse antes de diseñar las migraciones de E3 y qué no cambia. Nada de esto está aprobado ni implementado.
+
+### 17.1 Contratos públicos afectados
+
+| Contrato | Cambio propuesto | Origen |
+|---|---|---|
+| Comandos | `modify` (UC-29); pausa, reanudación y orden de un job (UC-14 A7, A8); operaciones sobre una selección con resultado por elemento (UC-05 A10, UC-10 A7, UC-25 A9); suscripciones (UC-30, UC-31); comprobación de versión (UC-32) | §15.6 del análisis |
+| Consultas | Elegibilidad y motivo por job; orden efectivo; suscripciones y contenido nuevo; canal y versión de la instalación | BR-46, UC-30, UC-32 |
+| Sucesos | Modificación de la petición; pausa de un job; consulta de una fuente; contenido nuevo | UC-29, UC-14, UC-31 |
+| Progreso | Sin cambio: las etapas ya se exponen en la observación (§5.3); las referencias confirman la necesidad (Open Video Downloader `media_progress_stage`) | — |
+| Errores | Ampliación del catálogo con las restricciones que distingue NewPipeExtractor (de pago, privado, de miembros, cuenta cerrada, confirmación de no-bot) | Catálogo de condiciones de fallo |
+| Capacidades | Recepción de solicitudes externas, apertura y compartición de resultados, disparador de emergencia | SUP-I06; UC-02 A15, UC-25 A7 a A9, UC-20 A10 |
+| Configuración y perfiles | Patrones de URL y preferencias de idioma en el perfil; modo privado | UC-18 A8, A9; UC-20 A8; SUP-U06 |
+
+Las interfaces futuras siguen sin interpretar la salida de texto: todo lo anterior se expone con el contrato estructurado (SUP-I01, ADR-0032).
+
+### 17.2 Invariantes de identidad antes de las migraciones
+
+Para UC-29 (ADR-0033, D-16):
+1. El identificador del job no cambia al modificar su petición.
+2. La identidad de la petición se recalcula solo si cambia la especificación del resultado; el destino, la hora de inicio y la retención no forman parte de ella.
+3. Un job solo se modifica mientras no tiene reclamaciones de outputs: es decir, mientras está pendiente.
+4. La procedencia (User, suscripción, otra aplicación) se fija al crear el job y no cambia.
+
+Para las suscripciones (UC-30, UC-31), el contenido conocido se identifica con la misma clave de contenido que la detección de duplicados (media key), para que «ya descargado» y «ya conocido» no diverjan. Compartir o exportar un resultado no crea un output nuevo ni mueve su reclamación (BR-52).
+
+### 17.3 Componentes
+
+- **Se amplían:** la coordinación de `run` (elegibilidad, prioridad y orden; BR-46), `queue_store` (modificación y procedencia), los perfiles (patrones e idioma) y `media_extraction` (listar una fuente sin descargar, que ya usa la expansión).
+- **Responsabilidad nueva y separada:** las suscripciones (fuente, contenido conocido, consulta), porque su ciclo de vida no es el de un job. Se separa por responsabilidad única, no se anticipa su esquema (YAGNI).
+- **Adaptadores de plataforma:** la recepción de solicitudes externas y la apertura o compartición de resultados son adaptadores sin reglas propias (BR-48, ADR-0032).
+
+### 17.4 Decisiones que no cambian
+
+- ADR-0032 (motor reutilizable), ADR-0033 (identidad y referencias de almacenamiento) y ADR-0034 (coordinación única con ejecución intercambiable).
+- **Aclaración de ADR-0034:** la evidencia muestra ventajas de la ejecución aislada en procesos (cancelación de operaciones bloqueadas, descendientes, fallos nativos). No demuestra que el pool persistente sea superior a cualquier otra modalidad aislada: la opción B (un proceso por job) también cumplía los requisitos obligatorios. El pool se conserva como mecanismo de escritorio por continuidad y coste de migración, no por exclusividad.
+- No se introduce `asyncio` ni se sustituyen yt-dlp, FFmpeg o deno.
+
+### 17.5 Clean Code y principios de nombres
+
+- **Una palabra por concepto:** la pausa de un job y la pausa de la cola se distinguen; «retener» y «guardar para más tarde» se descartaron por ser la misma idea que la pausa de un job ([vocabulario, §1.2](00-vocabulary.md#12-conceptos-propuestos-por-el-descubrimiento-funcional-instrucción-250)).
+- **Los casos de uso guían la arquitectura:** cada contrato nuevo de §17.1 sale de un flujo con identificador.
+- **Los frameworks son plugins:** compartir, abrir, portapapeles y disparadores son adaptadores; el motor no conoce intents ni hojas de compartir.
+- **YAGNI:** no se crean esquemas para colecciones (sin requisito aprobado) ni para suscripciones antes de aprobar UC-30.
 
 ## Fuentes
 

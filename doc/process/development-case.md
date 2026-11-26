@@ -104,6 +104,11 @@ No se usan: modelo de negocio, caso de negocio, modelo de análisis separado del
 - **Convenciones:** vocabulario, identificadores en inglés, docstrings y comentarios en español, [guías de clean code](../reference/clean-code-guidelines/README.md) y [principios de nombres](../reference/naming-principles/clean-code-naming-principles.md) ([ADR-0011](../notes/adr-0011-code-conventions.md), [ADR-0019](../notes/adr-0019-code-quality-tools.md)).
 - **Ramas:** *trunk-based*, ramas cortas, integración por *pull request* ([ADR-0020](../notes/adr-0020-repository-branching-and-lfs.md)).
 
+### Propuestas frente a alcance aceptado
+
+- Un flujo propuesto lleva `[estado: ...; propuesto]`; un objetivo nuevo, el estado «candidato» en su especificación. En el plan de E3 ambos tienen el alcance «Propuesto» y en el diseño el candidato tiene el estado «Candidato». `scripts/check_requirements_model.py` impide mezclar propuestas con requisitos aprobados.
+- El descubrimiento funcional con referencias registra su evidencia en el análisis de requisitos (§15), con nivel L0 a L5 y localizador; no crea modelos ni identificadores por referencia.
+
 ### Comprobaciones locales antes de integrar en `main`
 
 ```text

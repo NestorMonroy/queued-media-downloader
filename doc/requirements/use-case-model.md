@@ -1,7 +1,7 @@
 # Modelo de casos de uso
 
 - **Fase RUP:** Elaboración
-- **Versión:** 3.1 (2026-11-26; trazabilidad con la realización arquitectónica y la aplicabilidad por plataforma). 3.0 (2026-11-26; **alcance de los 26 casos de uso aceptado por el Responsable**). 2.1: reconciliación de exclusiones, UC-18 a UC-28. 2.0 (2026-11-26; consolidación del modelo de requisitos). La 1.1 era la auditoría previa a la aceptación (T49).
+- **Versión:** 3.2 (2026-11-26; casos de uso candidatos UC-29 a UC-32 y ampliaciones propuestas, §4.3, instrucción 2.5.0). 3.1 (2026-11-26; trazabilidad con la realización arquitectónica y la aplicabilidad por plataforma). 3.0 (2026-11-26; **alcance de los 26 casos de uso aceptado por el Responsable**). 2.1: reconciliación de exclusiones, UC-18 a UC-28. 2.0 (2026-11-26; consolidación del modelo de requisitos). La 1.1 era la auditoría previa a la aceptación (T49).
 - **Términos:** [vocabulario](../design/00-vocabulary.md)
 - **Razonamiento y evidencia:** [análisis de requisitos](requirements-analysis.md)
 
@@ -176,6 +176,23 @@ UC-03 y UC-04 los inicia el User con `run`; se ejecutan dentro de la cola y se c
 | UC-27 | Administrar las dependencias multimedia | `dependencies` | **Sí:** procedimiento cualificado y capacidades (D-8; [Parte 3, §8.7](../design/03-target-architecture-and-evolution.md#87-capacidades-del-ambiente)) | Aceptado; sin implementar (D-8); A2 con condición técnica | [Completa](use-cases/uc-27-manage-media-dependencies.md) |
 | UC-28 | Recibir avisos operativos | — (`run`) | No | Aceptado; sin implementar (D-14) | [Completa](use-cases/uc-28-receive-operational-notifications.md) |
 
+### 4.3 Casos de uso candidatos (instrucción 2.5.0)
+
+Objetivos independientes identificados en el descubrimiento funcional ([análisis, §15](requirements-analysis.md#15-descubrimiento-funcional-250)), **pendientes de aprobación del Responsable**. No forman parte del alcance aceptado: el verificador los exige en el diseño con el estado «Candidato» y en el plan de E3 con el alcance «Propuesto». Las ampliaciones de los casos aceptados llevan la marca `propuesto` en su flujo.
+
+| ID | Caso de uso | Comando previsto | Arquitectura | Estado | Especificación |
+|---|---|---|---|---|---|
+| UC-29 | Modificar jobs pendientes | `modify` | **Sí:** identidad de la petición, duplicados, admisión | Candidato; sin implementar | [Completa](use-cases/uc-29-modify-pending-jobs.md) |
+| UC-30 | Gestionar suscripciones a fuentes de contenido | `subscription` | **Sí:** fuente y contenido conocido en el modelo de información | Candidato; sin implementar | [Completa](use-cases/uc-30-manage-content-subscriptions.md) |
+| UC-31 | Obtener contenido nuevo de las fuentes | `subscription check` | **Sí:** creación de jobs no interactiva con procedencia | Candidato; sin implementar | [Completa](use-cases/uc-31-retrieve-new-content.md) |
+| UC-32 | Actualizar la aplicación | `update` | **Sí:** mecanismo por canal, migración | Candidato; sin implementar | [Completa](use-cases/uc-32-update-the-application.md) |
+
+Candidatos de la instrucción 2.5.0 que **no** se convirtieron en casos de uso:
+- **Ordenar la cola y fijar prioridades:** forma parte de controlar la ejecución (UC-14 A7, A8 y E2; BR-46).
+- **Acceder a los resultados y transferirlos:** amplía UC-25 (A7 a A10 y E4; BR-52).
+- **Gestionar los datos de la aplicación:** amplía UC-20 (A8 a A10) y UC-10 (A7), con D-21 y BR-49.
+- **Gestionar colecciones de medios:** evidencia insuficiente de una necesidad propia; la exportación M3U (UC-25 A10) cubre la parte observada en las referencias; queda pendiente.
+
 ### 4.1 Capacidades transversales
 
 | Capacidad | Autoridad | Usada por |
@@ -212,35 +229,39 @@ Tiene tres dimensiones independientes:
 Que un requisito esté aceptado o especificado no significa que esté implementado. El número de casos de uso aceptados no es un porcentaje de avance.
 
 <!-- completeness-matrix:start -->
-| UC | Definición | Alternativos | Excepciones | Implementado | Parcial | Defecto | Divergente | Ausente | Sin cualificar | Condicionados | Reglas | Suplementarios | Criterios | Verificación | Necesita Windows |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| UC-01 | aceptado | 11 | 0 | 8 | 0 | 0 | 0 | 3 | 0 | 0 | 3 | 7 | 3 | prueba en desarrollo | Sí |
-| UC-02 | aceptado | 14 | 0 | 4 | 0 | 0 | 0 | 10 | 0 | 1 | 5 | 3 | 3 | prueba en desarrollo | No |
-| UC-03 | aceptado | 19 | 2 | 9 | 0 | 1 | 2 | 9 | 0 | 1 | 15 | 9 | 4 | prueba en desarrollo | Sí |
-| UC-04 | aceptado | 8 | 0 | 6 | 1 | 0 | 0 | 1 | 0 | 0 | 2 | 2 | 3 | prueba en desarrollo | No |
-| UC-05 | aceptado | 9 | 3 | 11 | 0 | 0 | 0 | 1 | 0 | 0 | 2 | 2 | 4 | prueba en desarrollo | Sí |
-| UC-06 | aceptado | 12 | 0 | 8 | 0 | 1 | 0 | 3 | 0 | 0 | 9 | 3 | 4 | prueba en desarrollo | Sí |
-| UC-07 | aceptado | 8 | 3 | 10 | 0 | 0 | 0 | 1 | 0 | 0 | 4 | 2 | 3 | prueba en desarrollo | Sí |
-| UC-08 | aceptado | 6 | 3 | 6 | 0 | 0 | 0 | 3 | 0 | 0 | 0 | 2 | 2 | prueba en desarrollo | Sí |
-| UC-09 | aceptado | 6 | 2 | 4 | 1 | 0 | 0 | 3 | 0 | 0 | 1 | 3 | 2 | prueba en desarrollo | Sí |
-| UC-10 | aceptado | 6 | 2 | 6 | 0 | 0 | 0 | 2 | 0 | 0 | 2 | 1 | 3 | prueba en desarrollo | Sí |
-| UC-11 | aceptado | 9 | 4 | 0 | 0 | 0 | 0 | 13 | 0 | 0 | 10 | 7 | 5 | sin evidencia | Sí |
-| UC-14 | aceptado | 6 | 1 | 0 | 0 | 0 | 0 | 7 | 0 | 0 | 2 | 2 | 4 | sin evidencia | Sí |
-| UC-15 | aceptado | 6 | 3 | 0 | 0 | 0 | 0 | 9 | 0 | 0 | 3 | 3 | 3 | sin evidencia | Sí |
-| UC-16 | aceptado | 2 | 1 | 0 | 0 | 0 | 0 | 3 | 0 | 0 | 0 | 3 | 3 | sin evidencia | No |
-| UC-17 | aceptado | 10 | 2 | 0 | 0 | 0 | 0 | 12 | 0 | 0 | 8 | 4 | 5 | sin evidencia | Sí |
-| UC-18 | aceptado | 7 | 3 | 0 | 0 | 0 | 0 | 10 | 0 | 0 | 2 | 2 | 3 | sin evidencia | No |
-| UC-19 | aceptado | 10 | 3 | 0 | 0 | 0 | 0 | 13 | 0 | 1 | 3 | 3 | 4 | sin evidencia | Sí |
-| UC-20 | aceptado | 7 | 2 | 0 | 0 | 0 | 0 | 9 | 0 | 0 | 3 | 4 | 3 | sin evidencia | No |
-| UC-21 | aceptado | 9 | 2 | 0 | 0 | 0 | 0 | 11 | 0 | 0 | 3 | 2 | 3 | sin evidencia | Sí |
-| UC-22 | aceptado | 6 | 3 | 0 | 0 | 0 | 0 | 9 | 0 | 0 | 4 | 2 | 4 | sin evidencia | No |
-| UC-23 | aceptado | 3 | 3 | 0 | 0 | 0 | 0 | 6 | 0 | 0 | 4 | 2 | 3 | sin evidencia | No |
-| UC-24 | aceptado | 8 | 2 | 0 | 0 | 0 | 0 | 10 | 0 | 0 | 5 | 3 | 3 | sin evidencia | Sí |
-| UC-25 | aceptado | 6 | 3 | 0 | 0 | 0 | 0 | 9 | 0 | 0 | 4 | 2 | 3 | sin evidencia | Sí |
-| UC-26 | aceptado | 4 | 2 | 0 | 0 | 0 | 0 | 6 | 0 | 0 | 5 | 2 | 3 | sin evidencia | Sí |
-| UC-27 | aceptado | 5 | 2 | 0 | 0 | 0 | 0 | 7 | 0 | 1 | 0 | 3 | 3 | sin evidencia | No |
-| UC-28 | aceptado | 4 | 1 | 0 | 0 | 0 | 0 | 5 | 0 | 0 | 2 | 3 | 2 | sin evidencia | Sí |
-| **Total** | **26** | **201** | **52** | **72** | **2** | **2** | **2** | **175** | **0** | **4** | — | — | **85** | **10 con prueba** | **18 de 26** |
+| UC | Definición | Alternativos | Excepciones | Implementado | Parcial | Defecto | Divergente | Ausente | Sin cualificar | Condicionados | Propuestos | Reglas | Suplementarios | Criterios | Verificación | Necesita Windows |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| UC-01 | aceptado | 11 | 0 | 8 | 0 | 0 | 0 | 3 | 0 | 0 | 0 | 3 | 7 | 3 | prueba en desarrollo | Sí |
+| UC-02 | aceptado | 17 | 1 | 4 | 0 | 0 | 0 | 14 | 0 | 1 | 4 | 7 | 3 | 3 | prueba en desarrollo | No |
+| UC-03 | aceptado | 19 | 2 | 9 | 0 | 1 | 2 | 9 | 0 | 1 | 0 | 15 | 9 | 4 | prueba en desarrollo | Sí |
+| UC-04 | aceptado | 8 | 0 | 6 | 1 | 0 | 0 | 1 | 0 | 0 | 0 | 2 | 2 | 3 | prueba en desarrollo | No |
+| UC-05 | aceptado | 10 | 3 | 11 | 0 | 0 | 0 | 2 | 0 | 0 | 1 | 2 | 2 | 4 | prueba en desarrollo | Sí |
+| UC-06 | aceptado | 12 | 0 | 8 | 0 | 1 | 0 | 3 | 0 | 0 | 0 | 9 | 3 | 4 | prueba en desarrollo | Sí |
+| UC-07 | aceptado | 8 | 3 | 10 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 4 | 2 | 3 | prueba en desarrollo | Sí |
+| UC-08 | aceptado | 6 | 3 | 6 | 0 | 0 | 0 | 3 | 0 | 0 | 0 | 0 | 2 | 2 | prueba en desarrollo | Sí |
+| UC-09 | aceptado | 6 | 2 | 4 | 1 | 0 | 0 | 3 | 0 | 0 | 0 | 1 | 3 | 2 | prueba en desarrollo | Sí |
+| UC-10 | aceptado | 7 | 2 | 6 | 0 | 0 | 0 | 3 | 0 | 0 | 1 | 2 | 1 | 3 | prueba en desarrollo | Sí |
+| UC-11 | aceptado | 9 | 4 | 0 | 0 | 0 | 0 | 13 | 0 | 0 | 0 | 10 | 7 | 5 | sin evidencia | Sí |
+| UC-14 | aceptado | 8 | 2 | 0 | 0 | 0 | 0 | 10 | 0 | 0 | 3 | 3 | 2 | 4 | sin evidencia | Sí |
+| UC-15 | aceptado | 6 | 3 | 0 | 0 | 0 | 0 | 9 | 0 | 0 | 0 | 3 | 3 | 3 | sin evidencia | Sí |
+| UC-16 | aceptado | 2 | 1 | 0 | 0 | 0 | 0 | 3 | 0 | 0 | 0 | 0 | 3 | 3 | sin evidencia | No |
+| UC-17 | aceptado | 10 | 2 | 0 | 0 | 0 | 0 | 12 | 0 | 0 | 0 | 8 | 4 | 5 | sin evidencia | Sí |
+| UC-18 | aceptado | 9 | 3 | 0 | 0 | 0 | 0 | 12 | 0 | 0 | 2 | 2 | 2 | 3 | sin evidencia | No |
+| UC-19 | aceptado | 10 | 3 | 0 | 0 | 0 | 0 | 13 | 0 | 1 | 0 | 3 | 3 | 4 | sin evidencia | Sí |
+| UC-20 | aceptado | 10 | 2 | 0 | 0 | 0 | 0 | 12 | 0 | 0 | 3 | 4 | 4 | 3 | sin evidencia | No |
+| UC-21 | aceptado | 10 | 2 | 0 | 0 | 0 | 0 | 12 | 0 | 0 | 1 | 3 | 2 | 3 | sin evidencia | Sí |
+| UC-22 | aceptado | 6 | 3 | 0 | 0 | 0 | 0 | 9 | 0 | 0 | 0 | 4 | 2 | 4 | sin evidencia | No |
+| UC-23 | aceptado | 3 | 3 | 0 | 0 | 0 | 0 | 6 | 0 | 0 | 0 | 4 | 2 | 3 | sin evidencia | No |
+| UC-24 | aceptado | 8 | 2 | 0 | 0 | 0 | 0 | 10 | 0 | 0 | 0 | 5 | 3 | 3 | sin evidencia | Sí |
+| UC-25 | aceptado | 10 | 4 | 0 | 0 | 0 | 0 | 14 | 0 | 0 | 5 | 5 | 2 | 3 | sin evidencia | Sí |
+| UC-26 | aceptado | 4 | 2 | 0 | 0 | 0 | 0 | 6 | 0 | 0 | 0 | 5 | 2 | 3 | sin evidencia | Sí |
+| UC-27 | aceptado | 5 | 2 | 0 | 0 | 0 | 0 | 7 | 0 | 1 | 0 | 0 | 3 | 3 | sin evidencia | No |
+| UC-28 | aceptado | 4 | 1 | 0 | 0 | 0 | 0 | 5 | 0 | 0 | 0 | 2 | 3 | 2 | sin evidencia | Sí |
+| UC-29 | candidato | 4 | 2 | 0 | 0 | 0 | 0 | 6 | 0 | 0 | 0 | 2 | 0 | 4 | sin evidencia | No |
+| UC-30 | candidato | 8 | 3 | 0 | 0 | 0 | 0 | 11 | 0 | 0 | 0 | 1 | 0 | 4 | sin evidencia | No |
+| UC-31 | candidato | 7 | 2 | 0 | 0 | 0 | 0 | 9 | 0 | 0 | 0 | 3 | 0 | 4 | sin evidencia | No |
+| UC-32 | candidato | 5 | 3 | 0 | 0 | 0 | 0 | 8 | 0 | 0 | 0 | 2 | 2 | 3 | sin evidencia | No |
+| **Total** | **30** | **242** | **65** | **72** | **2** | **2** | **2** | **229** | **0** | **4** | **20** | — | — | **100** | **10 con prueba** | **18 de 30** |
 <!-- completeness-matrix:end -->
 
 Las columnas Reglas y Suplementarios cuentan los identificadores distintos que enlaza cada caso de uso.

@@ -1,7 +1,7 @@
 # Reglas de negocio
 
 - **Fase RUP:** Elaboración
-- **Versión:** 3.0 (2026-11-26; alcance aceptado por el Responsable: estado de cada regla según su resolución; BR-29, BR-30 y BR-38 corregidos; BR-40 a BR-45). 2.2 (2026-11-26; resultados de un job, identidad de las variantes, perfiles, credenciales, intercambio, programación, verificación y avisos). 2.1: las condiciones de almacenamiento se separan. 2.0 (2026-11-26). Las reglas vigentes describen el código de `main`; las propuestas indican la decisión de la que dependen.
+- **Versión:** 3.1 (2026-11-26; reglas propuestas BR-46 a BR-52, §5, pendientes de aprobación). 3.0 (2026-11-26; alcance aceptado por el Responsable: estado de cada regla según su resolución; BR-29, BR-30 y BR-38 corregidos; BR-40 a BR-45). 2.2 (2026-11-26; resultados de un job, identidad de las variantes, perfiles, credenciales, intercambio, programación, verificación y avisos). 2.1: las condiciones de almacenamiento se separan. 2.0 (2026-11-26). Las reglas vigentes describen el código de `main`; las propuestas indican la decisión de la que dependen.
 - **Técnica (BABOK v3):** 10.9 Business Rules Analysis
 - **Origen:** [análisis de requisitos](requirements-analysis.md) y casos de uso vigentes
 
@@ -102,6 +102,20 @@ Valores configurables que usan las reglas. Un valor sin evidencia queda **pendie
 |---|---|
 | BR-08 y BR-09 (versión 2.0) | Agrupaban el disco lleno con un espacio mínimo fijo («1 GiB») antes de enviar. Se separan: BR-08 define el almacenamiento insuficiente; BR-26 y BR-27, las demás condiciones; BR-28, la comprobación previa, que no sustituye a la reacción |
 | BR-07 (versión 1.0) | Proponía un reintento propio de la cola (2 intentos, 10 s y el doble). Se sustituye por la delegación en yt-dlp: el reintento propio duplicaba un mecanismo que yt-dlp ya tiene y que hoy está desactivado por omisión (R-24) |
+
+## 5. Reglas propuestas
+
+Propuestas de la instrucción 2.5.0, **pendientes de aprobación del Responsable**: no forman parte del alcance aceptado ni de las reglas aprobadas. Cada una dice por qué la necesita el producto; la evidencia de las referencias justifica la necesidad, no copia su comportamiento ([análisis, §15](requirements-analysis.md#15-descubrimiento-funcional-250)).
+
+| Id | Tipo | Regla | Usada en | Estado |
+|---|---|---|---|---|
+| BR-46 | C | El envío de jobs elige entre los **elegibles**: pendientes y no pausados, dentro de su hora de inicio y de la ventana de la cola, y sin una condición que los aplace. Entre ellos decide, por este orden, la prioridad (por procedencia: los encolados por el User antes que los de una suscripción), el orden explícito de la cola y el orden de llegada. Un job prioritario que no es elegible no impide enviar a los demás. El orden se conserva tras un reinicio. **Por qué:** con orden manual, retención y procedencias distintas, una regla única evita que un job bloqueado detenga la cola y que lo automático adelante a lo pedido por el User | UC-14 A7, A8; UC-02 A17; UC-21 A10; UC-29; UC-31 | Propuesta; la política frente al aplazamiento indefinido de los de menor prioridad queda sin cualificar |
+| BR-47 | C | Solo se modifica la petición de un job **pendiente**. Si el cambio afecta a la especificación del resultado, la identidad de la petición se recalcula y se vuelve a comprobar el duplicado; el identificador, el orden y la procedencia del job se conservan y el cambio queda registrado como suceso. **Por qué:** cancelar y volver a encolar pierde el orden y el historial, y modificar un job activo o terminado rompería las reclamaciones y la evidencia de sus outputs (ADR-0033) | UC-29 | Propuesta |
+| BR-48 | C | Una solicitud recibida de otra aplicación es una petición de UC-02: se extraen sus URLs, se aplica el perfil predeterminado o el elegido, y no se crea ningún job si no hay una URL válida o el User cancela la interacción. El adaptador de cada plataforma no tiene reglas propias de encolado. **Por qué:** evita duplicar las reglas de encolado por plataforma (ADR-0032) | UC-02 A15, E1 | Propuesta |
+| BR-49 | C | En modo privado no se registran el historial terminado, las búsquedas ni los logs de actividad por job; se conserva solo el estado necesario para recuperar los jobs no terminados, y se elimina al terminar cada job. El modo privado nunca impide la recuperación. **Por qué:** la privacidad no puede romper la recuperación basada en evidencia local (D-21) | UC-20 A8 | Propuesta |
+| BR-50 | C | Una suscripción no descarga por sí sola. El contenido nuevo es el que no está en su conjunto conocido; lo presentado, encolado o descartado, pasa a ser conocido. Consultar o sincronizar una fuente nunca borra jobs ni resultados, aunque el contenido haya desaparecido de ella. **Por qué:** una referencia borra lo descargado al sincronizar con la fuente; en este producto solo el User decide borrar, y solo lo propio (BR-31) | UC-30, UC-31 | Propuesta |
+| BR-51 | C | La comprobación de actualizaciones de la aplicación usa solo el canal por el que se instaló y nunca instala nada por sí misma; la actualización no se aplica con jobs en curso y conserva jobs, resultados, configuración y perfiles. **Por qué:** mezclar canales rompe la firma y la procedencia de la instalación, y las condiciones de cada canal son distintas (R-35) | UC-32 | Propuesta |
+| BR-52 | C | Compartir o exportar un resultado no lo mueve, no lo modifica y no transfiere su reclamación; la copia exportada se verifica antes de informar del éxito. **Por qué:** la propiedad de los outputs y su evidencia local (ADR-0030, ADR-0033) siguen en el original | UC-25 A8, A9 | Propuesta |
 
 ## Reglas de la validación
 

@@ -1,13 +1,13 @@
 # Plan de la iteración E3
 
-- **Estado:** **Planificada; ejecución no autorizada.** E3 empieza cuando el Responsable la autorice (instrucción 2.4.0, §108). Sustituye a la propuesta publicada en `ff21776` (mismo archivo, renombrado).
+- **Estado:** **Planificada; ejecución no autorizada.** E3 empieza cuando el Responsable la autorice (instrucción 2.4.0, §108). La instrucción 2.5.0 añade las unidades propuestas U13 a U16 (§11), separadas del alcance aceptado. Sustituye a la propuesta publicada en `ff21776` (mismo archivo, renombrado).
 - **Fecha:** 2026-11-26
 - **Base:**
   - [diseño, Parte 3](../design/03-target-architecture-and-evolution.md): arquitectura objetivo, contratos públicos, arquitectura de ejecución (§16), realización de los 26 casos de uso;
   - [ADR-0032](../notes/adr-0032-reusable-engine-and-platform-capabilities.md), [ADR-0033](../notes/adr-0033-output-identity-and-storage-references.md), [ADR-0034](../notes/adr-0034-single-coordinator-and-isolated-execution.md);
   - [análisis de requisitos](../requirements/requirements-analysis.md) y [lista de riesgos](risk-list.md).
 - **Verificación del plan:** `scripts/check_requirements_model.py` comprueba:
-  - que cada flujo no implementado de los 26 casos de uso tiene una sola unidad (§6);
+  - que cada flujo no implementado de los 26 casos de uso aceptados y de los candidatos tiene una sola unidad, con su alcance «Aceptado» o «Propuesto» (§6 y §11);
   - que las unidades existen y su grafo no tiene ciclos (§3);
   - que cada business rule aprobada y cada requisito suplementario pendiente aparecen en el plan.
 
@@ -136,6 +136,15 @@ flowchart LR
 | U11 | U6 | Implementación | Se exportan perfiles sin secretos |
 | U12 | U4 | Implementación | La consulta previa y el informe usan las vistas y la salida para otros programas |
 | U12 | U9 | Implementación | El diagnóstico informa las capacidades de transformación |
+| U13 | U3 | Diseño e implementación (propuesta) | La modificación recalcula la identidad de la petición y respeta las reclamaciones |
+| U13 | U7 | Implementación (propuesta) | Elegibilidad, prioridad y orden viven en la admisión |
+| U14 | U4 | Implementación (propuesta) | Suscripciones y contenido nuevo se exponen con el contrato estructurado |
+| U14 | U10 | Implementación (propuesta) | La consulta programada usa la programación y los avisos |
+| U14 | U13 | Implementación (propuesta) | Los jobs de una suscripción tienen procedencia y prioridad (BR-46) |
+| U15 | U4 | Implementación (propuesta) | La solicitud externa es el comando público de encolado (BR-48) |
+| U15 | U5 | Implementación (propuesta) | Abrir, compartir y exportar operan sobre outputs registrados y verificados |
+| U16 | U11 | Implementación (propuesta) | El modo privado y el borrado por categoría dependen de la retención (D-21) |
+| U16 | U12 | Implementación (propuesta) | La comprobación de versión comparte el diagnóstico de la instalación |
 <!-- e3-dependencies:end -->
 
 **Orden recomendado:**
@@ -393,51 +402,64 @@ Tienen una sola unidad:
 El script del modelo lo comprueba. El criterio de aceptación es el del caso de uso, y la verificación, la de su unidad.
 
 <!-- e3-coverage:start -->
-| UC | Flujos | Unidad |
-|---|---|---|
-| UC-01 | A9 | U12 |
-| UC-01 | A10 | U8 |
-| UC-01 | A11 | U6 |
-| UC-02 | A5, A6 | U12 |
-| UC-02 | A7, A8, A10, A11, A14 | U9 |
-| UC-02 | A9, A12, A13 | U6 |
-| UC-03 | A1, A16, A17 | U3 |
-| UC-03 | A2, A15 | U1 |
-| UC-03 | A11, A12, A14 | U7 |
-| UC-03 | A13, E1 | U8 |
-| UC-03 | A18, A19 | U9 |
-| UC-04 | A6 | U7 |
-| UC-04 | A8 | U12 |
-| UC-05 | A9 | U2 |
-| UC-06 | A4, A11, A12 | U5 |
-| UC-06 | A10 | U7 |
-| UC-07 | A8 | U5 |
-| UC-08 | A4 | U7 |
-| UC-08 | A5, A6 | U4 |
-| UC-09 | A2, A5 | U4 |
-| UC-09 | A4 | U7 |
-| UC-09 | A6 | U3 |
-| UC-10 | A5 | U5 |
-| UC-10 | A6 | U11 |
-| UC-11 | Básico, A1, A2, A4, A5, A6, A7, A8, A9, E1, E2, E4 | U7 |
-| UC-11 | A3, E3 | U8 |
-| UC-14 | Básico, A1, A2, A3, A4, A5, A6, E1 | U7 |
-| UC-15 | Básico, A1, A2, A3, A4, A5, A6, E1, E2, E3 | U12 |
-| UC-16 | Básico, A1, A2, E1 | U12 |
-| UC-17 | Básico, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, E1, E2 | U8 |
-| UC-18 | Básico, A1, A2, A3, A4, A5, A6, E1, E2, E3 | U6 |
-| UC-18 | A7 | U11 |
-| UC-19 | Básico, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, E1, E2, E3 | U6 |
-| UC-20 | Básico, A1, A2, A3, A4, A6, A7, E1, E2 | U6 |
-| UC-20 | A5 | U11 |
-| UC-21 | Básico, A1, A2, A3, A4, A5, A6, A7, A8, A9, E1, E2 | U10 |
-| UC-22 | Básico, A1, A2, A3, A4, A5, A6, E1, E2, E3 | U11 |
-| UC-23 | Básico, A1, A2, A3, E1, E2, E3 | U11 |
-| UC-24 | Básico, A1, A2, A3, A4, A5, A6, A7, A8, E1, E2 | U9 |
-| UC-25 | Básico, A1, A2, A3, A4, A5, A6, E1, E2, E3 | U5 |
-| UC-26 | Básico, A1, A2, A3, A4, E1, E2 | U5 |
-| UC-27 | Básico, A1, A2, A3, A4, A5, E1, E2 | U12 |
-| UC-28 | Básico, A1, A2, A3, A4, E1 | U10 |
+| UC | Flujos | Unidad | Alcance |
+|---|---|---|---|
+| UC-01 | A9 | U12 | Aceptado |
+| UC-01 | A10 | U8 | Aceptado |
+| UC-01 | A11 | U6 | Aceptado |
+| UC-02 | A5, A6 | U12 | Aceptado |
+| UC-02 | A7, A8, A10, A11, A14 | U9 | Aceptado |
+| UC-02 | A9, A12, A13 | U6 | Aceptado |
+| UC-03 | A1, A16, A17 | U3 | Aceptado |
+| UC-03 | A2, A15 | U1 | Aceptado |
+| UC-03 | A11, A12, A14 | U7 | Aceptado |
+| UC-03 | A13, E1 | U8 | Aceptado |
+| UC-03 | A18, A19 | U9 | Aceptado |
+| UC-04 | A6 | U7 | Aceptado |
+| UC-04 | A8 | U12 | Aceptado |
+| UC-05 | A9 | U2 | Aceptado |
+| UC-06 | A4, A11, A12 | U5 | Aceptado |
+| UC-06 | A10 | U7 | Aceptado |
+| UC-07 | A8 | U5 | Aceptado |
+| UC-08 | A4 | U7 | Aceptado |
+| UC-08 | A5, A6 | U4 | Aceptado |
+| UC-09 | A2, A5 | U4 | Aceptado |
+| UC-09 | A4 | U7 | Aceptado |
+| UC-09 | A6 | U3 | Aceptado |
+| UC-10 | A5 | U5 | Aceptado |
+| UC-10 | A6 | U11 | Aceptado |
+| UC-11 | Básico, A1, A2, A4, A5, A6, A7, A8, A9, E1, E2, E4 | U7 | Aceptado |
+| UC-11 | A3, E3 | U8 | Aceptado |
+| UC-14 | Básico, A1, A2, A3, A4, A5, A6, E1 | U7 | Aceptado |
+| UC-15 | Básico, A1, A2, A3, A4, A5, A6, E1, E2, E3 | U12 | Aceptado |
+| UC-16 | Básico, A1, A2, E1 | U12 | Aceptado |
+| UC-17 | Básico, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, E1, E2 | U8 | Aceptado |
+| UC-18 | Básico, A1, A2, A3, A4, A5, A6, E1, E2, E3 | U6 | Aceptado |
+| UC-18 | A7 | U11 | Aceptado |
+| UC-19 | Básico, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, E1, E2, E3 | U6 | Aceptado |
+| UC-20 | Básico, A1, A2, A3, A4, A6, A7, E1, E2 | U6 | Aceptado |
+| UC-20 | A5 | U11 | Aceptado |
+| UC-21 | Básico, A1, A2, A3, A4, A5, A6, A7, A8, A9, E1, E2 | U10 | Aceptado |
+| UC-22 | Básico, A1, A2, A3, A4, A5, A6, E1, E2, E3 | U11 | Aceptado |
+| UC-23 | Básico, A1, A2, A3, E1, E2, E3 | U11 | Aceptado |
+| UC-24 | Básico, A1, A2, A3, A4, A5, A6, A7, A8, E1, E2 | U9 | Aceptado |
+| UC-25 | Básico, A1, A2, A3, A4, A5, A6, E1, E2, E3 | U5 | Aceptado |
+| UC-26 | Básico, A1, A2, A3, A4, E1, E2 | U5 | Aceptado |
+| UC-27 | Básico, A1, A2, A3, A4, A5, E1, E2 | U12 | Aceptado |
+| UC-28 | Básico, A1, A2, A3, A4, E1 | U10 | Aceptado |
+| UC-02 | A17 | U13 | Propuesto |
+| UC-05 | A10 | U13 | Propuesto |
+| UC-10 | A7 | U13 | Propuesto |
+| UC-14 | A7, A8, E2 | U13 | Propuesto |
+| UC-21 | A10 | U13 | Propuesto |
+| UC-29 | Básico, A1, A2, A3, A4, E1, E2 | U13 | Propuesto |
+| UC-30 | Básico, A1, A2, A3, A4, A5, A6, A7, A8, E1, E2, E3 | U14 | Propuesto |
+| UC-31 | Básico, A1, A2, A3, A4, A5, A6, A7, E1, E2 | U14 | Propuesto |
+| UC-02 | A15, A16, E1 | U15 | Propuesto |
+| UC-25 | A7, A8, A9, A10, E4 | U15 | Propuesto |
+| UC-18 | A8, A9 | U6 | Propuesto |
+| UC-20 | A8, A9, A10 | U16 | Propuesto |
+| UC-32 | Básico, A1, A2, A3, A4, A5, E1, E2, E3 | U16 | Propuesto |
 <!-- e3-coverage:end -->
 
 **Recuento:**
@@ -502,3 +524,20 @@ No se crean etiquetas ni se inicia otra campaña durante E3.
 | Memoria de los workers (SUP-P04) | U8 | Medición; si se incumple, reconsiderar un proceso por job (ADR-0034) |
 | Secretos en Windows | U6 | Cualificación en la campaña |
 | R-31, R-33 | Posterior a E3 | Ejecutor y plataformas móviles |
+
+## 11. Ampliaciones propuestas por el descubrimiento funcional (instrucción 2.5.0)
+
+**Nada de esta sección está aprobado.** Las unidades U1 a U12 siguen siendo el plan del alcance aceptado y no cambian de contenido. U13 a U16 agrupan las propuestas para poder ordenarlas si el Responsable las aprueba; en la tabla de cobertura (§6) llevan el alcance «Propuesto», que el verificador separa del aceptado. Evidencia en el [análisis, §15](../requirements/requirements-analysis.md#15-descubrimiento-funcional-250).
+
+| Unidad | Responsabilidad | Requisitos | Migración | Pruebas |
+|---|---|---|---|---|
+| U13 | Orden, elegibilidad, pausa de un job, selecciones y modificación de jobs pendientes | UC-14 A7, A8, E2; UC-02 A17; UC-05 A10; UC-10 A7; UC-21 A10; UC-29; BR-46, BR-47 | Columnas de orden, pausa, hora de inicio y procedencia en jobs, con valores por defecto que conservan el comportamiento actual | Envío con jobs no elegibles y prioridades iguales; orden tras reinicio; modificación concurrente con el envío |
+| U14 | Suscripciones y contenido nuevo | UC-30, UC-31; BR-50 | Tablas nuevas de suscripción y contenido conocido, sin tocar las de jobs | Fuente simulada que publica, retira y falla; consulta programada sin duplicados |
+| U15 | Solicitudes externas y acceso a resultados | UC-02 A15, A16, E1; UC-25 A7 a A10, E4; BR-48, BR-52; SUP-I06 | Ninguna | Adaptador con texto de una, varias y ninguna URL; exportación verificada sin mover la reclamación |
+| U16 | Datos de la aplicación, privacidad y actualización | UC-20 A8 a A10; UC-32; BR-49, BR-51; SUP-D02, SUP-C12 | Ninguna para la privacidad; la actualización reutiliza las migraciones existentes (SUP-C10) | Almacenes vacíos tras jobs privados; recuperación de un job privado interrumpido; canal simulado |
+
+- **Asignadas a unidades existentes:** UC-18 A8 y A9 (patrones de URL e idioma en el perfil) van en U6, porque el perfil ya está allí; SUP-U06 también.
+- **Sin unidad:** SUP-C11 (nombres de archivo portables) es una propiedad transversal de U3, que crea los nombres y las reclamaciones; SUP-C13 (condiciones técnicas de Google Play) y R-36 no son de E3: aplican solo si se elige ese canal.
+- **Prioridad de las propuestas:** U13 es la que conviene decidir antes de empezar E3, porque toca la identidad (U3) y la admisión (U7); decidirla tarde supondría rehacer esas migraciones. U14 a U16 pueden aprobarse después sin retrabajo, porque solo añaden tablas o adaptadores.
+- **Tareas T52 a T67:** no cambian. Ninguna duplica una propuesta; T-ids nuevos solo se crearán al aprobar las unidades.
+

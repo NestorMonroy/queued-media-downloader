@@ -7,6 +7,7 @@
 - **Significativo para la arquitectura:** no (reutiliza las job requests de UC-05 y la interrupción de UC-05 A6)
 - **Estado:** aceptado (Responsable, 2026-11-26). Implementación: ausente (la interrupción con `Ctrl+C` de UC-05 A6 sí existe). Condición técnica: D-6.
 - **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
+- **Propuestas pendientes de aprobación (2.5.0):** A7, A8 y E2, marcadas como propuestas; [análisis de requisitos, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
 - **Origen:**
   - referencias: Seal (estados reanudables de sus tareas) y la interfaz gráfica futura que reutilizará el motor ([visión](../vision.md));
   - análisis de continuidad: [análisis de requisitos, §7](../requirements-analysis.md#7-continuidad-reintentos-y-recuperación).
@@ -37,10 +38,13 @@
 - **A4. `run` con la cola en pausa y sin `--keep-waiting`:** `[estado: ausente]` `run` espera la continuación con el aviso periódico. Si el User pulsa `Ctrl+C`, `run` termina con código `130`.
 - **A5. `pause` con la cola ya en pausa, o `resume` sin pausa:** `[estado: ausente]` el sistema informa de que no hay cambios y termina con código `0`.
 - **A6. `list` y `show` durante la pausa** `[estado: ausente]` (UC-08, UC-09): indican que la cola está en pausa.
+- **A7. Pausar o reanudar un job concreto** `[estado: ausente; propuesto]` (paso 1): el User pausa un job pendiente o activo sin pausar la cola. Uno activo se interrumpe como en A1 y conserva sus parciales; el job pausado deja de ser elegible hasta que el User lo reanuda. Evidencia: NewPipe (`pauseMission` y `resumeMission` en `DownloadManager`) y VidBee (estado `paused`); [análisis, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
+- **A8. Cambiar el orden de ejecución** `[estado: ausente; propuesto]` (paso 1): el User mueve un job pendiente al principio, al final o a una posición de la cola. El orden se conserva tras un reinicio y solo decide entre jobs elegibles ([BR-46](../business-rules.md)). Evidencia: YTDLnis (`queueOrder`, `putAtTopOfQueue`, `putQueueDownloadAtPosition`) y VidBee (prioridad por procedencia con orden de llegada como desempate).
 
 ## Excepciones
 
 - **E1. Base de datos ocupada más allá de `busy_timeout`:** `[estado: ausente]` como UC-05 E2; no se registra nada y el código es `1`.
+- **E2. Orden pedido para un job que no está pendiente** `[estado: ausente; propuesto]` (A8): el job está activo o terminado. El sistema lo informa y no cambia nada.
 
 ## Garantías
 

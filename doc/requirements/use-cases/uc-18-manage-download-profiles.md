@@ -9,6 +9,7 @@
 - **Significativo para la arquitectura:** no; las download options ya se fijan por job al encolar
 - **Estado:** aceptado (Responsable, 2026-11-26). Implementación: ausente. Condición técnica: D-19.
 - **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
+- **Propuestas pendientes de aprobación (2.5.0):** A8 y A9, marcadas como propuestas; [análisis de requisitos, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
 - **Origen:**
   - **Seal:** preferencias globales y por descarga; plantillas de comandos, con la necesidad de reutilizar sin ejecutar comandos arbitrarios.
   - **Kannagi:** preajustes con `--config-location`.
@@ -40,6 +41,8 @@ Un perfil es un conjunto con nombre de download options válidas, guardado en la
 - **A5. Predeterminado:** `[estado: ausente]` `profile default NOMBRE`. `enqueue` sin `--profile` lo usa.
 - **A6. Opciones explícitas sobre un perfil:** `[estado: ausente]` en `enqueue --profile NOMBRE --format SELECTOR`, la opción explícita prevalece sobre la del perfil, con la misma precedencia que la configuración (SUP-F03).
 - **A7. Exportar e importar perfiles:** `[estado: ausente]` dentro de la configuración (UC-20 A5).
+- **A8. Perfil elegido según la URL** `[estado: ausente; propuesto]` (paso 1): un perfil declara patrones de URL. Al encolar sin perfil explícito se usa el primer perfil cuyo patrón coincide y, si ninguno coincide, el predeterminado; el User ve qué perfil se aplicó. Evidencia: YTDLnis (`CommandTemplate.urlRegex`); [análisis, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
+- **A9. Preferencias de idioma** `[estado: ausente; propuesto]` (paso 2): el perfil indica la pista de audio preferida (la original, un idioma o la predeterminada del sitio) y los idiomas de subtítulos. Son conceptos distintos del idioma de la interfaz y del idioma o el país con que se consulta el sitio ([vocabulario](../../design/00-vocabulary.md)). yt-dlp 2026.11.23 marca las pistas originales, predeterminadas y descriptivas en `language_preference` (código de su extractor de YouTube). Evidencia: NewPipe y GreenTuber (`prefer_original_audio`), YTDLnis (`audio_language`) y NewPipeExtractor (`AudioTrackType`).
 
 ## Excepciones
 

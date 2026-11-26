@@ -9,6 +9,7 @@
 - **Significativo para la arquitectura:** sí: requiere el registro de los resultados de cada job (D-15)
 - **Estado:** aceptado (Responsable, 2026-11-26). Implementación: parcial (`output_path`, un archivo por job). Condiciones técnicas: D-11 y D-15.
 - **Verificación:** sin evidencia de implementación; la especificación está verificada por inspección y por `scripts/check_requirements_model.py`.
+- **Propuestas pendientes de aprobación (2.5.0):** A7, A8, A9, A10 y E4, marcadas como propuestas; [análisis de requisitos, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
 - **Origen:**
   - **YTDownload-2026:** rutas de los archivos de cada descarga y borrado con vista previa; también un antiejemplo: borra la carpeta entera.
   - **Seal y VoiceStudio:** borrar el registro con su archivo.
@@ -43,12 +44,17 @@ Un archivo no es del producto solo por estar en la carpeta de descargas.
 - **A4. Archivos huérfanos:** `[estado: ausente]` `files --orphans` lista los archivos de la carpeta de descargas que tienen reclamación pero ningún job, y las reclamaciones sin archivo. Solo informa. Soltar las reclamaciones de jobs inexistentes ya lo hace `purge` (UC-10).
 - **A5. Espacio usado:** `[estado: ausente]` `files --usage`.
 - **A6. Mover resultados:** `[estado: ausente]` **pendiente de cualificación**. Moverlos rompe la relación ruta–reclamación; solo se admitiría moviendo juntos el archivo y su reclamación y actualizando el registro (D-11).
+- **A7. Abrir un resultado** `[estado: ausente; propuesto]` (paso 1): el User abre un resultado registrado con la aplicación predeterminada del sistema o con otra que elige; si el archivo falta, A3. Evidencia: NewPipe (abrir desde la lista de misiones y `ACTION_OPEN_DOWNLOADS_FINISHED`); [análisis, §15](../requirements-analysis.md#15-descubrimiento-funcional-250).
+- **A8. Compartir resultados** `[estado: ausente; propuesto]` (paso 1): el User comparte uno o varios resultados mediante el mecanismo del sistema; el original no cambia ni pierde su reclamación ([BR-52](../business-rules.md)). Evidencia: Seal y YoutubeDL para iOS (`share()`).
+- **A9. Exportar una copia** `[estado: ausente; propuesto]` (paso 1): el User copia resultados a otra ubicación o a la galería del sistema. La copia se verifica por tamaño y, si se pide, por hash; el original se conserva y, con varios resultados, el informe es por resultado y un fallo no detiene el resto (BR-52). Evidencia: YoutubeDL para iOS (`export(url:)` y `Photos`).
+- **A10. Exportar los resultados como lista M3U** `[estado: ausente; propuesto]` (paso 1): el User genera una lista de reproducción M3U con los resultados de una playlist o de una selección, con rutas absolutas o relativas. Evidencia: Parabolic (`M3UFile` y `PathType`).
 
 ## Excepciones
 
 - **E1. El archivo cambió desde que el job lo escribió** `[estado: ausente]` (tamaño distinto, o la verificación de UC-26 falla): A1 no lo borra sin `--force`; la vista previa lo indica.
 - **E2. El borrado falla** `[estado: ausente]` (archivo abierto, permisos): se informa por archivo y se sigue con los demás; las reclamaciones de lo no borrado se conservan.
 - **E3. Job inexistente:** `[estado: ausente]` código `2`.
+- **E4. El destino rechaza la operación o el permiso fue revocado** `[estado: ausente; propuesto]` (A7 a A9): la aplicación de destino no existe o rechaza el archivo, o se revocó el permiso de la ubicación. El sistema lo informa y el original no cambia.
 
 ## Garantías
 
