@@ -71,6 +71,16 @@ Tras la ejecución no quedó ningún proceso del experimento.
 
 Los `ERROR` son `PermissionError` al borrar la carpeta temporal: en Windows, `TerminateProcess` es asíncrono y la limpieza no esperaba a que los procesos que el escenario deja vivos a propósito soltaran el parcial. Es un defecto del experimento, no del producto (T42-D2); corregido en `269472e`, y el paso 4 se repite en la siguiente ejecución de la validación. Los cuatro escenarios de `job_object`, los que confirman D1, sí se observaron y dieron *ninguno vivo*.
 
+**Segunda ejecución: commit `f3e041a`, 2026-11-25** (mismo equipo; JSON en [`t33-windows-results-f3e041a.json`](t33-windows-results-f3e041a.json)), con la limpieza corregida (T42-D2). Las 13 filas coinciden con el resultado esperado y ninguna es `ERROR`:
+
+| Escenario | `worker_kill_only` | `taskkill_tree` | `job_object` |
+|---|---|---|---|
+| `terminate_tree` | hijo y nieto vivos ✔ | ninguno ✔ | **ninguno**, `job_active_processes` = 0 ✔ |
+| `isolation_other_tree_alive` | otro árbol vivo ✔ | otro árbol vivo, objetivo sin procesos ✔ | otro árbol vivo, objetivo sin procesos ✔ |
+| `worker_crashed_then_terminate` | hijo y nieto vivos ✔ | hijo y nieto vivos ✔ | **ninguno** ✔ |
+| `main_process_killed` | todos vivos ✔ | todos vivos ✔ | **ninguno** ✔ |
+| `terminate_tree`, asignación tardía | — | — | hijo y nieto vivos ✔ (el control) |
+
 **Antes de la campaña: se ejecuta en la campaña final de validación en Windows** ([plan de E2, §7](../../project-management/iteration-plan-e2.md#7-campaña-final-de-validación-en-windows)). Los resultados de Linux no son evidencia para Windows. Pegar aquí la tabla que escribe el script y guardar el JSON junto a este documento. Lo que D1 necesita confirmar:
 
 | Escenario | `worker_kill_only` | `taskkill_tree` | `job_object` |

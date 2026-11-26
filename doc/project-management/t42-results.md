@@ -43,9 +43,9 @@ No se crea `t42-candidate-2`: desde la versión 3.0 del guion, cada ejecución e
 
 | Defecto | Estado | Corrección |
 |---|---|---|
-| T42-D1 | Corregido en desarrollo; **pendiente de confirmar en Windows** (paso 3) | El handle del hijo se abre antes de cancelar (`e5dce6e`) |
-| T42-D2 | Corregido en desarrollo; **pendiente de confirmar en Windows** (paso 4) | La limpieza del experimento espera a que salgan los procesos (`269472e`) |
-| T42-D3 | **Corrección aplicada; no se declara resuelto hasta verlo en Windows** | yt-dlp 2026.10.26 → **2026.11.23** con SUP-S01 ([procedimiento](../process/yt-dlp-update-procedure.md)); yt-dlp-ejs 0.8.0 y deno 2.9.8 no cambian. Prueba `network` nueva: `test_a_youtube_download_solves_its_javascript_challenges` |
+| T42-D1 | Corregido; **confirmado en Windows** en la ejecución `20261125-214035-f3e041a1dafe` | El handle del hijo se abre antes de cancelar (`e5dce6e`) |
+| T42-D2 | Corregido; **confirmado en Windows** en la ejecución `20261125-214035-f3e041a1dafe` | La limpieza del experimento espera a que salgan los procesos (`269472e`) |
+| T42-D3 | **Resuelto: confirmado en Windows** en la ejecución `20261125-214035-f3e041a1dafe` | yt-dlp 2026.10.26 → **2026.11.23** con SUP-S01 ([procedimiento](../process/yt-dlp-update-procedure.md)); yt-dlp-ejs 0.8.0 y deno 2.9.8 no cambian. Prueba `network` nueva: `test_a_youtube_download_solves_its_javascript_challenges` |
 
 **Evidencia técnica de la actualización (T42-D3).** El fallo ocurrió con el reproductor `player_ias.vflset/en_US/base.js`, la variante `main`, que era la predeterminada en 2026.10.26 (`_DEFAULT_PLAYER_JS_VARIANT = 'main'`). 2026.11.23 la cambia a `tv` (*Use `tv` as default `player_js_variant`*, yt-dlp #18124, en su Changelog; `_DEFAULT_PLAYER_JS_VARIANT = 'tv'` en el código), y su README documenta `tv` como predeterminada y las demás como variantes de depuración. Es la única versión estable posterior en PyPI (2026-11-23) y fija la misma yt-dlp-ejs 0.8.0, que sigue siendo la última publicada. Que el cambio de variante evite el fallo es una inferencia del código y del Changelog: el entorno de desarrollo no llega a YouTube, así que solo la ejecución en Windows lo confirma.
 
@@ -67,3 +67,21 @@ Desde `5f30151` no cambió el código de `workers/`, de las reclamaciones ni de 
 ### Pendiente en Windows
 
 Pasos 2 (`diagnose`, ahora automático), 3, 4 (filas de T42-D2), 5.1 completo (unión, solo audio, duplicado), 5.2 a 5.7 (playlists, `--playlist`, `--keep-waiting` y concurrencia de dos terminales, cancelación, reintentos y purga, cola ocupada), 6 a 12 (procesos tras cancelar, cierres y `Ctrl+C`, recuperación y reanudación, cambio de formato, integridad, propiedad de archivos y concurrencia, consultas `list`/`show`, estado persistido) y 13 (memoria y SUP-P04). La validación de UC-01 a UC-10 no está completa.
+
+## Ejecución `20261125-214035-f3e041a1dafe` (commit `f3e041a1dafed8a597a94c47bc4929ff8146065b`, 2026-11-25)
+
+Primera ejecución con el guion 3.0, sobre el `main` publicado (`run.txt`: *commit is the published main: True*). Mismo equipo; PowerShell 7.6.9, uv 0.11.8, Python 3.12.13. Dependencias (`dependencies.log`): yt-dlp 2026.11.23, yt-dlp-ejs 0.8.0, deno 2.9.8. Evidencia: `C:\qmd-validation\runs\20261125-214035-f3e041a1dafe\` (entregada como `qmd-validation-251126215710.7z`); el JSON del experimento se copió a [t33-windows-results-f3e041a.json](../notes/experiments/t33-windows-results-f3e041a.json). Todos los códigos de salida de `exit-codes.txt` son 0.
+
+| Paso | Resultado | Evidencia | Observaciones |
+|---|---|---|---|
+| 1 Actualización del clon e instalación | **pasa** | Consola; `environment.txt`, `dependencies.log` | El clon pasó de *detached HEAD* (etiqueta) a `main` con `git switch` y `git merge --ff-only`; `uv sync` cambió solo yt-dlp |
+| 2 `diagnose` | **pasa** | `diagnose.log` | `[ OK ]` en ffmpeg (incluido), ffprobe, `yt-dlp 2026.11.23 with yt-dlp-ejs 0.8.0`, deno 2.9.8 y base de datos (esquema 4) |
+| 3 Suites | **pasa** | `suite-*.log` | Cinco comprobaciones con código 0; `pytest`: 536 pasadas, 7 omitidas por diseño, 0 fallidas (T42-D1 confirmado); la protección de datos reales no informó cambios. `-m windows`: 16 pasadas. `-m network`: 4 pasadas, incluida la regresión de T42-D3 |
+| 4 Experimento | **pasa** | `process-tree-termination.json` | Las 13 filas coinciden con lo esperado y ninguna es `ERROR` (T42-D2 confirmado): `job_object`, *ninguno vivo* en sus cuatro escenarios; el control de asignación tardía deja vivos al hijo y al nieto; `taskkill_tree` no encuentra a los descendientes de un worker caído ni sobrevive a la muerte del proceso principal |
+| 5.1 Video, solo audio y duplicado | **pasa** | `queue-5.1.log`, cola `queues\5.1` | Job 1 `COMPLETED`, `395+251` unidos (AV1 + Opus, 19 s, 474 478 bytes); job 2 `COMPLETED` en `audio\`, Opus sin recodificar (19 s, 247 109 bytes); job 3 `SKIPPED`. Comprobados con `ffprobe`. `.partial` vacía; dos reclamaciones con el owner token de cada job; esquema 4 |
+
+**T42-D3 resuelto.** El log de la cola 5.1 muestra que yt-dlp usó el mismo reproductor que falló el 2026-11-25 (`b485e332`), ahora en su variante `tv` (`Downloading player b485e332-tv`), resolvió los retos con deno (`Solving JS challenges using deno`) y no registró ninguna línea `WARNING` ni `ERROR`. La prueba `test_a_youtube_download_solves_its_javascript_challenges` también pasó.
+
+### Pendiente en Windows tras esta ejecución
+
+Pasos 5.2 a 5.7 (playlists, `--playlist`, `--keep-waiting` y dos terminales, cancelación, reintentos y purga, cola ocupada), 6 a 12 (procesos tras cancelar, cierres y `Ctrl+C`, reanudación tras un cierre forzado, cambio de formato, integridad, propiedad de archivos y concurrencia, estado persistido) y 13 (memoria y SUP-P04). La validación de UC-01 a UC-10 no está completa.

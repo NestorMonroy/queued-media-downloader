@@ -183,7 +183,7 @@ Las pruebas siguen los procesos por handle o `pidfd`, nunca por PID, y solo term
 
 ## 11. Criterios de aceptación de D1 y del slice C
 
-1. El experimento ejecutado en Windows confirma *ninguno vivo* para `job_object` en sus cuatro escenarios, y el control de asignación tardía deja vivos al hijo y al nieto. **Resultado parcial (T42, `t42-candidate-1`, 2026-11-25):** los cuatro escenarios de `job_object` dieron *ninguno vivo*; el control y dos escenarios de las otras estrategias no se pudieron observar por un defecto del experimento (T42-D2), corregido para repetirlos.
+1. El experimento ejecutado en Windows confirma *ninguno vivo* para `job_object` en sus cuatro escenarios, y el control de asignación tardía deja vivos al hijo y al nieto. **Resultado parcial (T42, `t42-candidate-1`, 2026-11-25):** los cuatro escenarios de `job_object` dieron *ninguno vivo*; el control y dos escenarios de las otras estrategias no se pudieron observar por un defecto del experimento (T42-D2). **Repetido con el experimento corregido (commit `f3e041a`, 2026-11-25): las 13 filas coinciden con lo esperado; criterio cumplido.**
 2. Tras `terminate_tree`, no queda vivo ningún proceso creado por el worker, a cualquier profundidad.
 3. Terminar el árbol de un worker no afecta a otro worker ni a sus descendientes.
 4. Los descendientes de un worker caído se terminan antes de sustituirlo.
