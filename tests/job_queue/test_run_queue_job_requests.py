@@ -306,3 +306,81 @@ def test_keep_waiting_runs_jobs_enqueued_after_the_queue_emptied() -> None:
     assert checks > 5
     assert job_store.get(JobId(1)).status is JobStatus.COMPLETED
     assert run_result.interrupted
+
+
+def test_retrying_a_playlist_is_idempotent_and_never_downloads_twice() -> None:
+    # Decisión del Responsable: retry de una playlist incluye sus entradas
+    # FAILED y CANCELLED, nunca las COMPLETED; peticiones repetidas no suman
+    # intentos ni descargas.
+    child_urls = {
+        media_id: f"https://media.example/watch?v={media_id}" for media_id in "abc"
+    }
+    entries = [
+        PlaylistEntry(
+            url=child_urls[media_id],
+            playlist_index=index,
+            kind=JobKind.DOWNLOAD,
+            title=media_id.upper(),
+            media_key=MediaKey(extractor_key="Example", media_id=media_id),
+            is_available=True,
+        )
+        for index, media_id in enumerate("abc", start=1)
+    ]
+    script: dict[ScriptKey, list[ScriptStep]] = {
+        (JobKind.EXPANSION, PLAYLIST_URL): [
+            PlaylistEntriesFound(
+                playlist_id="PL1",
+                playlist_title="Playlist",
+                playlist_entries=tuple(entries),
+            ),
+            JobCompleted(output_path=None),
+        ],
+        **{
+            (JobKind.DOWNLOAD, child_urls[media_id]): [
+                JobCompleted(output_path=f"downloads/{media_id}.mp4")
+            ]
+            for media_id in "bc"
+        },
+    }
+    job_store, inbox, pool = queue_with([PLAYLIST_URL], script)
+    job_store.update(replace(job_store.get(JobId(1)), status=JobStatus.FAILED))
+    child_ids = {}
+    for entry, status in zip(
+        entries,
+        (JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED),
+        strict=True,
+    ):
+        child_id = job_store.create(
+            replace(
+                Job.new_expansion(entry.url, DOWNLOAD_OPTIONS),
+                kind=JobKind.DOWNLOAD,
+                parent_id=JobId(1),
+                media_key=entry.media_key,
+            )
+        )
+        output_path = "downloads/a.mp4" if status is JobStatus.COMPLETED else None
+        job_store.update(
+            replace(job_store.get(child_id), status=status, output_path=output_path)
+        )
+        child_ids[entry.title] = child_id
+    inbox.create_many([retry(1), retry(1), retry(int(child_ids["B"]))])
+
+    RunQueue(job_store, pool, inbox).execute()
+
+    downloads = [job.url for job in pool.submitted_jobs if job.kind is JobKind.DOWNLOAD]
+    assert sorted(downloads) == [child_urls["b"], child_urls["c"]]
+    attempts = {title: job_store.get(i).attempt_count for title, i in child_ids.items()}
+    assert attempts == {"A": 0, "B": 1, "C": 1}
+    assert job_store.get(JobId(1)).attempt_count == 1
+    assert {job_store.get(i).status for i in child_ids.values()} == {
+        JobStatus.COMPLETED
+    }
+    assert job_store.get(child_ids["A"]).output_path == "downloads/a.mp4"
+    # La nueva expansión encuentra las tres entradas: todas son duplicadas.
+    new_children = [
+        job
+        for job in job_store.all_jobs()
+        if job.job_id not in {JobId(1), *child_ids.values()}
+    ]
+    assert {job.status for job in new_children} == {JobStatus.SKIPPED}
+    assert inbox.get_unprocessed() == []
