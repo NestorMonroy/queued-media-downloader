@@ -4,9 +4,12 @@ from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from pathlib import Path
 
+import pytest
+
 from queued_media_downloader.job_queue import RunQueue
 from queued_media_downloader.jobs import (
     DownloadOptions,
+    FailureReason,
     FormatSelected,
     Job,
     JobCompleted,
@@ -133,15 +136,28 @@ def test_cancelling_an_expansion_cancels_children_created_meanwhile() -> None:
     assert [job.kind for job in pool.submitted_jobs] == [JobKind.EXPANSION]
 
 
-def test_request_for_a_job_that_already_finished_changes_nothing() -> None:
+@pytest.mark.parametrize(
+    "finished_status",
+    [JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.SKIPPED, JobStatus.CANCELLED],
+)
+def test_request_for_a_job_that_already_finished_changes_nothing(
+    finished_status: JobStatus,
+) -> None:
     # A7 dentro de run: el job terminó entre el registro y el procesamiento.
+    # Un FAILED sigue FAILED, con su motivo: se reintenta, no se cancela.
     job_store, inbox, pool = queue_with([URL], {})
-    job_store.update(replace(job_store.get(JobId(1)), status=JobStatus.COMPLETED))
+    finished = replace(job_store.get(JobId(1)), status=finished_status)
+    if finished_status is JobStatus.FAILED:
+        finished = replace(
+            finished, failure_reason=FailureReason.NETWORK, failure_message="reset"
+        )
+    job_store.update(finished)
     inbox.create_many([cancel(1)])
 
     RunQueue(job_store, pool, inbox).execute()
 
-    assert job_store.get(JobId(1)).status is JobStatus.COMPLETED
+    assert job_store.get(JobId(1)) == finished
+    assert pool.submitted_jobs == []
     assert inbox.get_unprocessed() == []
 
 
