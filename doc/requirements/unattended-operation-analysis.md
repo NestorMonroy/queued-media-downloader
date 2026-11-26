@@ -233,4 +233,5 @@ Las decisiones que gobiernan los casos de uso (qué es un bloqueo, cuánto esper
   - `yt_dlp/options.py`: preajuste `sleep`;
   - `yt_dlp/YoutubeDL.py`.
 - Espacio de análisis: `upstream/source/yt-dlp-gui-kannagi`.
+- [Referencia: casos de uso y flujos de VoiceStudio](benchmarking/voicestudio-use-cases.md) (BABOK 10.4): tampoco espera ante un bloqueo antibots ni ante un disco lleno; informa y dice si reintentar sirve.
 - Consolas y evidencia de la ejecución `20261125-222227-ddffe96cb470` ([registro de la campaña](../project-management/t42-results.md)).
