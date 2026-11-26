@@ -51,6 +51,8 @@ flowchart LR
         ListJobs["UC-08 List jobs"]
         ShowJob["UC-09 Show job"]
         PurgeFinishedJobs["UC-10 Purge finished jobs"]
+        WaitOutSiteBlock["UC-11 Wait out a site block"]
+        WaitForNetwork["UC-12 Wait for the network"]
     end
 
     User --> InstallAndVerify
@@ -65,16 +67,20 @@ flowchart LR
     User --> PurgeFinishedJobs
     DownloadSingleMedia --> MediaSite
     ExpandPlaylist --> MediaSite
+    WaitOutSiteBlock -. extends .-> DownloadSingleMedia
+    WaitOutSiteBlock -. extends .-> ExpandPlaylist
+    WaitForNetwork -. extends .-> DownloadSingleMedia
+    WaitForNetwork -. extends .-> ExpandPlaylist
 
     classDef default fill:#1e293b,stroke:#94a3b8,stroke-width:1px,color:#f1f5f9
     classDef cluster fill:#1e3a8a,stroke:#94a3b8,stroke-width:1px,color:#f1f5f9
     classDef focal fill:#1e3a8a,stroke:#60a5fa,color:#f1f5f9
     classDef external fill:#172032,stroke:#475569,color:#94a3b8
-    class InstallAndVerify,DownloadSingleMedia,ExpandPlaylist,CancelJob,RecoverAndResume,EnqueueMedia focal
+    class InstallAndVerify,DownloadSingleMedia,ExpandPlaylist,CancelJob,RecoverAndResume,EnqueueMedia,WaitOutSiteBlock,WaitForNetwork focal
     class MediaSite external
 ```
 
-UC-03 y UC-04 los inicia el User con `run`; ambos se ejecutan dentro de la cola y se comunican con el Media site.
+UC-03 y UC-04 los inicia el User con `run`; ambos se ejecutan dentro de la cola y se comunican con el Media site. UC-11 y UC-12 (propuestos) extienden UC-03 y UC-04 cuando el sitio bloquea o falta la red ([análisis](site-blocks-and-network-outages-analysis.md)).
 
 ---
 
@@ -92,6 +98,8 @@ UC-03 y UC-04 los inicia el User con `run`; ambos se ejecutan dentro de la cola 
 | UC-08 | Listar jobs | `list` | No | [Completa](use-cases/uc-08-list-jobs.md) |
 | UC-09 | Ver un job | `show` | No | [Completa](use-cases/uc-09-show-job.md) |
 | UC-10 | Purgar jobs terminados | `purge` | No | [Completa](use-cases/uc-10-purge-finished-jobs.md) |
+| UC-11 | Esperar a que el sitio levante un bloqueo | `run` | **Sí:** job event `JobDeferred`, esperas por sitio persistentes, ritmo de peticiones en la planificación | [Completa, propuesta](use-cases/uc-11-wait-out-a-site-block.md) |
+| UC-12 | Esperar a que vuelva la red | `run` | **Sí:** `JobDeferred`, comprobación de la conexión en el proceso principal | [Completa, propuesta](use-cases/uc-12-wait-for-the-network.md) |
 
 Las especificaciones de UC-07 a UC-10 se completaron en la auditoría previa a la aceptación (T49), al entrar esos casos de uso en E2. Se conserva el resumen original:
 
@@ -117,5 +125,6 @@ Las especificaciones de UC-07 a UC-10 se completaron en la auditoría previa a l
 | UC-07 | `job_queue`, `job_storage` | `job_queue/retry_job.py`, `job_queue/run_queue.py` |
 | UC-08, UC-09 | `job_queue`, `job_storage` | `job_queue/list_jobs.py` (`ListJobs`, `ShowJob`) |
 | UC-10 | `job_queue`, `job_storage`, `media_extraction` (parciales y reclamaciones) | `job_queue/purge_finished_jobs.py` |
+| UC-11, UC-12 (propuestos) | `job_queue`, `workers`, `media_extraction`, `job_storage` | `job_queue/run_queue.py` (planificación y esperas); clasificación en `media_extraction` ([ADR-0031](../notes/adr-0031-site-waits-and-network-waits.md)) |
 
 La trazabilidad por requisito (requisito, criterio, componentes, tareas, código, pruebas, evidencia, divergencias y pendientes en Windows) está en el [plan de E2, §8](../project-management/iteration-plan-e2.md#8-matriz-de-casos-de-uso-implementación-y-validación).

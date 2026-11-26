@@ -23,6 +23,7 @@ El User consulta los jobs de la cola, opcionalmente filtrados por estado o por p
 - **A1. Ningún job coincide** (paso 3): escribe `No jobs`; código `0`.
 - **A2. `--parent`** (paso 2): solo los hijos directos de esa expansión.
 - **A3. `run` escribe a la vez en otra terminal** (paso 2): la lectura funciona (SQLite en modo WAL) y refleja el último estado confirmado.
+- **A4. Job pendiente de un sitio en espera** (propuesto, [UC-11](uc-11-wait-out-a-site-block.md)): la línea añade el motivo y la hora de continuación, por ejemplo `(waiting: site block until 00:47)`.
 
 ## Excepciones
 

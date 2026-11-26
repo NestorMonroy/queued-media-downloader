@@ -38,6 +38,7 @@ El User obtiene el proyecto, prepara el entorno con uv y comprueba que ffmpeg, f
 - **A6. Configuración no válida** (paso 5): el sistema indica la clave y el valor no válidos y termina con código `2`.
 - **A7. Smart App Control activado** (paso 2 o posteriores): Windows bloquea `uv.exe`, o un binario sin firmar del proyecto, con el mensaje "Una directiva de Control de aplicaciones bloqueó este archivo". El sistema no llega a ejecutarse, así que no puede informar; el User comprueba la precondición ([ADR-0026](../../notes/adr-0026-smart-app-control-precondition.md)).
 - **A8. La base de datos no se puede abrir o una migración falla** (paso 8): la migración se deshace (la base de datos queda en su última versión completa) y se cierra la conexión. `diagnose` muestra la comprobación `database` como fallida, con la causa, y termina con código `2`; los demás comandos indican la ruta y la causa sin traza y terminan con código `1` (si otro proceso la tiene ocupada más allá de `busy_timeout`, `the queue is busy`).
+- **A9. Sin conexión** (propuesto, [UC-12](uc-12-wait-for-the-network.md)): `diagnose` resuelve el nombre de los sitios configurados (por defecto, `www.youtube.com`) sin descargar nada; si falla, muestra la comprobación `network` como aviso, no como fallo, porque el entorno está instalado.
 
 ## Postcondiciones
 

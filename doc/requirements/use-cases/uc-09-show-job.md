@@ -23,6 +23,7 @@ El User consulta todos los datos de un job; si es una playlist, también el resu
 - **A1. Hijo de una playlist** (paso 3): añade la playlist padre, su título y el índice de la entrada.
 - **A2. Job fallido** (paso 3): añade la failure reason y su mensaje.
 - **A3. Playlist** (paso 3): añade el número de hijos por estado.
+- **A4. Job pendiente de un sitio en espera** (propuesto, [UC-11](uc-11-wait-out-a-site-block.md)): añade el sitio, el motivo, la hora de continuación y el número de esperas seguidas.
 
 ## Excepciones
 

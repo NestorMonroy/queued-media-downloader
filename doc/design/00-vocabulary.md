@@ -26,6 +26,12 @@ Este documento fija **una palabra por concepto** (principio #8). Todo identifica
 | **failure reason** | Clasificación de dominio de un fallo | error type, error code |
 | **output claim** (reclamación) | Archivo exclusivo en `state/output-claims/` con el que un job se declara dueño de un nombre final antes de descargar ([ADR-0030](../notes/adr-0030-final-file-ownership-claims.md)) | lock (no es un bloqueo del sistema operativo), reservation |
 | **owner token** | Identidad de un job en los archivos que reclama: su id y el instante en que se guardó (`Job.owner_token`, `<id>@<created_at>`). Distingue a dos jobs con el mismo id tras restaurar una copia antigua de la base de datos | job id (a secas, para la propiedad) |
+| **site key** (sitio) | Sitio al que pertenece un job: el extractor de yt-dlp que acepta su URL o, si no hay ninguno, su host. Se fija al encolar ([ADR-0031](../notes/adr-0031-site-waits-and-network-waits.md), propuesta) | domain, host (salvo que sea el host) |
+| **site block** (bloqueo del sitio) | El sitio deja de servir contenidos a la sesión o a la IP: comprobación antibots, captcha o límite de peticiones. No es un fallo del job ([UC-11](../requirements/use-cases/uc-11-wait-out-a-site-block.md)) | ban, rate limit (a secas), unavailable |
+| **network outage** (corte de red) | El equipo no tiene conexión: no resuelve nombres o no llega a ningún host ([UC-12](../requirements/use-cases/uc-12-wait-for-the-network.md)) | offline error, network failure (para un fallo aislado) |
+| **defer** (aplazar) | Devolver un job a `PENDING` sin gastar un intento, por un bloqueo del sitio o un corte de red (`JobDeferred`) | retry (es una petición del User), postpone, requeue |
+| **site wait** (espera del sitio) | Plazo durante el que `run` no envía jobs de un sitio bloqueado; se guarda en la base de datos | cooldown, ban, pause (a secas) |
+| **request pacing** (ritmo de peticiones) | Pausa entre jobs del mismo sitio para no llegar a su límite | throttling, rate limit (a secas) |
 | **interruption** (interrupción) | `Ctrl+C` durante `run`: detiene la cola sin cancelar ningún job; los jobs en curso conservan su estado y sus parciales y continúan en el siguiente `run` | cancel (no es una cancelación) |
 
 ### 1.1 Estados terminados, reintentables y cancelables
