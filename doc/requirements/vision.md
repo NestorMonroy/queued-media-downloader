@@ -49,7 +49,7 @@
 ## 5. Restricciones
 
 - **Plataforma:** Windows 10/11 x64 ([ADR-0004](../notes/adr-0004-windows-x64-target-platform.md)).
-- **Dependencias fijadas:** yt-dlp 2026.10.26 ([ADR-0002](../notes/adr-0002-pinned-yt-dlp-version.md)) y ffmpeg 9.0 LGPL incluido ([ADR-0018](../notes/adr-0018-ffmpeg-build-selection.md)).
+- **Dependencias fijadas:** yt-dlp 2026.11.23 ([ADR-0002](../notes/adr-0002-pinned-yt-dlp-version.md)) y ffmpeg 9.0 LGPL incluido ([ADR-0018](../notes/adr-0018-ffmpeg-build-selection.md)).
 - **Instalación:** `git clone` → `uv sync` → `uv run`; sin Python preinstalado ([ADR-0003](../notes/adr-0003-packaging-with-uv-and-pyproject.md)).
 - **Licencia:** The Unlicense, con la excepción LGPL de `vendor/ffmpeg/` ([ADR-0007](../notes/adr-0007-project-license-unlicense.md)).
 - **Recursos mínimos:** 1 worker por defecto ([ADR-0008](../notes/adr-0008-process-based-worker-pool.md)).

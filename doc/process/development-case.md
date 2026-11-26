@@ -88,6 +88,17 @@ Ejecuta, en orden, `ruff format --check .`, `ruff check .`, `mypy`, `lint-import
 5. Actualizar la lista de riesgos y registrar las decisiones nuevas como ADR.
 6. Escribir la evaluación en el plan de la iteración; el Responsable del proyecto decide si la iteración se cierra.
 
+### Scripts del proyecto
+
+Todos funcionan desde un clon del repositorio, sin herramientas externas al proyecto. Los nombres describen su responsabilidad, no la tarea que los creó.
+
+| Script | Responsabilidad | Alcance |
+|---|---|---|
+| `scripts/run_checks.py` | Las cinco comprobaciones con stop-on-error y el código de salida real de cada una | Reutilizable, cualquier sistema |
+| `scripts/check_commit_message.py` | Convenciones de los mensajes de commit | Reutilizable, cualquier sistema |
+| `scripts/windows/validation_campaign.ps1` | Ejecuciones de la validación en Windows identificadas por commit, colas aisladas y evidencia | Reutilizable, Windows |
+| `scripts/experiments/process_tree_termination.py` | Experimento de terminación de árboles de procesos (T33, ADR-0029), que la validación repite en Windows | Experimento; sus resultados históricos están en `doc/notes/experiments/` |
+
 ### Mensajes de commit
 
 Estilo de Tim Pope, en inglés: asunto en imperativo de 50 caracteres como máximo, con mayúscula y sin punto final; una línea en blanco; cuerpo que explica qué y por qué, con líneas de 72 caracteres como máximo. Antes de cada commit:

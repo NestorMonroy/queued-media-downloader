@@ -26,7 +26,7 @@ OUTDATED_EXTRACTOR_HINT = (
 )
 YT_DLP_ERROR_PREFIX = "ERROR: "
 # Texto con el que yt-dlp avisa de que el formato pedido no se ofrece
-# (YoutubeDL.process_video_result, versión fijada 2026.10.26).
+# (YoutubeDL.process_video_result; igual en 2026.10.26 y 2026.11.23).
 FORMAT_UNAVAILABLE_MESSAGE = "Requested format is not available"
 # yt-dlp añade la causa al final del mensaje: " (caused by <HTTPError 404: ...>)".
 CAUSE_SUFFIX = re.compile(r" \(caused by .*\)$")

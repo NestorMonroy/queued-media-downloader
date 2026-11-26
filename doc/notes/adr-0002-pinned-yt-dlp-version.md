@@ -22,3 +22,7 @@ Se fija **yt-dlp 2026.10.26**. La actualización es un procedimiento explícito:
 - Los errores de extractor deben comunicarse con claridad, indicando que puede hacer falta actualizar yt-dlp.
 - Hay que documentar el procedimiento de actualización.
 - La fijación de dependencias transitivas la resuelve `uv.lock` ([ADR-0003](adr-0003-packaging-with-uv-and-pyproject.md)).
+
+## Seguimiento: actualización a 2026.11.23 (2026-11-26)
+
+La validación en Windows (T42-D3) encontró que el solucionador de retos de yt-dlp-ejs fallaba con la variante `main` del reproductor de YouTube, la predeterminada de 2026.10.26. Siguiendo el [procedimiento de actualización](../process/yt-dlp-update-procedure.md), se fija **yt-dlp 2026.11.23**, que usa la variante `tv` por defecto (yt-dlp #18124) con la misma yt-dlp-ejs 0.8.0 y deno 2.9.8. Los módulos de los que dependen los contratos del proyecto son idénticos a los de 2026.10.26. Las referencias a 2026.10.26 en los ADR y documentos anteriores describen los hallazgos de su fecha y se conservan.

@@ -47,7 +47,7 @@ Requisitos que no pertenecen a un caso de uso concreto, organizados según FURPS
 
 | ID | Requisito | Origen |
 |---|---|---|
-| SUP-S01 | Actualizar yt-dlp es un procedimiento documentado: cambiar la versión fijada, ejecutar las pruebas de contrato, publicar | [ADR-0002](../notes/adr-0002-pinned-yt-dlp-version.md) |
+| SUP-S01 | Actualizar yt-dlp es un procedimiento documentado: cambiar la versión fijada, ejecutar las pruebas de contrato, publicar | [ADR-0002](../notes/adr-0002-pinned-yt-dlp-version.md), [procedimiento](../process/yt-dlp-update-procedure.md) |
 | SUP-S02 | Todo el código cumple las reglas de importación (`lint-imports`), el formato y el linter (Ruff) y la verificación de tipos estricta (mypy) | [ADR-0017](../notes/adr-0017-ffmpeg-inspired-public-api-and-dependency-graph.md), [ADR-0019](../notes/adr-0019-code-quality-tools.md) |
 | SUP-S03 | Identificadores en inglés según el vocabulario; docstrings y comentarios en español | [ADR-0011](../notes/adr-0011-code-conventions.md), [ADR-0019](../notes/adr-0019-code-quality-tools.md) |
 | SUP-S04 | Las reglas de la cola (`jobs/`, `job_queue/`) se prueban sin yt-dlp, sin SQLite y sin procesos | [Parte 1, §1](../design/01-architecture.md#1-principios-de-diseño) |
@@ -57,7 +57,7 @@ Requisitos que no pertenecen a un caso de uso concreto, organizados según FURPS
 | ID | Restricción | Origen |
 |---|---|---|
 | SUP-C01 | Windows 10/11 x64; Python ≥3.11 gestionado por uv | [ADR-0003](../notes/adr-0003-packaging-with-uv-and-pyproject.md), [ADR-0004](../notes/adr-0004-windows-x64-target-platform.md) |
-| SUP-C02 | yt-dlp 2026.10.26 como librería; solo los módulos `yt_dlp_*` lo importan | [ADR-0002](../notes/adr-0002-pinned-yt-dlp-version.md), [ADR-0017](../notes/adr-0017-ffmpeg-inspired-public-api-and-dependency-graph.md) |
+| SUP-C02 | yt-dlp 2026.11.23 como librería (antes 2026.10.26; ver el seguimiento de ADR-0002); solo los módulos `yt_dlp_*` lo importan | [ADR-0002](../notes/adr-0002-pinned-yt-dlp-version.md), [ADR-0017](../notes/adr-0017-ffmpeg-inspired-public-api-and-dependency-graph.md) |
 | SUP-C03 | ffmpeg 9.0 LGPL compartido incluido en `vendor/ffmpeg/` con Git LFS | [ADR-0018](../notes/adr-0018-ffmpeg-build-selection.md) |
 | SUP-C04 | Persistencia en SQLite; solo el proceso de `run` cambia el estado de los jobs | [ADR-0010](../notes/adr-0010-sqlite-persistent-queue.md) |
 | SUP-C05 | Sin servidor de integración continua; las pruebas se ejecutan con `uv run pytest` | [ADR-0021](../notes/adr-0021-tdd-and-windows-validation-without-ci.md) |

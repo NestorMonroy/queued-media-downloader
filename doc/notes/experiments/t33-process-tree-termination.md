@@ -69,7 +69,7 @@ Tras la ejecución no quedó ningún proceso del experimento.
 | `main_process_killed` | `ERROR` (T42-D2) | `ERROR` (T42-D2) | **ninguno** ✔ |
 | `terminate_tree`, asignación tardía | — | — | `ERROR` (T42-D2) |
 
-Los `ERROR` son `PermissionError` al borrar la carpeta temporal: en Windows, `TerminateProcess` es asíncrono y la limpieza no esperaba a que los procesos que el escenario deja vivos a propósito soltaran el parcial. Es un defecto del experimento, no del producto (T42-D2); corregido en `t42-candidate-2`, donde se repite el paso 4. Los cuatro escenarios de `job_object`, los que confirman D1, sí se observaron y dieron *ninguno vivo*.
+Los `ERROR` son `PermissionError` al borrar la carpeta temporal: en Windows, `TerminateProcess` es asíncrono y la limpieza no esperaba a que los procesos que el escenario deja vivos a propósito soltaran el parcial. Es un defecto del experimento, no del producto (T42-D2); corregido en `269472e`, y el paso 4 se repite en la siguiente ejecución de la validación. Los cuatro escenarios de `job_object`, los que confirman D1, sí se observaron y dieron *ninguno vivo*.
 
 **Antes de la campaña: se ejecuta en la campaña final de validación en Windows** ([plan de E2, §7](../../project-management/iteration-plan-e2.md#7-campaña-final-de-validación-en-windows)). Los resultados de Linux no son evidencia para Windows. Pegar aquí la tabla que escribe el script y guardar el JSON junto a este documento. Lo que D1 necesita confirmar:
 

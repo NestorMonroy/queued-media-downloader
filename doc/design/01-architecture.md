@@ -173,7 +173,7 @@ graph TD
     FfmpegDiscovery["ffmpeg_discovery"]
     Jobs["jobs"]
     Configuration["configuration"]
-    YtDlpLibrary[("yt_dlp 2026.10.26")]
+    YtDlpLibrary[("yt_dlp 2026.11.23")]
     VendoredFfmpeg[("vendor/ffmpeg")]
 
     CommandLine --> JobQueue

@@ -106,6 +106,7 @@ Igual que en E1 ([ADR-0022](../notes/adr-0022-hybrid-approach-and-task-decomposi
 
 | ID | Tarea | Rol | Terminada cuando | Depende de |
 |---|---|---|---|---|
+| T51 | Corrección de los defectos de la primera ejecución en Windows y validación sin etiquetas: T42-D1 (prueba), T42-D2 (experimento), T42-D3 (yt-dlp 2026.11.23 con el [procedimiento SUP-S01](../process/yt-dlp-update-procedure.md)); `diagnose` informa de yt-dlp y yt-dlp-ejs; `scripts/windows/validation_campaign.ps1` identifica cada ejecución por el commit de `main`; `scripts/check_commit_message.py` dentro del proyecto | Agente | Linux ✔; confirmación en Windows ⏳ ([registro](t42-results.md)) | T50 |
 | T50 | Consolidación del candidato T42: owner token en reclamaciones y parciales (base de datos restaurada), migración 0004 (propiedad sin decidir de un archivo reclamado varias veces), arranque de workers que falla al registrarse, guion y script de la campaña revisados, etiqueta `t42-candidate-1` publicada | Agente | Correcciones con sus pruebas y verificación de desarrollo sobre el commit etiquetado. **Hecha**: Linux ✔; Windows ⏳ (T42) | T49 |
 | T49 | Auditoría integral previa a la aceptación: trazabilidad por requisito, especificación completa de UC-07 a UC-10, aislamiento de las pruebas, propiedad de los archivos finales ([ADR-0030](../notes/adr-0030-final-file-ownership-claims.md)), contrato de `JobCompleted`, migraciones, `Ctrl+C` repetidos, cola ocupada en todos los comandos y preparación de T42 | Agente | Correcciones con sus pruebas, verificación de desarrollo y [informe de la auditoría](pre-acceptance-audit.md). **Hecha**: Linux ✔; deja `READY_FOR_WINDOWS_VALIDATION` | T45–T48 |
 | T42 | Campaña final de validación en Windows (§7), incluida la medición de memoria que viene de E1 y el experimento de T33 | Evaluador | Los criterios de la sección 5 cumplidos; SUP-P04 fijado; matriz de la §8 con evidencia real; lista de riesgos actualizada | Todas, incluido el slice F |
@@ -215,7 +216,7 @@ Se amplía con cada tarea. Cada uno se verifica en la campaña.
 
 ## 8. Matriz de casos de uso: implementación y validación
 
-Estado al 2026-11-26, tras la auditoría previa a la aceptación (T49) y la consolidación del candidato (T50): **todos los escenarios de UC-01 a UC-10 están implementados y probados en Linux**. Lo que falta es la validación en Windows, en la campaña (§7). Se actualiza con la evidencia de la campaña.
+Estado al 2026-11-26, tras la auditoría previa a la aceptación (T49), la consolidación del candidato (T50) y las correcciones de la primera ejecución en Windows (T51): **todos los escenarios de UC-01 a UC-10 están implementados y probados en Linux**. Lo que falta es la validación en Windows, en la campaña (§7). Se actualiza con la evidencia de la campaña.
 
 | Estado del producto ([caso de desarrollo, §3](../process/development-case.md#estados-del-producto-cinco-conceptos-distintos)) | Valor | Evidencia |
 |---|---|---|
@@ -373,18 +374,18 @@ Para los casos de uso, la trazabilidad está en las tablas anteriores (escenario
 | SUP-C05 Sin CI | Proceso | — | — | — | — | — |
 | SUP-L01–L03 Licencias | `LICENSE`, `vendor/ffmpeg/` | E1 | Revisión | Sí | — | — |
 
-### 8.2 Clasificación de las pruebas (2026-11-26, candidato `t42-candidate-1`)
+### 8.2 Clasificación de las pruebas (2026-11-26, `main` tras la actualización de yt-dlp)
 
-554 pruebas recogidas en el commit del candidato:
+563 pruebas recogidas:
 
 | Clase | Número | Estado |
 |---|---|---|
-| `PASSED` (satisfactorias) | 541 | Ejecutadas y pasadas en el entorno de desarrollo (`scripts/run_checks.py`), todas las que no requieren Windows ni red |
+| `PASSED` (satisfactorias) | 549 | Ejecutadas y pasadas en el entorno de desarrollo (`scripts/run_checks.py`), todas las que no requieren Windows ni red |
 | `FAILED_PRODUCT_DEFECT` (fallidas por defectos del producto) | 0 | — |
-| `WINDOWS_PENDING` (pendientes de Windows) | 10 | No ejecutadas: 4 del terminador (Job Object), 3 de la build de ffmpeg, 3 de reclamaciones de nombres finales. Campaña, paso 3. También pendientes de validación real: SUP-P04 (paso 13) y los pasos manuales |
-| `BLOCKED_BY_ENVIRONMENT` (bloqueadas por el ambiente) | 3 | Las pruebas `network`: ejecutadas una vez, el proxy del entorno de desarrollo responde HTTP 403 al conectar con YouTube. No cuentan como pasadas ni como defectos. Campaña, paso 3 |
+| `WINDOWS_PENDING` (pendientes de Windows) | 10 (16 seleccionadas en Windows) | 4 del terminador (Job Object), 3 de la build de ffmpeg, 3 de reclamaciones de nombres finales; en Windows se seleccionan además las 6 del terminador de la plataforma. Pasaron en Windows sobre `5f30151` y su código no cambió; se repiten en la siguiente ejecución. También pendientes de validación real: SUP-P04 y los pasos manuales |
+| `BLOCKED_BY_ENVIRONMENT` (bloqueadas por el ambiente) | 4 | Las pruebas `network` (3 de expansión de YouTube y la regresión de T42-D3): el proxy del entorno de desarrollo responde HTTP 403. No cuentan como pasadas ni como defectos. Las 3 primeras pasaron en Windows con yt-dlp 2026.10.26; las 4 se repiten con 2026.11.23 |
 | `SKIPPED_JUSTIFIED` (omitidas justificadamente) | 0 en Linux; 7 en Windows | En Windows se omiten por diseño 4 de `Ctrl+C` con señales POSIX (equivalente: paso 7), 2 del localizador de ffmpeg con un script POSIX y 1 de nombres que distinguen mayúsculas (equivalente: pruebas `windows` de reclamaciones) |
 
 ### 8.3 Verificación de desarrollo
 
-La última ejecución de `uv run python scripts/run_checks.py` sobre el commit del candidato `t42-candidate-1`: formato, linter, tipos, reglas de importación y pruebas pasan (código 0 en cada una; 541 pruebas). La sesión de pruebas no detectó cambios en los datos reales del usuario.
+`uv run python scripts/run_checks.py` sobre el `main` publicado: formato, linter, tipos (también de `scripts/`), reglas de importación y pruebas pasan (código 0 en cada una; 549 pruebas). La sesión de pruebas no detectó cambios en los datos reales del usuario. La evidencia de Windows y su vigencia están en el [registro de resultados](t42-results.md).

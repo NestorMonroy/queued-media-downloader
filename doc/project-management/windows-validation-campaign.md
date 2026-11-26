@@ -1,11 +1,11 @@
-# Guion de la campaña final de validación en Windows (T42)
+# Guion de la validación en Windows (campaña T42)
 
 - **Rol:** Evaluador en Windows ([caso de desarrollo](../process/development-case.md)).
 - **Procedimiento y criterios:** [plan de E2, §7](iteration-plan-e2.md#7-campaña-final-de-validación-en-windows) y [§5](iteration-plan-e2.md#5-criterios-de-evaluación).
 - **Qué se valida:** cada escenario de la [matriz de la §8](iteration-plan-e2.md#8-matriz-de-casos-de-uso-implementación-y-validación) marcado *Windows ⏳*.
 - **Duración estimada:** medio día.
-- **Versión del guion:** 2.1 (consolidación del candidato, T50, 2026-11-26).
-- **Candidato evaluado:** la etiqueta anotada `t42-candidate-1` publicada en GitHub (o la `t42-candidate-N` vigente, §Corrección y regresión). El Agente de implementación la crea sobre el commit que superó la verificación de desarrollo; es inmutable. Este documento no contiene su hash (estaría dentro del propio commit): `Test-CampaignCandidate` lo obtiene de la etiqueta, comprueba que GitHub dice lo mismo y lo guarda en `evidence\candidate.txt`.
+- **Versión del guion:** 3.0 (2026-11-26). Las versiones 2.x evaluaban etiquetas `t42-candidate-N`; su evidencia se conserva en `C:\qmd-t42\`.
+- **Qué se evalúa:** el estado publicado de `main`. Cada ejecución se identifica por el SHA completo del commit y su instante de arranque; no hace falta crear ni publicar etiquetas. `Start-ValidationRun` comprueba que el clon está limpio y en `origin/main`, y guarda en `run.txt` el commit, el `main` publicado, la rama y la fecha. Si el clon se mueve a otro commit, las funciones se niegan a seguir: los resultados de dos commits nunca se mezclan en una ejecución.
 
 El Evaluador sigue los pasos en orden y anota cada resultado en el [registro](#registro-de-resultados) como **pasa**, **falla** o **no ejecutado** (con el motivo). Un paso no ejecutado nunca se anota como satisfactorio. No corrige el código: si un paso falla, guarda la salida y continúa con los pasos que no dependan de él. Cada fallo se convierte después en una tarea con su prueba de regresión, y el paso se repite.
 
@@ -15,7 +15,8 @@ El Evaluador sigue los pasos en orden y anota cada resultado en el [registro](#r
 - **Falla** si algún paso marcado **obligatorio** falla (pasos 3, 6, 7, 8 y 11) o si hay un defecto *bloqueante* sin corregir.
 - Cada paso indica su resultado esperado (**Se espera**). Un paso sin ejecutar se anota *no ejecutado*, con el motivo, y no cuenta como satisfactorio.
 - La aceptación final la decide el Responsable del proyecto con el registro completo; la evidencia de Linux o de E1 no la sustituye.
-- **Arranque de los workers en el Job Object (criterio explícito, T50):** durante toda la campaña, ningún `run` debe terminar con `could not start a worker`. Si ocurre, se guarda la salida y el log (`state\logs` de esa cola), se comprueba con `Save-CampaignProcesses` que no queda ningún proceso, y el siguiente `run` de esa cola debe recuperar los jobs `RUNNING` (`Recovered N interrupted job`). Un `run` que termina así sin dejar procesos y con la cola recuperable no es bloqueante; uno que deja procesos o jobs inconsistentes sí. La lógica independiente de Windows (reintento del arranque, apagado inmediato, código 1) está probada en Linux con dobles; el comportamiento nativo, solo aquí.
+- **Retos de JavaScript de YouTube (T42-D3):** ningún log de una cola debe contener `challenge solving failed` ni `Error solving`; la prueba `network` `test_a_youtube_download_solves_its_javascript_challenges` lo comprueba automáticamente.
+- **Arranque de los workers en el Job Object (criterio explícito, T50):** durante toda la campaña, ningún `run` debe terminar con `could not start a worker`. Si ocurre, se guarda la salida y el log (`state\logs` de esa cola), se comprueba con `Save-ValidationProcesses` que no queda ningún proceso, y el siguiente `run` de esa cola debe recuperar los jobs `RUNNING` (`Recovered N interrupted job`). Un `run` que termina así sin dejar procesos y con la cola recuperable no es bloqueante; uno que deja procesos o jobs inconsistentes sí. La lógica independiente de Windows (reintento del arranque, apagado inmediato, código 1) está probada en Linux con dobles; el comportamiento nativo, solo aquí.
 
 ## Requisitos previos
 
@@ -27,66 +28,82 @@ El Evaluador sigue los pasos en orden y anota cada resultado en el [registro](#r
 
 Para ver el estado de la cola en cualquier momento: `uv run queued-media-downloader list`.
 
-## Entorno aislado
+## Entorno aislado y evidencia
 
-La campaña **nunca** usa ni borra la cola, la configuración ni la carpeta de descargas reales del Evaluador. Todo queda en `C:\qmd-t42\<etiqueta>\`: cada bloque usa una cola nueva en `queues\<bloque>`, con las variables de entorno que el programa ya admite, y la evidencia va a `evidence\`.
+La validación **nunca** usa ni borra la cola, la configuración ni la carpeta de descargas reales del Evaluador, y ninguna función borra archivos. Cada ejecución vive en su propia carpeta:
 
-```powershell
-. .\scripts\windows\t42_campaign.ps1     # carga las funciones de ayuda
-Test-CampaignCandidate "t42-candidate-1" # obligatorio antes de las demás funciones
-New-CampaignQueue "5.1"                  # C:\qmd-t42\t42-candidate-1\queues\5.1
+```text
+<raíz>\runs\<aaaammdd-hhmmss>-<commit de 12 caracteres>\
+    run.txt          commit, main publicado, rama, fecha
+    evidence\        entorno, dependencias, diagnose, salidas, códigos de salida, procesos, memoria
+    queues\<bloque>\ una cola aislada por bloque (state\ y downloads\)
 ```
 
-Se usa una cola aislada en los pasos 2 y 5 a 12 (en el 5, una por bloque; en el 7, una por caso). `New-CampaignQueue` crea `queues\<bloque>\state` y `queues\<bloque>\downloads` (si ya existían, se detiene sin borrar nada; para repetir, otro nombre, como `5.1-r2`) y fija `QUEUED_MEDIA_DOWNLOADER_STATE_DIRECTORY` y `QUEUED_MEDIA_DOWNLOADER_DOWNLOAD_DIRECTORY` en la sesión de PowerShell. Las rutas de este guion (`state\`, `.partial\job-1`, `audio\`) se refieren a la cola activa. Al terminar, `C:\qmd-t42` se conserva como evidencia. Un candidato nuevo (`t42-candidate-2`) usa su propia carpeta, así que los resultados de cada uno no se mezclan.
+La raíz es, por orden: el parámetro `-EvidenceRoot` de `Start-ValidationRun`, la variable de entorno `QMD_VALIDATION_ROOT` o `C:\qmd-validation`. Repetir la validación tras una corrección crea otra carpeta en `runs\`; las anteriores se conservan.
+
+`New-ValidationQueue "<bloque>"` crea la cola del bloque (si ya existe, se detiene sin borrar nada; para repetir, otro nombre, como `5.1-r2`) y fija `QUEUED_MEDIA_DOWNLOADER_STATE_DIRECTORY` y `QUEUED_MEDIA_DOWNLOADER_DOWNLOAD_DIRECTORY` en la sesión de PowerShell. Las rutas de este guion (`state\`, `.partial\job-1`, `audio\`) se refieren a la cola activa.
 
 ## Automatización
 
-`scripts/windows/t42_campaign.ps1` automatiza lo repetitivo y deja la evidencia en `C:\qmd-t42\<etiqueta>\evidence`. Ningún archivo de evidencia se sobrescribe: una repetición crea `nombre-2.log`, `nombre-3.log`…
+`scripts/windows/validation_campaign.ps1` automatiza lo repetitivo. No hay que editarlo para un commit nuevo: lo identifica al arrancar. Ningún archivo de evidencia se sobrescribe: una repetición crea `nombre-2.log`, `nombre-3.log`…
 
 | Función | Qué hace | Evidencia |
 |---|---|---|
-| `Test-CampaignCandidate "<etiqueta>"` | Se detiene si la etiqueta no existe, si el clon no está en ella, si hay cambios locales o un `config.toml`, o si GitHub da otro commit para la etiqueta | `candidate.txt` (etiqueta, hash local y de GitHub) |
-| `Save-CampaignEnvironment` | Versiones de Windows, PowerShell, uv, Python, git y git-lfs, y el commit | `environment.txt` |
-| `New-CampaignQueue "<bloque>"` | Cola aislada (sección anterior) | Carpeta `queues\<bloque>` |
-| `Invoke-CampaignSuites` | Paso 3: `scripts/run_checks.py`, `pytest -m windows` y `pytest -m network`, cada uno con su código de salida real; borra de la sesión las variables de la cola (después, `New-CampaignQueue`) | `step3-*.log`, `exit-codes.txt` |
-| `Invoke-CampaignStep "<nombre>" @("programa", "arg"…)` | Ejecuta un programa, muestra y guarda su salida, y anota su código de salida real | `<nombre>.log`, `exit-codes.txt` |
-| `Save-CampaignQueueState "<nombre>"` | Guarda la salida de `list` de la cola activa | `queue-<nombre>.log` |
-| `Save-CampaignProcesses "<nombre>"` | Guarda los procesos `ffmpeg`, `ffprobe`, `deno` y `python` vivos (pasos 6 a 8) | `processes-<nombre>.txt` |
+| `Start-ValidationRun [-EvidenceRoot <ruta>] [-AllowUnpublishedCommit]` | Hace `git fetch`; se detiene si hay cambios locales, un `config.toml`, o si el clon no está en `origin/main` (salvo `-AllowUnpublishedCommit`, que lo registra como no publicado); crea la carpeta de la ejecución y guarda el entorno | `run.txt`, `environment.txt` (Windows, PowerShell, uv, Python, git, git-lfs), `dependencies.log` (`uv pip freeze`: yt-dlp, yt-dlp-ejs, deno…), `diagnose.log` (ffmpeg, ffprobe, yt-dlp, yt-dlp-ejs, deno y esquema) |
+| `Resume-ValidationRun [-RunDirectory <ruta>]` | Retoma la ejecución en otra ventana (sin ruta, la más reciente) | — |
+| `New-ValidationQueue "<bloque>"` | Cola aislada (sección anterior) | Carpeta `queues\<bloque>` |
+| `Invoke-ValidationSuites` | `scripts/run_checks.py`, `pytest -m windows` y `pytest -m network`, cada uno con su código de salida real; borra de la sesión las variables de la cola | `suite-*.log`, `exit-codes.txt` |
+| `Invoke-ProcessTreeExperiment` | Experimento de terminación de árboles de procesos (ADR-0029) | `process-tree-termination.log` y `.json` |
+| `Invoke-ValidationStep "<nombre>" @("programa", "arg"…)` | Ejecuta un programa, muestra y guarda su salida y anota su código de salida real | `<nombre>.log`, `exit-codes.txt` |
+| `Save-ValidationQueueState "<nombre>"` | Salida de `list` de la cola activa | `queue-<nombre>.log` |
+| `Save-ValidationProcesses "<nombre>"` | Procesos `ffmpeg`, `ffprobe`, `deno` y `python` vivos | `processes-<nombre>.txt` |
+| `Watch-ValidationMemory "<nombre>"` | Pico de memoria de cada proceso del programa hasta `Ctrl+C` (SUP-P04) | `memory-<nombre>.txt` |
 
-**Automatizado:** comprobación del candidato, versiones, colas aisladas, suites del paso 3, registro de salidas, códigos y procesos. **Manual:** los pasos 4 a 13 (órdenes del programa, `Ctrl+C`, cierre de ventanas, `Stop-Process`, archivos abiertos, medición de memoria) y el registro de resultados.
+**Automatizado:** identificación y comprobación del commit, entorno, versiones, `diagnose`, colas aisladas, suites, experimento, registro de salidas, códigos, procesos y memoria. **Manual:** las órdenes del programa de los pasos 5 a 12, `Ctrl+C`, cerrar ventanas, `Stop-Process`, archivos abiertos y el registro de resultados.
 
-El script **no se ha ejecutado en el entorno de desarrollo** (Linux, sin PowerShell): se revisó de forma estática (sintaxis equilibrada, nombres de funciones y comandos del programa y de git que existen, rutas, variables de entorno, códigos de salida). Su primera ejecución forma parte de la campaña, y un fallo del script se clasifica como defecto de herramienta de la campaña, no del producto.
+El script se revisó de forma estática en el entorno de desarrollo (Linux, sin PowerShell): sintaxis equilibrada, comandos del programa y de git que existen, rutas, variables de entorno, códigos de salida. Sus funciones heredan las de la versión anterior, ejecutadas en Windows el 2026-11-25; las nuevas (`Start-ValidationRun`, `Resume-ValidationRun`, `Invoke-ProcessTreeExperiment`, `Watch-ValidationMemory`) se ejecutan allí por primera vez, y un fallo suyo se clasifica como defecto de herramienta de validación.
 
 ## Pasos
 
-### Paso 1. Instalación (UC-01, flujo básico; A7)
+### Paso 1. Obtener o actualizar el clon e instalar (UC-01, flujo básico; A7)
+
+Un clon nuevo:
 
 ```powershell
 git clone https://github.com/NestorMonroy/queued-media-downloader.git
 cd queued-media-downloader
-git checkout t42-candidate-1
-git lfs pull
-uv sync
-. .\scripts\windows\t42_campaign.ps1
-Test-CampaignCandidate "t42-candidate-1"
-Save-CampaignEnvironment
 ```
 
-**Se espera:** los comandos terminan sin errores, `Test-CampaignCandidate` confirma el candidato y `vendor\` contiene los binarios reales, no punteros de LFS.
+Un clon existente, aunque esté en *detached HEAD* (por ejemplo, tras evaluar una etiqueta): las órdenes no descartan cambios locales; si los hay, se detienen y hay que resolverlos antes.
+
+```powershell
+git status --short
+git fetch origin
+git switch main
+git merge --ff-only origin/main
+```
+
+En los dos casos:
+
+```powershell
+git lfs pull
+uv sync
+. .\scripts\windows\validation_campaign.ps1
+Start-ValidationRun
+```
+
+**Se espera:** los comandos terminan sin errores; `Start-ValidationRun` muestra el commit evaluado y la carpeta de la ejecución; `vendor\` contiene los binarios reales, no punteros de LFS.
 
 ### Paso 2. Dependencias (UC-01, pasos 4 a 9; A1, A4, A5)
 
-```powershell
-New-CampaignQueue "2"
-uv run queued-media-downloader diagnose
-```
+`Start-ValidationRun` ya ejecutó `diagnose` en una cola aislada y lo guardó en `diagnose.log`.
 
-**Se espera:** `[ OK ]` en ffmpeg (la build incluida), ffprobe, deno y la base de datos (versión de esquema 4), y `Environment ready`.
+**Se espera:** `[ OK ]` en ffmpeg (la build incluida), ffprobe, yt-dlp (`yt-dlp 2026.11.23 with yt-dlp-ejs 0.8.0`), deno y la base de datos (versión de esquema 4), y `Environment ready`; código 0 en `exit-codes.txt`.
 
 ### Paso 3. Suites automatizadas (criterios 1 y 2; obligatorio)
 
 ```powershell
-Invoke-CampaignSuites
+Invoke-ValidationSuites
 ```
 
 Equivale a ejecutar, cada uno con su código de salida:
@@ -97,19 +114,19 @@ uv run pytest -m windows -o addopts=
 uv run pytest -m network -o addopts=
 ```
 
-**Se espera:** todo pasa. Las 3 pruebas `network` están clasificadas como `BLOCKED_BY_ENVIRONMENT` en el entorno de desarrollo (su proxy rechaza YouTube con HTTP 403); en Windows, con acceso a internet, deben pasar. Si fallan, anotar la causa antes de clasificar el defecto (§Clasificación de defectos): un 403 o un bloqueo de red es *Entorno*. Anotar, para cada `pytest`, el número de pruebas **pasadas, fallidas y omitidas por separado**, y que la sesión no informa `REAL USER DATA CHANGED`. En Windows, `pytest -m windows` selecciona 16 pruebas: las 6 del terminador parametrizadas para la plataforma llevan allí también la marca `windows`, además de estas 10: 4 del terminador de árboles de procesos (`tests/workers/test_process_tree_terminator.py`), 3 de la build de ffmpeg incluida (`tests/vendor/`) y 3 de reclamaciones de nombres finales (`tests/media_extraction/test_output_claims.py`: mayúsculas y separadores, archivo existente con otra capitalización, ruta de más de 260 caracteres con un archivo abierto). La suite normal incluye en Windows la prueba de interrupción real de la §5.1 (`tests/job_queue/test_real_interruption_recovery.py`) y las pruebas del terminador parametrizadas para la plataforma. Se omiten en Windows, por diseño, las 4 pruebas de `Ctrl+C` con señales POSIX (equivalente: paso 7), 2 del localizador de ffmpeg con un script POSIX y 1 de nombres que distinguen mayúsculas.
+**Se espera:** todo pasa. Las 4 pruebas `network` (3 de expansión de YouTube y la regresión de T42-D3) están clasificadas como `BLOCKED_BY_ENVIRONMENT` en el entorno de desarrollo (su proxy rechaza YouTube con HTTP 403); en Windows, con acceso a internet, deben pasar. Si fallan, anotar la causa antes de clasificar el defecto (§Clasificación de defectos): un 403 o un bloqueo de red es *Entorno*. Anotar, para cada `pytest`, el número de pruebas **pasadas, fallidas y omitidas por separado**, y que la sesión no informa `REAL USER DATA CHANGED`. En Windows, `pytest -m windows` selecciona 16 pruebas: las 6 del terminador parametrizadas para la plataforma llevan allí también la marca `windows`, además de estas 10: 4 del terminador de árboles de procesos (`tests/workers/test_process_tree_terminator.py`), 3 de la build de ffmpeg incluida (`tests/vendor/`) y 3 de reclamaciones de nombres finales (`tests/media_extraction/test_output_claims.py`: mayúsculas y separadores, archivo existente con otra capitalización, ruta de más de 260 caracteres con un archivo abierto). La suite normal incluye en Windows la prueba de interrupción real de la §5.1 (`tests/job_queue/test_real_interruption_recovery.py`) y las pruebas del terminador parametrizadas para la plataforma. Se omiten en Windows, por diseño, las 4 pruebas de `Ctrl+C` con señales POSIX (equivalente: paso 7), 2 del localizador de ffmpeg con un script POSIX y 1 de nombres que distinguen mayúsculas.
 
-### Paso 4. Experimento de T33 (ADR-0029)
+### Paso 4. Experimento de terminación de árboles de procesos (T33, ADR-0029)
 
 ```powershell
-Invoke-CampaignStep "step4-t33-experiment" @("uv", "run", "python", "scripts/experiments/process_tree_termination.py", "--json", "C:\qmd-t42\t42-candidate-1\evidence\t33-windows-results.json")
+Invoke-ProcessTreeExperiment
 ```
 
 **Se espera:** para `job_object`, *ninguno vivo* en sus cuatro escenarios (`terminate_tree`, `isolation_other_tree_alive`, `worker_crashed_then_terminate` y `main_process_killed`); para el control `job_object_assigned_late`, hijo y nieto vivos; ninguna fila `ERROR`. Pegar la tabla en el [documento del experimento](../notes/experiments/t33-process-tree-termination.md#resultados-en-windows), donde está el resultado esperado de cada estrategia.
 
 ### Paso 5. Casos de uso
 
-Antes de cada bloque, partir de una cola vacía y aislada: `New-CampaignQueue "<número del bloque>"`. No borrar ninguna carpeta real.
+Antes de cada bloque, partir de una cola vacía y aislada: `New-ValidationQueue "<número del bloque>"`. Al terminar cada bloque: `Save-ValidationQueueState "<número del bloque>"`. No borrar ninguna carpeta real.
 
 **5.1 Video con unión de audio y video, como solo audio y duplicado (UC-02, UC-03; A1)**
 
@@ -187,15 +204,15 @@ Mientras dice `locked`, en otra terminal: `uv run queued-media-downloader enqueu
 Encolar un video largo con unión de audio y video. Con `run` en marcha, en otra terminal, ejecutar `cancel 1` **mientras ffmpeg une los archivos** (la consola de `run` muestra la fase de unión). Después:
 
 ```powershell
-Save-CampaignProcesses "step6-after-cancel"
-Save-CampaignQueueState "step6"
+Save-ValidationProcesses "step6-after-cancel"
+Save-ValidationQueueState "step6"
 ```
 
 **Se espera:** el job queda `CANCELLED` como mucho 10 s después (`cancellation_grace_seconds`); no queda ningún ffmpeg ni deno del job; el `.part` o las partes `.f<id>` se conservan en `.partial\job-1`.
 
 ### Paso 7. Cierres de `run` (UC-05 A6; UC-06; obligatorio)
 
-Una cola por caso (`New-CampaignQueue "7a"`, `"7b"`…). Tras cada caso: `Save-CampaignProcesses "step7<caso>"` y `Save-CampaignQueueState "step7<caso>"`.
+Una cola por caso (`New-ValidationQueue "7a"`, `"7b"`…). Tras cada caso: `Save-ValidationProcesses "step7<caso>"` y `Save-ValidationQueueState "step7<caso>"`.
 
 Con un video largo descargándose en cada caso, y comprobando después procesos (paso 6) y estado (`list`):
 
@@ -265,31 +282,39 @@ Tras los pasos 6 a 9: `uv run queued-media-downloader list`.
 
 ### Paso 13. Memoria (R-02, R-06, criterio 6, SUP-P04)
 
-Usar el script del [paso 6 del guion de E1](evaluation-guide-e1.md#paso-6-medición-de-memoria-preparar-criterio-6) (ya corregido para medir el intérprete real) durante: una descarga con unión (paso 5.1), la expansión de una playlist grande (un canal con miles de videos) y una ejecución larga con reciclado de workers.
+En una segunda ventana de PowerShell, en la carpeta del clon:
+
+```powershell
+. .\scripts\windows\validation_campaign.ps1
+Resume-ValidationRun
+Watch-ValidationMemory "download-with-merge"
+```
+
+Mientras mide, en la primera ventana, ejecutar una descarga con unión (como en el paso 5.1); al terminar `run`, `Ctrl+C` en la segunda ventana. Repetir con otros nombres (`"large-playlist"`, `"worker-recycling"`) para la expansión de una playlist grande (un canal con miles de videos) y una ejecución larga con reciclado de workers. Es la misma medición que el [paso 6 del guion de E1](evaluation-guide-e1.md#paso-6-medición-de-memoria-preparar-criterio-6), ahora con su resultado guardado en la evidencia.
 
 **Se espera:** picos de memoria anotados por proceso; la memoria del worker no crece con el número de entradas de la playlist. Con esos valores se fija SUP-P04.
 
 ## Registro de resultados
 
-Los resultados reales de cada candidato se registran en [t42-results.md](t42-results.md); esta tabla es la plantilla.
+Los resultados reales de cada ejecución se registran en [t42-results.md](t42-results.md), una sección por commit evaluado; esta tabla es la plantilla.
 
-Candidato evaluado: `t42-candidate-__` (hash en `evidence\candidate.txt`) · Fecha: ________ · Evaluador: ________
+Commit evaluado: `________________________________________` (de `run.txt`) · Carpeta de la ejecución: ________ · Fecha: ________ · Evaluador: ________
 
 | Paso | Resultado (pasa / falla / no ejecutado) | Evidencia | Observaciones (defectos `T42-D<n>`) |
 |---|---|---|---|
 | 1 | | | |
 | 2 | | | |
 | 3 | | Pasadas / fallidas / omitidas de cada `pytest` | |
-| 4 | | `t33-windows-results.json` | |
+| 4 | | `process-tree-termination.json` | |
 | 5.1 – 5.7 | | | |
-| 6 | | Salida de `Get-Process` | |
+| 6 | | `processes-step6-after-cancel.txt` | |
 | 7 a – f | | | |
 | 8 | | Tamaño del `.part` antes y después | |
 | 9 | | Salida de `show 1` | |
 | 10 | | Salida de `ffprobe` | |
 | 11 | | | |
 | 12 | | Salida de `list` | |
-| 13 | | Picos por proceso | |
+| 13 | | `memory-*.txt` | |
 
 ## Clasificación de defectos
 
@@ -297,7 +322,7 @@ Cada fallo se registra con un identificador `T42-D<n>`, el paso, la salida guard
 
 | Campo | Valores |
 |---|---|
-| **Origen** | *Producto, específico de Windows* (no se reproduce en Linux); *Producto, general* (se reproduce en Linux: la verificación de desarrollo no lo cubría); *Prueba* (la prueba es incorrecta, el producto no); *Entorno* (red, antivirus, permisos, Smart App Control); *Herramienta de la campaña* (`t42_campaign.ps1`, este guion); *Documentación* |
+| **Origen** | *Producto, específico de Windows* (no se reproduce en Linux); *Producto, general* (se reproduce en Linux: la verificación de desarrollo no lo cubría); *Prueba* (la prueba es incorrecta, el producto no); *Entorno* (red, antivirus, permisos, Smart App Control); *Herramienta de validación* (`validation_campaign.ps1`, `process_tree_termination.py`, este guion); *Documentación* |
 | **Gravedad** | *Bloqueante*: pérdida o modificación de datos del User, procesos huérfanos, un job que queda en un estado incorrecto, un paso obligatorio que no se puede completar; *Mayor*: un escenario de un caso de uso no funciona, con alternativa; *Menor*: mensajes, formato, documentación |
 | **Escenario afectado** | Caso de uso y flujo (por ejemplo, UC-05 A6) y requisito (por ejemplo, SUP-R02) |
 
@@ -307,10 +332,10 @@ Un defecto de *Entorno* se repite en un entorno corregido antes de clasificarlo 
 
 1. El Agente de implementación crea una tarea por defecto del producto o de prueba, en su propia rama.
 2. Escribe primero la prueba de regresión: automatizada en Linux si el defecto se reproduce allí; si es específico de Windows, una prueba `windows` (no ejecutable en desarrollo: se anota así, nunca como satisfactoria).
-3. Corrige, ejecuta `scripts/run_checks.py` con stop-on-error e integra en `main` sin forzar nada.
-4. El Agente de implementación crea y publica la etiqueta anotada siguiente libre, `t42-candidate-N`, sobre el nuevo commit; nunca mueve ni sobrescribe una etiqueta existente.
-5. El Evaluador repite, sobre ese commit: el paso 3 completo, los pasos donde aparecieron los defectos y los pasos que dependen del código cambiado (el Agente los indica en la tarea). El resto de los resultados se conserva si el cambio no los afecta.
-6. El registro guarda los resultados de cada candidato por separado; la aceptación se decide sobre el último.
+3. Corrige, ejecuta `scripts/run_checks.py` con stop-on-error, integra en `main` sin forzar nada y publica.
+4. El Agente indica en el registro qué evidencia anterior sigue valiendo y qué pasos hay que repetir: el paso 3 completo, los pasos donde aparecieron los defectos y los que dependen del código o de las dependencias que cambiaron.
+5. El Evaluador actualiza su clon a `main` (paso 1) y hace una ejecución nueva con `Start-ValidationRun`; solo repite los pasos indicados. No se crean etiquetas.
+6. El registro guarda los resultados de cada commit por separado; la aceptación se decide sobre el último commit evaluado, con la evidencia vigente de los anteriores.
 
 ## Después de la campaña
 

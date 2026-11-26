@@ -11,7 +11,8 @@ from queued_media_downloader.media_extraction.progress_event_translator import (
     PostprocessingProgressTranslator,
 )
 
-# Diccionarios grabados de una descarga real de yt-dlp 2026.10.26 contra el
+# Diccionarios grabados de una descarga real de yt-dlp 2026.10.26 (los
+# descargadores de 2026.11.23 son idénticos) contra el
 # servidor local (sin info_dict ni los campos de texto con formato).
 RECORDED_FIRST_DOWNLOADING_HOOK: dict[str, Any] = {
     "status": "downloading",

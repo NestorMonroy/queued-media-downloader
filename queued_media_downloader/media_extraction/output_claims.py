@@ -4,7 +4,7 @@ Riesgo R-14 (auditoría, §7). Con una plantilla sin %(id)s o un título
 recortado, dos contenidos pueden recibir el mismo nombre final. yt-dlp toma
 entonces el archivo existente por "ya descargado", pero aun así le aplica
 fixup y los postprocessors (YoutubeDL.process_info, versión fijada
-2026.10.26), y FFmpegExtractAudio lo sobrescribe. Detectar la colisión
+2026.10.26 y 2026.11.23), y FFmpegExtractAudio lo sobrescribe. Detectar la colisión
 después, con el índice unique_output_path, llega tarde.
 
 Por eso cada job reclama su nombre final antes de descargar (postprocessor
