@@ -39,6 +39,9 @@ from queued_media_downloader.workers.worker_pool import NoIdleWorkerError
 
 logger = logging.getLogger(__name__)
 
+# Intentos de arrancar y registrar un worker antes de rendirse.
+WORKER_START_ATTEMPTS = 3
+
 SHUT_DOWN_TIMEOUT_SECONDS = 10.0
 
 
@@ -185,6 +188,27 @@ class ProcessWorkerPool:
         self._workers = []
 
     def _start_worker(self) -> WorkerHandle:
+        """Arranca un worker registrado en su terminador; reintenta si falla.
+
+        Un worker que muere mientras arranca (por ejemplo, mientras se asocia
+        a su Job Object) hace fallar su registro; se prueba con otro proceso
+        hasta WORKER_START_ATTEMPTS veces.
+
+        Raises:
+            ProcessTreeTerminationError: Si ningún intento se pudo registrar;
+                cada intento fallido se terminó y se liberó.
+        """
+        for attempt in range(1, WORKER_START_ATTEMPTS + 1):
+            try:
+                return self._start_worker_once()
+            except ProcessTreeTerminationError:
+                if attempt == WORKER_START_ATTEMPTS:
+                    raise
+                logger.warning("Starting a worker again (attempt %s)", attempt + 1)
+        message = "unreachable"
+        raise AssertionError(message)
+
+    def _start_worker_once(self) -> WorkerHandle:
         """Arranca un worker, lo registra en su terminador y conecta sus colas.
 
         El registro ocurre antes de devolver el worker, así que ningún job le

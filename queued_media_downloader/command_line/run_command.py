@@ -31,6 +31,7 @@ from queued_media_downloader.job_queue import (
     RunQueue,
     RunQueueResult,
 )
+from queued_media_downloader.workers import ProcessTreeTerminationError
 
 # Cómo se presenta cada origen de ffmpeg al arrancar la cola.
 FFMPEG_SOURCE_DESCRIPTIONS = {
@@ -83,6 +84,16 @@ def run_run_command(arguments: argparse.Namespace) -> int:
             # Segundo Ctrl+C mientras arrancaba el pool: no había jobs en curso.
             print("Stopped; interrupted jobs will resume on the next run")
             return ExitCode.INTERRUPTED
+        except ProcessTreeTerminationError as start_error:
+            # Un worker no se pudo registrar en su terminador ni al reintentarlo
+            # (ProcessWorkerPool): no queda ningún worker vivo, y los jobs que
+            # estaban en curso siguen RUNNING y se recuperan en el siguiente run.
+            print(
+                f"{arguments.program_name}: error: could not start a worker "
+                f"({start_error}); running jobs will resume on the next run",
+                file=sys.stderr,
+            )
+            return ExitCode.JOBS_FAILED
     if outcome is None:
         return ExitCode.INTERRUPTED
     run_result, log_path = outcome
@@ -135,6 +146,11 @@ def _run_queue(
             worker_pool.shut_down(immediately=True)
             print("Stopped; interrupted jobs will resume on the next run")
             return None
+        except ProcessTreeTerminationError:
+            # No se pudo sustituir un worker: los demás no esperan a terminar
+            # sus jobs, que siguen RUNNING para el siguiente run.
+            worker_pool.shut_down(immediately=True)
+            raise
     return run_result, log_path
 
 

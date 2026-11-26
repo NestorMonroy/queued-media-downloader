@@ -432,3 +432,56 @@ def test_worker_is_recycled_after_max_jobs_per_worker() -> None:
         assert len(multiprocessing.active_children()) == 1
     finally:
         pool.shut_down()
+
+
+class FlakyTerminators:
+    """Fábrica de terminadores falsos: el registro falla en los intentos dados.
+
+    Simula un worker que muere mientras se asocia a su Job Object.
+    """
+
+    def __init__(self, failing_attempts: set[int]) -> None:
+        self.failing_attempts = failing_attempts
+        self.created: list[FakeProcessTreeTerminator] = []
+
+    def __call__(self) -> FakeProcessTreeTerminator:
+        attempt = len(self.created) + 1
+        self.created.append(
+            FakeProcessTreeTerminator(
+                fail_registration=attempt in self.failing_attempts
+            )
+        )
+        return self.created[-1]
+
+
+def test_a_worker_that_dies_while_registering_is_started_again() -> None:
+    terminators = FlakyTerminators(failing_attempts={1})
+
+    pool = ProcessWorkerPool(1, functools.partial(FakeMediaSource, {}), terminators)
+    idle_workers = pool.count_idle_workers()
+    pool.shut_down()
+
+    assert idle_workers == 1
+    # El intento fallido se liberó; el nuevo worker, también al apagar.
+    assert [t.calls[-1] for t in terminators.created] == ["release", "release"]
+    assert multiprocessing.active_children() == []
+
+
+def test_a_replacement_that_cannot_register_stops_the_pool_cleanly() -> None:
+    # El primer worker arranca; todos los intentos de sustituirlo fallan.
+    terminators = FlakyTerminators(failing_attempts=set(range(2, 10)))
+    pool = ProcessWorkerPool(
+        1,
+        functools.partial(FakeMediaSource, {("download", "https://crashes"): CRASH}),
+        terminators,
+    )
+    pool.submit(stored_job(1, "https://crashes", kind=JobKind.DOWNLOAD))
+
+    with pytest.raises(ProcessTreeTerminationError):
+        deadline = time.monotonic() + 30
+        while time.monotonic() < deadline:
+            pool.collect_events(0.1)
+    pool.shut_down(immediately=True)
+
+    assert multiprocessing.active_children() == []
+    assert all(t.calls[-1] == "release" for t in terminators.created)

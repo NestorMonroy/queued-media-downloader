@@ -1,5 +1,8 @@
 """Quién ejecuta los jobs: contrato del pool y workers en procesos."""
 
+from queued_media_downloader.workers.process_tree_terminator import (
+    ProcessTreeTerminationError,
+)
 from queued_media_downloader.workers.worker_message import (
     POOL_SEQUENCE_NUMBER,
     POOL_WORKER_ID,
@@ -11,6 +14,7 @@ __all__ = [
     "POOL_SEQUENCE_NUMBER",
     "POOL_WORKER_ID",
     "NoIdleWorkerError",
+    "ProcessTreeTerminationError",
     "WorkerMessage",
     "WorkerPool",
 ]
