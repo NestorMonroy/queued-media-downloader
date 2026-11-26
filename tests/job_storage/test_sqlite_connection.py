@@ -123,7 +123,7 @@ def test_migration_3_keeps_jobs_their_links_and_their_requests(tmp_path: Path) -
     request_rows = requests.fetchall()
     migrated.close()
 
-    assert schema_version == 3
+    assert schema_version == LATEST_SCHEMA_VERSION
     assert jobs == [(1, None, "abc"), (2, 1, "def")]
     assert request_rows == [(2, "CANCEL")]
     assert foreign_key_problems == []
@@ -211,32 +211,111 @@ def test_upgrading_from_version_1_keeps_every_job_and_its_links(tmp_path: Path) 
     } <= indexes
 
 
-def test_migration_3_releases_a_file_claimed_twice_by_version_2_jobs(
-    tmp_path: Path,
-) -> None:
-    # E1 (riesgo R-14) pudo dejar dos jobs COMPLETED con el mismo archivo: el
-    # segundo lo tomó por "ya descargado". El archivo es del primero.
-    database_path = tmp_path / "queue.sqlite3"
+SHARED_FILE = "/downloads/same.mp4"
+OWNERSHIP_COLUMNS = (
+    "SELECT id, status, output_path, failure_reason, failure_message"
+    " FROM jobs ORDER BY id"
+)
+
+
+def version_2_with_a_file_claimed_three_times(database_path: Path) -> None:
+    """Base de E1 (R-14): tres jobs COMPLETED con el mismo archivo final."""
     version_2 = database_at_version_2(database_path)
-    version_2.execute(INSERT_DOWNLOAD, ("Youtube", "abc", '{"audio_only": false}'))
-    version_2.execute(INSERT_DOWNLOAD, ("Youtube", "def", '{"audio_only": false}'))
+    for media_id in ("abc", "def", "ghi"):
+        version_2.execute(
+            INSERT_DOWNLOAD, ("Youtube", media_id, '{"audio_only": false}')
+        )
     version_2.execute(
-        "UPDATE jobs SET status = 'COMPLETED', output_path = '/downloads/same.mp4'"
+        "UPDATE jobs SET status = 'COMPLETED', output_path = ?", (SHARED_FILE,)
     )
     version_2.commit()
     version_2.close()
 
+
+def assert_ownership_is_left_undecided(rows: list[tuple[object, ...]]) -> None:
+    """Ningún job queda como dueño; el diagnóstico nombra el archivo y a todos."""
+    assert [row[:4] for row in rows] == [
+        (job_id, "FAILED", None, "FILESYSTEM") for job_id in (1, 2, 3)
+    ]
+    for row in rows:
+        message = str(row[4])
+        assert f"ownership of output file {SHARED_FILE} is ambiguous" in message
+        assert "jobs 1, 2, 3 claimed it" in message
+        assert "the file was kept and no job owns it" in message
+    # El estado que la 0003 conservó; el de los demás no se guardó.
+    assert "this job was COMPLETED" in str(rows[0][4])
+    assert all("was not recorded" in str(row[4]) for row in rows[1:])
+
+
+def test_a_file_claimed_by_several_version_2_jobs_gets_no_owner(
+    tmp_path: Path,
+) -> None:
+    # El id menor no prueba quién escribió el archivo: con yt-dlp, un job
+    # posterior pudo sobrescribirlo (FFmpegExtractAudio) o tomarlo por
+    # descargado. Se conserva el archivo y ningún job queda COMPLETED con él.
+    database_path = tmp_path / "queue.sqlite3"
+    version_2_with_a_file_claimed_three_times(database_path)
+
     migrated = open_database(database_path)
-    rows = migrated.execute(
-        "SELECT id, status, output_path, failure_reason, failure_message"
-        " FROM jobs ORDER BY id"
-    ).fetchall()
+    rows = migrated.execute(OWNERSHIP_COLUMNS).fetchall()
+    unique_paths = migrated.execute(
+        "SELECT count(*) FROM jobs WHERE output_path IS NOT NULL"
+    ).fetchone()[0]
     migrated.close()
 
-    assert rows[0] == (1, "COMPLETED", "/downloads/same.mp4", None, None)
-    assert rows[1][:4] == (2, "FAILED", None, "FILESYSTEM")
-    assert "/downloads/same.mp4" in rows[1][4]
-    assert "job 1" in rows[1][4]
+    assert_ownership_is_left_undecided(rows)
+    assert unique_paths == 0
+
+
+def test_migration_4_undoes_the_owner_that_migration_3_chose_by_lowest_id(
+    tmp_path: Path,
+) -> None:
+    # Bases que ya aplicaron la 0003 publicada (2026-11-26), que daba el
+    # archivo al id menor.
+    database_path = tmp_path / "queue.sqlite3"
+    version_2_with_a_file_claimed_three_times(database_path)
+    version_3 = sqlite3.connect(database_path)
+    version_3.executescript(
+        f"BEGIN;\n{load_migrations()[2].script}\nPRAGMA user_version = 3;\nCOMMIT;"
+    )
+    after_migration_3 = version_3.execute(OWNERSHIP_COLUMNS).fetchall()
+    version_3.close()
+    assert after_migration_3[0][1:3] == ("COMPLETED", SHARED_FILE)
+
+    migrated = open_database(database_path)
+    rows = migrated.execute(OWNERSHIP_COLUMNS).fetchall()
+    migrated.close()
+
+    assert_ownership_is_left_undecided(rows)
+
+
+def test_migration_4_leaves_every_other_job_untouched(tmp_path: Path) -> None:
+    database_path = tmp_path / "queue.sqlite3"
+    version_3 = sqlite3.connect(database_path)
+    scripts = "\n".join(m.script for m in load_migrations()[:3])
+    version_3.executescript(f"{scripts}\nPRAGMA user_version = 3;")
+    version_3.execute(INSERT_DOWNLOAD, ("Youtube", "abc", '{"audio_only": false}'))
+    version_3.execute(INSERT_DOWNLOAD, ("Youtube", "def", '{"audio_only": false}'))
+    version_3.execute(
+        "UPDATE jobs SET status = 'COMPLETED', output_path = '/downloads/a.mp4'"
+        " WHERE id = 1"
+    )
+    # Un fallo de la reclamación en tiempo de ejecución (ADR-0030), no de la
+    # migración 0003: su texto no empieza por "output file ".
+    version_3.execute(
+        "UPDATE jobs SET status = 'FAILED', failure_reason = 'FILESYSTEM',"
+        " failure_message = '/downloads/a.* belongs to job 1; the file was left"
+        " untouched; use an output template that keeps %(id)s' WHERE id = 2"
+    )
+    version_3.commit()
+    before = version_3.execute("SELECT * FROM jobs ORDER BY id").fetchall()
+    version_3.close()
+
+    migrated = open_database(database_path)
+    after = migrated.execute("SELECT * FROM jobs ORDER BY id").fetchall()
+    migrated.close()
+
+    assert after == before
 
 
 class ClosingSpy:
