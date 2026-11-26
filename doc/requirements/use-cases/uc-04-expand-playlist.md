@@ -1,7 +1,9 @@
 # UC-04: Expandir una playlist
 
+- **Objetivo:** cada entrada de una playlist o de un canal queda como una descarga propia, sin descargar dos veces el mismo contenido.
 - **Actor principal:** User
 - **Actor secundario:** Media site
+- **Disparador:** `run` toma un job cuya URL resulta ser una playlist.
 - **Significativo para la arquitectura:** sí
 - **Decisiones relacionadas:** [ADR-0009](../../notes/adr-0009-playlist-expansion-into-jobs.md), [ADR-0012](../../notes/adr-0012-no-download-archive-no-database-triggers.md)
 - **Diseño:** [Parte 2, §1.2](../../design/02-flows-persistence-and-operations.md#12-expansión)

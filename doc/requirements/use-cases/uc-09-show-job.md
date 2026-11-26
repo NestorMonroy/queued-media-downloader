@@ -1,6 +1,8 @@
 # UC-09: Ver un job
 
+- **Objetivo:** el User ve todos los datos de un job: su archivo o por qué falló.
 - **Actor principal:** User
+- **Disparador:** el User quiere saber dónde quedó un contenido o por qué falló.
 - **Significativo para la arquitectura:** no
 - **Diseño:** [Parte 2, §4.1](../../design/02-flows-persistence-and-operations.md#41-comandos)
 
@@ -23,7 +25,7 @@ El User consulta todos los datos de un job; si es una playlist, también el resu
 - **A1. Hijo de una playlist** (paso 3): añade la playlist padre, su título y el índice de la entrada.
 - **A2. Job fallido** (paso 3): añade la failure reason y su mensaje.
 - **A3. Playlist** (paso 3): añade el número de hijos por estado.
-- **A4. Job pendiente de un sitio en espera** (propuesto, [UC-11](uc-11-wait-out-a-site-block.md)): añade el sitio, el motivo, la hora de continuación y el número de esperas seguidas.
+- **A4. Job que espera** (propuesto, UC-11 a UC-14): añade el sitio, el motivo, la hora de continuación y el número de esperas seguidas, o que la cola está en pausa.
 
 ## Excepciones
 

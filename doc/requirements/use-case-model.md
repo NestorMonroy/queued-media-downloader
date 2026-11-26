@@ -53,6 +53,8 @@ flowchart LR
         PurgeFinishedJobs["UC-10 Purge finished jobs"]
         WaitOutSiteBlock["UC-11 Wait out a site block"]
         WaitForNetwork["UC-12 Wait for the network"]
+        WaitForDiskSpace["UC-13 Wait for disk space"]
+        PauseAndContinue["UC-14 Pause and continue the queue"]
     end
 
     User --> InstallAndVerify
@@ -71,6 +73,9 @@ flowchart LR
     WaitOutSiteBlock -. extends .-> ExpandPlaylist
     WaitForNetwork -. extends .-> DownloadSingleMedia
     WaitForNetwork -. extends .-> ExpandPlaylist
+    WaitForDiskSpace -. extends .-> DownloadSingleMedia
+    WaitForDiskSpace -. extends .-> ExpandPlaylist
+    User --> PauseAndContinue
 
     classDef default fill:#1e293b,stroke:#94a3b8,stroke-width:1px,color:#f1f5f9
     classDef cluster fill:#1e3a8a,stroke:#94a3b8,stroke-width:1px,color:#f1f5f9
@@ -80,7 +85,9 @@ flowchart LR
     class MediaSite external
 ```
 
-UC-03 y UC-04 los inicia el User con `run`; ambos se ejecutan dentro de la cola y se comunican con el Media site. UC-11 y UC-12 (propuestos) extienden UC-03 y UC-04 cuando el sitio bloquea o falta la red ([análisis](site-blocks-and-network-outages-analysis.md)).
+UC-03 y UC-04 los inicia el User con `run`; ambos se ejecutan dentro de la cola y se comunican con el Media site. UC-11 a UC-13 (propuestos) extienden UC-03 y UC-04 ante un suceso externo: el sitio bloquea, falta la red o se llena el disco. UC-14 (propuesto) lo inicia el User. Se identificaron con una lista de actores y objetivos y una lista de sucesos externos ([análisis](unattended-operation-analysis.md), §4); la validación en Windows tiene su propio [modelo de casos de uso](../process/validation-use-case-model.md).
+
+Cada caso de uso sigue los elementos de BABOK v3, 10.47: objetivo, actores, disparador, precondiciones, flujos básico y alternativos, excepciones y garantías (postcondiciones). Las decisiones que gobiernan los flujos están en el [catálogo de reglas de negocio](business-rules.md).
 
 ---
 
@@ -100,6 +107,8 @@ UC-03 y UC-04 los inicia el User con `run`; ambos se ejecutan dentro de la cola 
 | UC-10 | Purgar jobs terminados | `purge` | No | [Completa](use-cases/uc-10-purge-finished-jobs.md) |
 | UC-11 | Esperar a que el sitio levante un bloqueo | `run` | **Sí:** job event `JobDeferred`, esperas por sitio persistentes, ritmo de peticiones en la planificación | [Completa, propuesta](use-cases/uc-11-wait-out-a-site-block.md) |
 | UC-12 | Esperar a que vuelva la red | `run` | **Sí:** `JobDeferred`, comprobación de la conexión en el proceso principal | [Completa, propuesta](use-cases/uc-12-wait-for-the-network.md) |
+| UC-13 | Esperar a que haya espacio en disco | `run` | No (reutiliza el aplazamiento de UC-12) | [Completa, propuesta](use-cases/uc-13-wait-for-disk-space.md) |
+| UC-14 | Pausar y continuar la cola | `pause`, `resume` | No (reutiliza las job requests de UC-05) | [Completa, propuesta](use-cases/uc-14-pause-and-continue-the-queue.md) |
 
 Las especificaciones de UC-07 a UC-10 se completaron en la auditoría previa a la aceptación (T49), al entrar esos casos de uso en E2. Se conserva el resumen original:
 
@@ -125,6 +134,6 @@ Las especificaciones de UC-07 a UC-10 se completaron en la auditoría previa a l
 | UC-07 | `job_queue`, `job_storage` | `job_queue/retry_job.py`, `job_queue/run_queue.py` |
 | UC-08, UC-09 | `job_queue`, `job_storage` | `job_queue/list_jobs.py` (`ListJobs`, `ShowJob`) |
 | UC-10 | `job_queue`, `job_storage`, `media_extraction` (parciales y reclamaciones) | `job_queue/purge_finished_jobs.py` |
-| UC-11, UC-12 (propuestos) | `job_queue`, `workers`, `media_extraction`, `job_storage` | `job_queue/run_queue.py` (planificación y esperas); clasificación en `media_extraction` ([ADR-0031](../notes/adr-0031-site-waits-and-network-waits.md)) |
+| UC-11 a UC-14 (propuestos) | `job_queue`, `workers`, `media_extraction`, `job_storage` | `job_queue/run_queue.py` (planificación y esperas); clasificación en `media_extraction` ([ADR-0031](../notes/adr-0031-site-waits-and-network-waits.md)) |
 
 La trazabilidad por requisito (requisito, criterio, componentes, tareas, código, pruebas, evidencia, divergencias y pendientes en Windows) está en el [plan de E2, §8](../project-management/iteration-plan-e2.md#8-matriz-de-casos-de-uso-implementación-y-validación).

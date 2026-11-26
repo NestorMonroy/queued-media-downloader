@@ -1,7 +1,9 @@
 # UC-06: Recuperar la cola y reanudar descargas
 
+- **Objetivo:** la cola continúa tras un cierre inesperado sin perder jobs ni lo ya descargado.
 - **Actor principal:** User
 - **Actor secundario:** Media site
+- **Disparador:** el User ejecuta `run` después de un cierre inesperado o de un `Ctrl+C`.
 - **Significativo para la arquitectura:** sí
 - **Decisiones relacionadas:** [ADR-0010](../../notes/adr-0010-sqlite-persistent-queue.md)
 - **Diseño:** [Parte 2, §1.5](../../design/02-flows-persistence-and-operations.md#15-recuperación-y-reanudación)

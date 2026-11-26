@@ -45,7 +45,8 @@
 | Cancelar descargas en cualquier momento | [UC-05](use-cases/uc-05-cancel-job.md) |
 | Recuperar la cola y reanudar descargas tras un cierre | [UC-06](use-cases/uc-06-recover-and-resume-queue.md) |
 | Reintentar, listar, ver y purgar jobs | [Modelo de casos de uso](use-case-model.md) |
-| Seguir sola tras un bloqueo del sitio o un corte de red, sin perder jobs (propuesto) | [UC-11](use-cases/uc-11-wait-out-a-site-block.md), [UC-12](use-cases/uc-12-wait-for-the-network.md) |
+| Seguir sola tras un bloqueo del sitio, un corte de red o un disco lleno, sin perder jobs (propuesto) | [UC-11](use-cases/uc-11-wait-out-a-site-block.md), [UC-12](use-cases/uc-12-wait-for-the-network.md), [UC-13](use-cases/uc-13-wait-for-disk-space.md) |
+| Pausar y continuar la cola desde cualquier terminal (propuesto) | [UC-14](use-cases/uc-14-pause-and-continue-the-queue.md) |
 
 ## 5. Restricciones
 
@@ -61,7 +62,7 @@
 - Otras plataformas, incluido Windows ARM64.
 - Publicación en PyPI.
 - Recodificar video (la build LGPL no incluye codificadores H.264/H.265).
-- PO Tokens, cookies y cuentas de los sitios (decisión del Responsable sobre PO Tokens, 2026-11-26; cookies y cuentas, propuesta D-1 del [análisis](site-blocks-and-network-outages-analysis.md)).
+- PO Tokens, cookies y cuentas de los sitios (decisión del Responsable sobre PO Tokens, 2026-11-26; cookies y cuentas, propuesta D-1 del [análisis](unattended-operation-analysis.md)).
 
 ## 7. Criterios de éxito
 

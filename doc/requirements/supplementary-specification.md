@@ -23,7 +23,7 @@ Requisitos que no pertenecen a un caso de uso concreto, organizados según FURPS
 | SUP-U01 | Todo mensaje de error indica la acción concreta para corregirlo (por ejemplo, `git lfs pull`, o la clave de configuración no válida) |
 | SUP-U02 | El progreso se muestra como máximo cada `progress_interval_seconds` |
 | SUP-U03 | La instalación completa se describe en el README en no más de cuatro comandos |
-| SUP-U04 | **Propuesto** (UC-11, UC-12): toda espera de `run` se anuncia con su motivo y la hora local estimada de continuación, y el aviso se repite mientras dura |
+| SUP-U04 | **Propuesto** (UC-11 a UC-14): toda espera de `run` se anuncia con su motivo y la hora local estimada de continuación, y el aviso se repite mientras dura ([BR-11](business-rules.md)) |
 
 ## Fiabilidad
 
@@ -35,6 +35,7 @@ Requisitos que no pertenecen a un caso de uso concreto, organizados según FURPS
 | SUP-R04 | Un worker que muere de forma inesperada se detecta y se reemplaza; su job queda `FAILED` con `WORKER_CRASHED` | [Parte 2, §3.2](../design/02-flows-persistence-and-operations.md#32-ciclo-de-vida-del-worker) |
 | SUP-R05 | Un mismo contenido no se descarga dos veces mientras haya un job activo para su media key | [ADR-0012](../notes/adr-0012-no-download-archive-no-database-triggers.md) |
 | SUP-R06 | **Propuesto:** un corte de red no marca ningún job `FAILED` ni gasta intentos; `run` espera y continúa solo | [UC-12](use-cases/uc-12-wait-for-the-network.md), [ADR-0031](../notes/adr-0031-site-waits-and-network-waits.md) |
+| SUP-R08 | **Propuesto** (prioridad media): mientras hay jobs en curso, `run` impide que Windows suspenda el equipo, sin impedir que se apague la pantalla; al terminar o detenerse, deja de impedirlo | [Análisis](unattended-operation-analysis.md), §4.2 |
 | SUP-R07 | **Propuesto:** un bloqueo del sitio no marca ningún job `FAILED` ni gasta intentos, y `run` deja de pedir a ese sitio mientras dura la espera; sin PO Tokens, cookies ni cuentas | [UC-11](use-cases/uc-11-wait-out-a-site-block.md), [ADR-0031](../notes/adr-0031-site-waits-and-network-waits.md) |
 
 ## Rendimiento y recursos
@@ -44,7 +45,8 @@ Requisitos que no pertenecen a un caso de uso concreto, organizados según FURPS
 | SUP-P01 | Concurrencia por defecto: 1 worker; configurable | [ADR-0008](../notes/adr-0008-process-based-worker-pool.md) |
 | SUP-P02 | La memoria de un worker no crece con el número de entradas de una playlist | [ADR-0009](../notes/adr-0009-playlist-expansion-into-jobs.md) |
 | SUP-P03 | El progreso de las descargas no se escribe en la base de datos | [Parte 1, §5](../design/01-architecture.md#5-job-events) |
-| SUP-P05 | **Propuesto:** ritmo de peticiones por defecto para YouTube igual al preajuste `-t sleep` de yt-dlp (de 10 a 20 s entre jobs del sitio, 0,75 s entre peticiones de una extracción); configurable hasta 0 (decisión D-3) | [UC-11](use-cases/uc-11-wait-out-a-site-block.md), [análisis](site-blocks-and-network-outages-analysis.md) |
+| SUP-P05 | **Propuesto:** ritmo de peticiones por defecto para YouTube igual al preajuste `-t sleep` de yt-dlp (de 10 a 20 s entre jobs del sitio, 0,75 s entre peticiones de una extracción); configurable hasta 0 (decisión D-3) | [UC-11](use-cases/uc-11-wait-out-a-site-block.md), [análisis](unattended-operation-analysis.md) |
+| SUP-P06 | **Propuesto** (prioridad baja): límite opcional de ancho de banda por descarga (`rate_limit`, sin límite por defecto), con el parámetro `ratelimit` de yt-dlp | [Análisis](unattended-operation-analysis.md), §4.1 |
 | SUP-P04 | **Presupuesto de memoria** (proceso principal + 1 worker, sin contar ffmpeg ni deno): **pendiente**: se fija con la medición en Windows de la campaña T42 (paso 13; trasladada desde E1). Referencia de la medición en Linux: ~38 MB por proceso con yt-dlp cargado | Medición del análisis (`scripts/measure_footprint.py`, espacio de trabajo `yt-dlp-gui-clone`) |
 
 ## Mantenibilidad

@@ -1,6 +1,8 @@
 # UC-02: Encolar contenido
 
+- **Objetivo:** los contenidos que interesan al User quedan en la cola, con sus opciones, para descargarse después.
 - **Actor principal:** User
+- **Disparador:** el User encuentra contenidos que quiere descargar.
 - **Significativo para la arquitectura:** sí
 - **Decisiones relacionadas:** [ADR-0009](../../notes/adr-0009-playlist-expansion-into-jobs.md), [ADR-0010](../../notes/adr-0010-sqlite-persistent-queue.md)
 - **Diseño:** [Parte 2, §1.1](../../design/02-flows-persistence-and-operations.md#11-encolar)
@@ -27,6 +29,7 @@ El User añade una o varias URLs a la cola, con sus download options. El sistema
 - **A2. `run` en ejecución en otra terminal** (paso 4): la creación funciona igual (SQLite en modo WAL); el proceso de `run` toma el job en su siguiente ciclo.
 - **A3. Base de datos bloqueada más allá de `busy_timeout`** (paso 4): el sistema informa del bloqueo y termina con código `1` sin crear jobs (los jobs de una invocación se crean en una sola transacción).
 - **A4. La base de datos no se puede abrir o una migración falla** (paso 4): como UC-01 A8; ningún job se crea.
+- **A5. URLs de un archivo** (paso 1; propuesto, prioridad baja, [análisis](../unattended-operation-analysis.md) §4.1): `enqueue --from-file FILE` lee una URL por línea, sin líneas vacías ni comentarios `#`. Si alguna línea no es una URL válida, es A1: el sistema indica la línea y no encola ninguna.
 
 ## Postcondiciones
 

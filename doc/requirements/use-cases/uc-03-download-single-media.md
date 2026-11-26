@@ -1,7 +1,9 @@
 # UC-03: Descargar un contenido
 
+- **Objetivo:** los contenidos de la cola quedan descargados en la carpeta de destino sin que el User vigile cada descarga.
 - **Actor principal:** User
 - **Actor secundario:** Media site
+- **Disparador:** el User ejecuta `run`.
 - **Significativo para la arquitectura:** sí (recorre todos los componentes)
 - **Decisiones relacionadas:** [ADR-0008](../../notes/adr-0008-process-based-worker-pool.md), [ADR-0010](../../notes/adr-0010-sqlite-persistent-queue.md), [ADR-0013](../../notes/adr-0013-process-tree-terminator-abstraction.md)
 - **Diseño:** [Parte 2, §1.2 y §1.3](../../design/02-flows-persistence-and-operations.md#13-descarga)
@@ -41,8 +43,10 @@ El User ejecuta la cola. El sistema toma un job pendiente, descubre que la URL e
 - **A7. El nombre final es de otro job, o ya existe un archivo que el job no escribió** (paso 7): plantilla sin `%(id)s`, título recortado, archivo del User o de un job purgado. El worker falla el job con `FILESYSTEM` antes de descargar, sin tocar ese archivo, y el mensaje indica moverlo o usar `%(id)s` ([ADR-0030](../../notes/adr-0030-final-file-ownership-claims.md)).
 - **A8. La descarga no deja un archivo final utilizable** (paso 11): sin ruta, dentro de la carpeta de parciales, inexistente o vacío. El job pasa a `FAILED` con `FILESYSTEM` y la carpeta de parciales se conserva. Un `JobCompleted` de una descarga sin ruta nunca deja el job `COMPLETED` (contrato de `JobCompleted`).
 - **A9. `Ctrl+C`** (pasos 4 a 11): interrupción, no cancelación; ver UC-05 A6.
-- **A11. El Media site bloquea las peticiones** (pasos 4 a 10; propuesto): comprobación antibots, captcha o límite de peticiones. Hoy el job falla con `UNAVAILABLE` (A2). Con [UC-11](uc-11-wait-out-a-site-block.md), el job vuelve a `PENDING` sin gastar un intento y `run` espera a ese sitio; el paso 4 también respeta el ritmo de peticiones del sitio.
-- **A12. El equipo pierde la conexión** (pasos 4 a 10; propuesto): hoy el job falla con `NETWORK` (A2) y los siguientes también. Con [UC-12](uc-12-wait-for-the-network.md), el job vuelve a `PENDING` sin gastar un intento y `run` espera a que vuelva la red; un fallo de red aislado se reintenta solo antes de fallar.
+- **A11. El Media site bloquea las peticiones** (pasos 4 a 10; propuesto): extendido por [UC-11](uc-11-wait-out-a-site-block.md). Hoy el job falla con `UNAVAILABLE` (A2).
+- **A12. El equipo pierde la conexión** (pasos 4 a 10; propuesto): extendido por [UC-12](uc-12-wait-for-the-network.md). Hoy el job y los siguientes fallan con `NETWORK` (A2).
+- **A13. Se llena el disco** (pasos 6 a 11; propuesto): extendido por [UC-13](uc-13-wait-for-disk-space.md). Hoy el job y los siguientes fallan con `FILESYSTEM` (A2).
+- **A14. El User pausa la cola** (paso 4; propuesto): ver [UC-14](uc-14-pause-and-continue-the-queue.md).
 - **A10. Otro programa retiene la base de datos más allá de `busy_timeout`** (pasos 3 a 12): `run` avisa una vez por espera (`The queue is busy; waiting until another program releases it`) y repite la operación hasta que la cola queda libre; los workers siguen con sus jobs. Los comandos cortos, en cambio, terminan sin cambiar nada (UC-02 A3). Un segundo `Ctrl+C` detiene `run` también mientras espera. Observado en la validación en Windows (T42-D12): `run` terminaba con código `1` y dejaba el job `RUNNING`.
 
 ## Postcondiciones

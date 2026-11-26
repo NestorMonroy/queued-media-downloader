@@ -1,6 +1,8 @@
 # UC-10: Purgar jobs terminados
 
+- **Objetivo:** la cola queda sin los jobs terminados que ya no interesan, sin tocar ningún archivo descargado.
 - **Actor principal:** User
+- **Disparador:** la lista de jobs crece con jobs terminados.
 - **Significativo para la arquitectura:** no
 - **Decisiones relacionadas:** [ADR-0010](../../notes/adr-0010-sqlite-persistent-queue.md) (ids que no se reutilizan), [ADR-0030](../../notes/adr-0030-final-file-ownership-claims.md)
 - **Diseño:** [Parte 2, §4.1](../../design/02-flows-persistence-and-operations.md#41-comandos)

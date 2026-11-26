@@ -34,7 +34,7 @@ Cada decisión se registra en un archivo con: contexto, opciones consideradas, d
 | [0028](adr-0028-playlist-child-output-template.md) | Plantilla de salida de los hijos de una playlist | Aceptada |
 | [0029](adr-0029-process-tree-termination-on-windows.md) | Implementación de `ProcessTreeTerminator` (D1) | Aceptada; validación en Windows pendiente |
 | [0030](adr-0030-final-file-ownership-claims.md) | Propiedad de los archivos finales mediante reclamaciones | Aceptada; validación en Windows pendiente |
-| [0031](adr-0031-site-waits-and-network-waits.md) | Esperas por sitio y por red, sin PO Tokens ni cuentas | Propuesta |
+| [0031](adr-0031-site-waits-and-network-waits.md) | Aplazar jobs y esperar al sitio, a la red y al disco, sin PO Tokens ni cuentas | Propuesta |
 
 ## Convenciones de este registro
 

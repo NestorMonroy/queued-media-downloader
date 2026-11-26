@@ -146,7 +146,7 @@ Consola del Evaluador; sin archivo de evidencia todavía. `Start-ValidationRun` 
 ### Observaciones
 
 - **O-2 Columnas sin uso.** `started_at` y `finished_at` de la tabla `jobs` (migraciones 0001 y 0003; diseño, Parte 2, modelo de datos) nunca se escriben: siguen vacías en todos los jobs de la evidencia. Ningún caso de uso las lee. Se decide fuera de la campaña si se rellenan o se quitan con una migración.
-- **O-1 Clasificación del bloqueo antibots.** `UNAVAILABLE` agrupa contenidos retirados y el bloqueo temporal de YouTube; el mensaje del sitio los distingue, y `retry` sirve para los dos. Analizado en [bloqueos del sitio y cortes de red](../requirements/site-blocks-and-network-outages-analysis.md): UC-11 y UC-12 propuestos, con ADR-0031 y las decisiones D-1 a D-4 pendientes. La campaña queda en pausa por decisión del Responsable (2026-11-26).
+- **O-1 Clasificación del bloqueo antibots.** `UNAVAILABLE` agrupa contenidos retirados y el bloqueo temporal de YouTube; el mensaje del sitio los distingue, y `retry` sirve para los dos. Analizado en el [análisis del funcionamiento sin vigilancia](../requirements/unattended-operation-analysis.md): UC-11 a UC-14 y los casos de uso de la validación (VUC-04 a VUC-08) propuestos, con ADR-0031 y las decisiones D-1 a D-6 pendientes. La campaña queda en pausa por decisión del Responsable (2026-11-26).
 
 ### Pendiente en Windows tras esta ejecución
 

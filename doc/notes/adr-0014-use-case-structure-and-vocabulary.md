@@ -4,6 +4,7 @@
 - **Fecha:** 2026-11-22
 - **Nota:** la estructura de paquetes queda reemplazada por [ADR-0016](adr-0016-component-packages-and-flat-layout.md); el vocabulario sigue vigente.
 - **Nota:** el prefijo de variables de entorno pasa a ser `QUEUED_MEDIA_DOWNLOADER_` en [ADR-0015](adr-0015-project-and-package-name.md).
+- **Nota (2026-11-26):** las especificaciones de casos de uso siguen los elementos de BABOK v3, 10.47 (objetivo, disparador y garantías de éxito y mínima, además de los que ya tenían), y las reglas de negocio se separan de los flujos en un [catálogo](../requirements/business-rules.md) (BABOK 10.9). Ver el [análisis del funcionamiento sin vigilancia](../requirements/unattended-operation-analysis.md).
 - **Ajusta:** los términos usados en ADR-0006, ADR-0008, ADR-0009 y ADR-0010 (ver la tabla de equivalencias)
 
 ## Contexto

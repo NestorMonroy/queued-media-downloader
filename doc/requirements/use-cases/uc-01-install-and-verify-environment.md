@@ -1,6 +1,8 @@
 # UC-01: Instalar y verificar el entorno
 
+- **Objetivo:** el entorno queda instalado y verificado, listo para descargar, siguiendo solo el README.
 - **Actor principal:** User
+- **Disparador:** el User quiere usar el programa por primera vez, o tras actualizar el clon.
 - **Significativo para la arquitectura:** sí
 - **Decisiones relacionadas:** [ADR-0003](../../notes/adr-0003-packaging-with-uv-and-pyproject.md), [ADR-0005](../../notes/adr-0005-vendored-ffmpeg-lgpl-shared.md), [ADR-0006](../../notes/adr-0006-ffmpeg-resolution-and-verification.md), [ADR-0018](../../notes/adr-0018-ffmpeg-build-selection.md), [ADR-0020](../../notes/adr-0020-repository-branching-and-lfs.md)
 

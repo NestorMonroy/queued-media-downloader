@@ -1,6 +1,8 @@
 # UC-07: Reintentar un job
 
+- **Objetivo:** los jobs fallidos o cancelados vuelven a la cola y continúan desde lo ya descargado.
 - **Actor principal:** User
+- **Disparador:** el User ve jobs `FAILED` o `CANCELLED` que quiere volver a intentar.
 - **Significativo para la arquitectura:** no (reutiliza las job requests de UC-05 y la reanudación de UC-06)
 - **Decisiones relacionadas:** [ADR-0010](../../notes/adr-0010-sqlite-persistent-queue.md), [ADR-0030](../../notes/adr-0030-final-file-ownership-claims.md)
 - **Diseño:** [Parte 2, §2.4 y §4.1](../../design/02-flows-persistence-and-operations.md#41-comandos)

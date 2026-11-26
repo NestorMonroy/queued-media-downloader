@@ -1,6 +1,8 @@
 # UC-05: Cancelar un job
 
+- **Objetivo:** un job deja de ejecutarse sin dejar procesos vivos ni perder sus archivos parciales.
 - **Actor principal:** User
+- **Disparador:** el User decide que ya no quiere un contenido, o que una descarga debe parar.
 - **Significativo para la arquitectura:** sí
 - **Decisiones relacionadas:** [ADR-0008](../../notes/adr-0008-process-based-worker-pool.md), [ADR-0013](../../notes/adr-0013-process-tree-terminator-abstraction.md)
 - **Diseño:** [Parte 2, §1.4](../../design/02-flows-persistence-and-operations.md#14-cancelación)

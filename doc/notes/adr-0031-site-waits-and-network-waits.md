@@ -1,9 +1,10 @@
-# ADR-0031: Esperas por sitio y por red, sin PO Tokens ni cuentas
+# ADR-0031: Aplazar jobs y esperar al sitio, a la red y al disco, sin PO Tokens ni cuentas
 
 - **Estado:** Propuesta (pendiente de las decisiones D-1 a D-4 del Responsable)
 - **Fecha:** 2026-11-26
-- **Origen:** campaña T42 (corte de red del paso 5.2, bloqueo antibots de YouTube desde el paso 5.7); [análisis](../requirements/site-blocks-and-network-outages-analysis.md)
-- **Casos de uso:** [UC-11](../requirements/use-cases/uc-11-wait-out-a-site-block.md), [UC-12](../requirements/use-cases/uc-12-wait-for-the-network.md)
+- **Origen:** campaña T42 (corte de red del paso 5.2, bloqueo antibots de YouTube desde el paso 5.7); [análisis](../requirements/unattended-operation-analysis.md)
+- **Casos de uso:** [UC-11](../requirements/use-cases/uc-11-wait-out-a-site-block.md), [UC-12](../requirements/use-cases/uc-12-wait-for-the-network.md), [UC-13](../requirements/use-cases/uc-13-wait-for-disk-space.md), [UC-14](../requirements/use-cases/uc-14-pause-and-continue-the-queue.md)
+- **Reglas:** BR-01 a BR-12 del [catálogo](../requirements/business-rules.md)
 
 ## Contexto
 
@@ -18,8 +19,9 @@ yt-dlp 2026.11.23 no tiene una excepción propia para el bloqueo: lo lanza como 
 3. **Sitio de un job (`site_key`):** se fija al encolar, sin red. `media_extraction` busca el extractor de yt-dlp que acepta la URL (sus métodos `suitable`, los mismos que usa yt-dlp para elegir) y, si no hay ninguno, usa el host de la URL. Se guarda en la tabla `jobs`.
 4. **Esperas por sitio persistentes:** tabla nueva `site_waits(site_key, defer_reason, waiting_until, consecutive_waits)`, migración 0005, que solo escribe el proceso de `run`. **Esperas de red en memoria:** no se guardan, porque la conexión se comprueba al arrancar.
 5. **La planificación es del proceso de `run`.** Al elegir el siguiente job (`get_next_pending`), `RunQueue` salta los sitios con espera vigente y aplica el ritmo por sitio: pausa aleatoria entre el mínimo y el máximo configurados desde el último envío a ese sitio. El worker no duerme: un `sleep` dentro de yt-dlp (`sleep_interval`) no ve la bandera de cancelación, y una pausa mayor que `cancellation_grace_seconds` terminaría en una terminación forzada (UC-05 A2). Solo la pausa corta entre peticiones de una extracción se delega en yt-dlp (`sleep_interval_requests`).
-6. **Comprobación de la conexión** desde el proceso principal, detrás de un puerto `ConnectivityProbe` (resolver el nombre y abrir una conexión TCP al 443 del último host que falló), para probarla con un doble.
-7. **Sin PO Tokens, cookies ni cuentas** (D-1).
+6. **Comprobaciones del entorno** desde el proceso principal, detrás de puertos para probarlas con dobles: `ConnectivityProbe` (BR-06) y `FreeSpaceProbe` (espacio libre de las unidades de descargas y de estado, BR-08 y BR-09). El disco lleno se reconoce por `errno` `ENOSPC` o por `winerror` 112 (`ERROR_DISK_FULL`) o 39 (`ERROR_HANDLE_DISK_FULL`) en la excepción, o por el mensaje de ffmpeg; una prueba de Windows confirma qué valores llegan en cada caso.
+7. **Pausa** (UC-14): una job request de cola (`PAUSE`, `RESUME`) en la bandeja existente, aplicada por `run` como las de UC-05; el estado de pausa se guarda en la base de datos.
+8. **Sin PO Tokens, cookies ni cuentas** (BR-12, D-1).
 
 ## Alternativas descartadas
 
