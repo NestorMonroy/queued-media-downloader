@@ -464,6 +464,7 @@ La relación entre decisiones está en el §13.10.
   - contradicciones: 1, resuelta (§13.16);
   - cuestiones excepcionales: 2, con disposición del Responsable (instrucción 2.3.0): R-29 en D-18 (necesidad funcional conservada; distribución universal de codificadores no aprobada; sigue abierto en lo técnico y lo jurídico) y D-21 (política funcional aprobada; plazos pendientes de medición).
 - **Reconciliación multiplataforma** (Windows, Android, iOS): [diseño, Parte 3, §14](../design/03-target-architecture-and-evolution.md#14-reconciliación-de-d-1-a-d-21).
+- **Consecuencias de la arquitectura de ejecución** ([ADR-0034](../notes/adr-0034-single-coordinator-and-isolated-execution.md)): [diseño, Parte 3, §16.18](../design/03-target-architecture-and-evolution.md#1618-consecuencias-técnicas-en-d-1-a-d-21). Ninguna resolución funcional cambia.
 
 ### 9.2 Detalle por decisión
 
@@ -1346,7 +1347,7 @@ Ningún valor se fija sin medición.
 - la matriz de evolución, la realización de los 26 casos de uso y la aplicabilidad por plataforma;
 - [ADR-0032](../notes/adr-0032-reusable-engine-and-platform-capabilities.md) y [ADR-0033](../notes/adr-0033-output-identity-and-storage-references.md).
 
-La cobertura de T52 a T67 se reconcilia en la [propuesta de E3](../project-management/iteration-plan-e3-proposal.md#4-reconciliación-de-t52-a-t67).
+La cobertura de T52 a T67 se reconcilia en el [plan de E3](../project-management/iteration-plan-e3.md#7-reconciliación-de-t52-a-t67).
 
 | Componente (ADR-0017) | Contrato actual | Necesidad | Clasificación |
 |---|---|---|---|

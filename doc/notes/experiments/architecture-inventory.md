@@ -23,7 +23,7 @@
 
 **Resultado observado:**
 - 85 módulos y 6.896 líneas;
-- 395 funciones de prueba (pytest ejecuta 586 por la parametrización);
+- 397 funciones de prueba (pytest ejecuta 593 por la parametrización; regenerado en la instrucción 2.4.0 sin cambios en el código del producto);
 - 10 marcas `windows`;
 - mecanismos variables:
   - `argparse` solo en `command_line` (8 módulos);

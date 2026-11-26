@@ -24,6 +24,17 @@ Comprobaciones (todas con stop-on-error en el código de salida):
    aceptado, y solo esas, con estados de su vocabulario (DESIGN_STATES y
    PLATFORM_STATES). «Disponible» en Windows CLI exige que el caso de uso tenga
    pruebas automáticas (campo Verificación).
+5. Plan de E3 (doc/project-management/iteration-plan-e3.md): la tabla entre
+   <!-- e3-coverage:start --> y <!-- e3-coverage:end --> asigna una sola unidad
+   a cada flujo no implementado de cada caso de uso aceptado, y «Básico» a los
+   casos cuyo campo Estado dice «Implementación: ausente» o «parcial»; no
+   asigna flujos implementados ni inexistentes. La tabla entre
+   <!-- e3-dependencies:start --> y <!-- e3-dependencies:end --> define las
+   unidades y sus dependencias, sin ciclos ni unidades desconocidas, y cada
+   unidad cubre algún flujo. Cada regla de «Reglas aprobadas sin implementar» y
+   cada requisito suplementario pendiente (sin implementar, parcial, pendiente
+   de medición, divergente o condicionado) aparece en el plan. Es consistencia
+   documental, no evidencia de implementación.
 
 Estado de un flujo (alternativo o de excepción): la marca explícita
 `[estado: IMPLEMENTACIÓN]` o `[estado: IMPLEMENTACIÓN; condicionado]` justo después
@@ -75,6 +86,14 @@ PLATFORM_STATES = (
     "No aplicable",
 )
 PLATFORMS = ("Windows CLI", "Windows GUI", "Android", "iOS")
+PLAN = Path("doc/project-management/iteration-plan-e3.md")
+COVERAGE_TABLE = "e3-coverage"
+DEPENDENCY_TABLE = "e3-dependencies"
+BASIC_FLOW = "Básico"
+PENDING_SUPPLEMENTARY = re.compile(
+    r"sin implementar|parcial|pendiente de medición|divergente|condicionado",
+    re.IGNORECASE,
+)
 
 FLOW_STATES = (
     "implementado",
@@ -110,6 +129,8 @@ class UseCaseCounts:
     conditioned: int = 0
     verification: str = "sin evidencia"
     problems: list[str] = field(default_factory=list)
+    pending_flows: list[str] = field(default_factory=list)
+    basic_pending: bool = False
     rules: int = 0
     supplementary: int = 0
     criteria: int = 0
@@ -258,6 +279,13 @@ def use_case_counts(path: Path) -> UseCaseCounts:
             continue
         counts.states[state[0]] += 1
         counts.conditioned += state[1]
+        if state[0] != "implementado":
+            counts.pending_flows.append(flow)
+    status_line = re.search(r"^- \*\*Estado:\*\* ([^\n]+)", text, re.MULTILINE)
+    counts.basic_pending = bool(
+        status_line
+        and re.search(r"Implementación: (ausente|parcial)", status_line.group(1))
+    )
     counts.rules = len(set(REFERENCES["BR"].findall(text)))
     counts.supplementary = len(set(REFERENCES["SUP"].findall(text)))
     counts.criteria = len(
@@ -420,6 +448,148 @@ def design_problems(root: Path) -> list[str]:
     return problems
 
 
+def marked_rows(text: str, name: str) -> list[list[str]] | None:
+    """Celdas de las filas de datos de una tabla entre marcadores."""
+    start, end = f"<!-- {name}:start -->", f"<!-- {name}:end -->"
+    if start not in text or end not in text:
+        return None
+    table = text.split(start, 1)[1].split(end, 1)[0]
+    rows = [
+        [cell.strip() for cell in line.strip().strip("|").split("|")]
+        for line in table.splitlines()
+        if line.startswith("|")
+    ]
+    return [row for row in rows[2:] if row]
+
+
+def has_cycle(edges: dict[str, set[str]]) -> bool:
+    """Indica si el grafo de dependencias tiene un ciclo."""
+    visiting: set[str] = set()
+    done: set[str] = set()
+
+    def visit(node: str) -> bool:
+        if node in done:
+            return False
+        if node in visiting:
+            return True
+        visiting.add(node)
+        cyclic = any(visit(target) for target in edges.get(node, set()))
+        visiting.discard(node)
+        done.add(node)
+        return cyclic
+
+    return any(visit(node) for node in edges)
+
+
+def pending_identifiers(root: Path) -> tuple[set[str], set[str]]:
+    """Reglas aprobadas sin implementar y suplementarios pendientes."""
+    rules_text = section(
+        (root / BUSINESS_RULES).read_text("utf-8"),
+        "2. Reglas aprobadas sin implementar",
+    )
+    rules = set(re.findall(r"^\| (BR-\d{2}) \|", rules_text, re.MULTILINE))
+    supplementary = {
+        match.group(1)
+        for match in re.finditer(
+            r"^\| (SUP-[A-Z]+\d{2}) \| ([^|]*)\|",
+            (root / SUPPLEMENTARY).read_text("utf-8"),
+            re.MULTILINE,
+        )
+        if PENDING_SUPPLEMENTARY.search(match.group(2))
+    }
+    return rules, supplementary
+
+
+def dependency_problems(
+    dependencies: list[list[str]],
+) -> tuple[dict[str, set[str]], list[str]]:
+    """Unidades del plan, dependencias hacia unidades desconocidas y ciclos."""
+    edges: dict[str, set[str]] = {}
+    for row in dependencies:
+        edges.setdefault(row[0], set())
+        if row[1] != "—":
+            edges[row[0]].update(unit.strip() for unit in row[1].split(","))
+    problems = [
+        f"{PLAN}: {unit} depends on unknown unit {target}"
+        for unit, targets in sorted(edges.items())
+        for target in sorted(targets)
+        if target not in edges
+    ]
+    if has_cycle(edges):
+        problems.append(f"{PLAN}: the unit dependencies have a cycle")
+    return edges, problems
+
+
+def flow_coverage_problems(
+    root: Path, coverage: list[list[str]], units: set[str]
+) -> list[str]:
+    """Cada flujo pendiente con una sola unidad conocida; cada unidad con flujos."""
+    problems: list[str] = []
+    assigned: dict[str, Counter[str]] = {}
+    for identifier, flows, unit, *_ in coverage:
+        if unit not in units:
+            problems.append(f"{PLAN}: {identifier} uses unknown unit {unit}")
+        assigned.setdefault(identifier, Counter()).update(
+            flow.strip() for flow in flows.split(",")
+        )
+    for use_case in use_case_rows(root):
+        if use_case.definition == "aceptado":
+            problems += use_case_coverage_problems(
+                use_case, assigned.get(use_case.identifier, Counter())
+            )
+    covered_units = {row[2] for row in coverage}
+    problems += [
+        f"{PLAN}: {unit} covers no flow" for unit in sorted(units - covered_units)
+    ]
+    return problems
+
+
+def use_case_coverage_problems(
+    use_case: UseCaseCounts, found: Counter[str]
+) -> list[str]:
+    """Flujos pendientes sin unidad, repetidos o que no están pendientes."""
+    expected = set(use_case.pending_flows)
+    if use_case.basic_pending:
+        expected.add(BASIC_FLOW)
+    identifier = use_case.identifier
+    return [
+        *(
+            f"{PLAN}: {identifier} {flow} has no unit"
+            for flow in sorted(expected - set(found))
+        ),
+        *(
+            f"{PLAN}: {identifier} {flow} is assigned twice"
+            for flow, count in sorted(found.items())
+            if count > 1
+        ),
+        *(
+            f"{PLAN}: {identifier} {flow} is implemented or does not exist"
+            for flow in sorted(set(found) - expected)
+        ),
+    ]
+
+
+def plan_problems(root: Path) -> list[str]:
+    """Cobertura de los flujos, grafo de unidades y requisitos del plan de E3."""
+    plan_path = root / PLAN
+    if not plan_path.exists():
+        return [f"{PLAN}: missing"]
+    text = plan_path.read_text("utf-8")
+    dependencies = marked_rows(text, DEPENDENCY_TABLE)
+    coverage = marked_rows(text, COVERAGE_TABLE)
+    if dependencies is None or coverage is None:
+        return [f"{PLAN}: missing {DEPENDENCY_TABLE} or {COVERAGE_TABLE} markers"]
+    edges, problems = dependency_problems(dependencies)
+    problems += flow_coverage_problems(root, coverage, set(edges))
+    rules, supplementary = pending_identifiers(root)
+    mentioned = set(re.findall(r"\b(?:BR|SUP)-[A-Z]*\d{2}\b", text))
+    problems += [
+        f"{PLAN}: {identifier} has no strategy in the plan"
+        for identifier in sorted((rules | supplementary) - mentioned)
+    ]
+    return problems
+
+
 def main() -> int:
     """Ejecuta las verificaciones y devuelve 0 si el modelo es coherente."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -434,6 +604,7 @@ def main() -> int:
         *identifier_problems(root),
         *matrix_problems(root, write=arguments.write),
         *design_problems(root),
+        *plan_problems(root),
     ]
     for problem in problems:
         print(problem)

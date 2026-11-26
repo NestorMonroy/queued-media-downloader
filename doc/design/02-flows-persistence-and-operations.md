@@ -568,3 +568,4 @@ Los comandos usan los mismos verbos que los casos de uso, para que haya una sola
 | Medición de ffmpeg y deno en un equipo modesto | Validar en el prototipo |
 | Configuración concreta de Ruff y mypy | Iteración E1 ([ADR-0019](../notes/adr-0019-code-quality-tools.md)) |
 | Arquitectura objetivo, contratos públicos y evolución multiplataforma | Analysis and Design en la [Parte 3](03-target-architecture-and-evolution.md) |
+| Reevaluación del contrato del worker (ADR-0008) | Cerrada en la [Parte 3, §16](03-target-architecture-and-evolution.md#16-arquitectura-de-ejecución-cualificación-de-adr-0008) y [ADR-0034](../notes/adr-0034-single-coordinator-and-isolated-execution.md): se conserva el pool como mecanismo de escritorio |

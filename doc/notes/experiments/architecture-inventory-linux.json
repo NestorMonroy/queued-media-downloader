@@ -435,7 +435,7 @@
   },
   "tests": {
     "test_functions_by_directory": {
-      ".": 19,
+      ".": 21,
       "command_line": 68,
       "configuration": 11,
       "dependency_rules": 2,
@@ -448,7 +448,7 @@
       "vendor": 9,
       "workers": 29
     },
-    "test_functions": 395,
+    "test_functions": 397,
     "windows_marks": 10
   }
 }

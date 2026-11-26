@@ -1,0 +1,158 @@
+{
+  "platform": "Linux-6.18.44-fc-v880-x86_64-with-glibc2.39",
+  "python": "3.13.18",
+  "yt_dlp": "2026.11.23",
+  "cpu_count": 2,
+  "startup": {
+    "process_ready_seconds": {
+      "min": 0.256,
+      "median": 0.28,
+      "max": 0.328
+    },
+    "import_and_create_inside_child_seconds": {
+      "min": 0.042,
+      "median": 0.049,
+      "max": 0.079
+    },
+    "warm_youtubedl_creation_seconds": {
+      "min": 0.029,
+      "median": 0.03,
+      "max": 0.073
+    }
+  },
+  "concurrency": {
+    "jobs": 4,
+    "media_bytes": 1048576,
+    "server_bytes_per_second_per_connection": 2097152,
+    "results": {
+      "sequential": {
+        "seconds": {
+          "min": 2.118,
+          "median": 2.154,
+          "max": 2.602
+        },
+        "peak_tree_rss_mib": {
+          "min": 85.5,
+          "median": 92.4,
+          "max": 105.5
+        },
+        "peak_processes": 3
+      },
+      "threads": {
+        "seconds": {
+          "min": 0.71,
+          "median": 0.714,
+          "max": 0.731
+        },
+        "peak_tree_rss_mib": {
+          "min": 85.5,
+          "median": 90.6,
+          "max": 94.7
+        },
+        "peak_processes": 2
+      },
+      "process_per_job": {
+        "seconds": {
+          "min": 2.143,
+          "median": 2.157,
+          "max": 2.177
+        },
+        "peak_tree_rss_mib": {
+          "min": 350.9,
+          "median": 377.0,
+          "max": 403.7
+        },
+        "peak_processes": 10
+      },
+      "process_pool": {
+        "seconds": {
+          "min": 0.614,
+          "median": 0.619,
+          "max": 0.645
+        },
+        "peak_tree_rss_mib": {
+          "min": 324.6,
+          "median": 330.0,
+          "max": 334.0
+        },
+        "peak_processes": 6
+      }
+    }
+  },
+  "blocked_cancellation": {
+    "socket_timeout_seconds": 3.0,
+    "thread_cooperative": {
+      "seconds_until_the_operation_stopped": 2.583,
+      "progress_hook_calls": 0,
+      "future_cancel_returned": false
+    },
+    "process_terminated": {
+      "seconds_until_the_operation_stopped": 0.002,
+      "exit_code": -15
+    }
+  },
+  "descendants": {
+    "thread_cancelled_external_child_survived": true,
+    "process_group_terminated_external_child_survived": false
+  },
+  "crash_isolation": {
+    "threads_same_process": {
+      "exit_code": -6,
+      "other_job_finished": false
+    },
+    "separate_processes": {
+      "crashed_exit_code": -6,
+      "other_job_exit_code": 0
+    }
+  },
+  "event_loop": {
+    "download_seconds_expected": 0.5,
+    "max_loop_lag_seconds_blocking_call": 0.523,
+    "max_loop_lag_seconds_to_thread": 0.006
+  },
+  "event_overhead": {
+    "messages": 20000,
+    "cross_process_microseconds_per_message": 6.65,
+    "in_process_microseconds_per_message": 1.433
+  },
+  "memory_growth": {
+    "jobs": 30,
+    "rss_mib_after_job": {
+      "1": 59.8,
+      "5": 60.1,
+      "10": 60.6,
+      "20": 60.7,
+      "30": 61.1
+    }
+  },
+  "consumer_without_cli": {
+    "imported_command_line": false,
+    "jobs": [
+      [
+        "DOWNLOAD",
+        "COMPLETED"
+      ]
+    ],
+    "output_present": true,
+    "failed_job_count": 0,
+    "observed_event_types": [
+      "DownloadProgressed",
+      "FormatSelected",
+      "JobCompleted",
+      "JobStarted",
+      "PostprocessingProgressed",
+      "SingleMediaFound"
+    ],
+    "recovered": "RecoveryResult(requeued_job_count=0, cancelled_job_count=0)",
+    "cancel_of_finished_job_already_finished": 1,
+    "internal_modules_needed": [
+      "job_storage.sqlite_connection",
+      "job_storage.sqlite_job_store",
+      "job_storage.sqlite_job_request_inbox",
+      "media_extraction.yt_dlp_media_source",
+      "workers.process_worker_pool",
+      "workers.posix_process_tree_terminator"
+    ],
+    "observation_type_received": "WorkerMessage"
+  }
+}

@@ -49,6 +49,26 @@ DESIGN = """# Diseño
 <!-- platform-applicability:end -->
 """
 
+PLAN = """# Plan
+
+<!-- e3-dependencies:start -->
+| Unidad | Depende de | Tipo | Motivo |
+|---|---|---|---|
+| U1 | — | — | Primera |
+| U2 | U1 | Implementación | Segunda |
+<!-- e3-dependencies:end -->
+
+<!-- e3-coverage:start -->
+| UC | Flujos | Unidad |
+|---|---|---|
+| UC-01 | Básico, A2 | U1 |
+| UC-01 | E1 | U2 |
+<!-- e3-coverage:end -->
+"""
+
+
+PLAN_PATH = "doc/project-management/iteration-plan-e3.md"
+
 
 def load_script() -> ModuleType:
     specification = importlib.util.spec_from_file_location("check_model", SCRIPT)
@@ -92,6 +112,7 @@ def repository(tmp_path: Path) -> Path:
         "# Riesgos\n\n| R-01 | Riesgo |\n",
     )
     write(tmp_path / "doc/design/03-target-architecture-and-evolution.md", DESIGN)
+    write(tmp_path / "doc/project-management/iteration-plan-e3.md", PLAN)
     subprocess.run(
         [sys.executable, str(SCRIPT), "--root", str(tmp_path), "--write"],
         check=True,
@@ -173,6 +194,7 @@ def test_an_outdated_matrix_fails_until_it_is_regenerated(repository: Path) -> N
         encoding="utf-8",
     )
 
+    write(repository / PLAN_PATH, PLAN.replace("| E1 | U2 |", "| E1, A3 | U2 |"))
     assert check(repository).returncode == 1
     subprocess.run(
         [sys.executable, str(SCRIPT), "--root", str(repository), "--write"],
@@ -304,3 +326,65 @@ def test_available_on_windows_requires_automated_tests(repository: Path) -> None
 
     assert result.returncode == 1
     assert "UC-01 is Disponible on Windows CLI without automated tests" in result.stdout
+
+
+@pytest.mark.parametrize(
+    ("change", "messages"),
+    [
+        (
+            ("| UC-01 | E1 | U2 |\n", ""),
+            ["UC-01 E1 has no unit", "U2 covers no flow"],
+        ),
+        (
+            ("| UC-01 | E1 | U2 |", "| UC-01 | E1, A2 | U2 |"),
+            ["UC-01 A2 is assigned twice"],
+        ),
+        (
+            ("| UC-01 | E1 | U2 |", "| UC-01 | E1, A1 | U2 |"),
+            ["UC-01 A1 is implemented or does not exist"],
+        ),
+        (
+            ("| UC-01 | E1 | U2 |", "| UC-01 | E1 | U9 |"),
+            ["UC-01 uses unknown unit U9", "U2 covers no flow"],
+        ),
+        (
+            ("| U1 | — | — | Primera |", "| U1 | U2 | Diseño | Primera |"),
+            ["the unit dependencies have a cycle"],
+        ),
+        (
+            ("| U2 | U1 |", "| U2 | U7 |"),
+            ["U2 depends on unknown unit U7"],
+        ),
+    ],
+)
+def test_the_e3_plan_covers_each_pending_flow_once_with_acyclic_units(
+    repository: Path, change: tuple[str, str], messages: list[str]
+) -> None:
+    write(repository / PLAN_PATH, PLAN.replace(*change))
+
+    result = check(repository)
+
+    assert result.returncode == 1
+    for message in messages:
+        assert message in result.stdout
+
+
+def test_a_pending_rule_or_requirement_needs_a_strategy_in_the_plan(
+    repository: Path,
+) -> None:
+    write(
+        repository / "doc/requirements/business-rules.md",
+        "# Reglas\n\n## 2. Reglas aprobadas sin implementar\n\n| BR-01 | C | Regla |\n",
+    )
+    write(
+        repository / "doc/requirements/supplementary-specification.md",
+        "# Suplementarios\n\n| SUP-F01 | **Aceptado, sin implementar:** salida |\n",
+    )
+
+    result = check(repository)
+
+    assert result.returncode == 1
+    assert "BR-01 has no strategy in the plan" in result.stdout
+    assert "SUP-F01 has no strategy in the plan" in result.stdout
+    write(repository / PLAN_PATH, PLAN + "\nBR-01 y SUP-F01 en U1.\n")
+    assert check(repository).returncode == 0

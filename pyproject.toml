@@ -241,3 +241,12 @@ forbidden_modules = [
     "subprocess",
     "yt_dlp",
 ]
+
+# La coordinación no depende del mecanismo de ejecución: job_queue usa el
+# contrato WorkerPool, nunca procesos, señales ni APIs nativas (diseño,
+# Parte 3, §9.1, regla AR-08; ADR-0034).
+[[tool.importlinter.contracts]]
+name = "job_queue does not import execution mechanisms"
+type = "forbidden"
+source_modules = ["queued_media_downloader.job_queue"]
+forbidden_modules = ["ctypes", "multiprocessing", "signal", "subprocess"]

@@ -132,7 +132,11 @@ Una playlist (`EXPANSION`) se purga solo si todas sus entradas son purgables con
 | **storage reference** (referencia de almacenamiento) | Cómo se llega a un output en un ambiente: una ruta en Windows; un URI o un bookmark en móvil. No es identidad | path (como identidad) |
 | **media source** (`MediaSource`) | Contrato que extrae y descarga un contenido; su implementación usa yt-dlp. El origen remoto es el *site* | downloader (para el contrato) |
 | **request** (petición) | Lo que el User pide obtener: URL, preferencias de resultado y clase de contexto de acceso. Distinto de *job request* (instrucción a una cola en ejecución) | order |
-| **access context class** (clase de contexto de acceso) | Identificador opaco del perfil de acceso, o anónimo, que forma parte de la identidad de la petición; nunca las credenciales | session (para esto) |
+| **access context class** (clase de contexto de acceso) | Id opaco del perfil de acceso más su revisión de contexto, o anónimo; forma parte de la identidad de la petición, nunca las credenciales ([Parte 3, §16.17](03-target-architecture-and-evolution.md#1617-contexto-de-acceso-autorizado-revisión-de-62)) | session (para esto) |
+| **context revision** (revisión de contexto) | Número que cambia cuando el User declara otra cuenta autorizada en un perfil de acceso; renovar credenciales no lo cambia | — |
+| **output key** (clave del output) | Tipo de output más sus discriminantes, con un conjunto cerrado por tipo (`subtitle`: `language`, `origin`, `format`) | output name |
+| **coordination** (coordinación) | Recibir job requests, admitir, despachar, aplicar eventos y persistir; su autoridad única es la sesión de `run` (`RunQueue`, `JobEventApplier`) | scheduler, dispatcher (a secas) |
+| **execution mechanism** (mecanismo de ejecución) | Lo que ejecuta jobs detrás del contrato `WorkerPool`: hoy, un pool de procesos (`ProcessWorkerPool`); en el futuro, un ejecutor en hilos en móvil | executor (en nombres), engine |
 | **execution policy** (política de ejecución) | Las reglas que aplica la *admission control*: ventanas, pausa, límites, aplazamientos | scheduler (para la política) |
 | **runtime** | Intérprete que ejecuta código: el de Python que ejecuta el producto, o el de JavaScript (deno) que usa yt-dlp para los retos de YouTube | engine (para el intérprete) |
 | **notification** (aviso) | Entrega de un suceso operativo por un canal del ambiente; nunca es autoridad del estado (D-14) | alert, toast (en nombres) |

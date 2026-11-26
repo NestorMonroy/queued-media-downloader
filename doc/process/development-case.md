@@ -61,7 +61,7 @@ El Responsable del proyecto decidió implementar en E2 los casos de uso restante
 | Análisis y diseño | Documento de arquitectura: vigente (Partes 1 y 2) y objetivo (Parte 3: contratos públicos, capacidades por ambiente, realización de los casos de uso, aplicabilidad por plataforma, matriz de evolución) | [design/](../design/01-architecture.md), [Parte 3](../design/03-target-architecture-and-evolution.md) | Al cambiar la estructura o un flujo; la Parte 3, al cambiar un contrato o la evaluación de una plataforma |
 | Análisis y diseño | Decisiones de arquitectura (ADR) | [notes/](../notes/README.md) | En cada decisión; las aceptadas no se editan |
 | Gestión del proyecto | Lista de riesgos | [project-management/risk-list.md](../project-management/risk-list.md) | Al cerrar cada iteración |
-| Gestión del proyecto | Plan de iteración (slices, tareas y camino crítico) | `project-management/iteration-plan-<id>.md` | Al empezar cada iteración; se completa con su evaluación al cerrarla. Una propuesta (`iteration-plan-<id>-proposal.md`) prepara la iteración siguiente y no la inicia |
+| Gestión del proyecto | Plan de iteración (slices, tareas y camino crítico) | `project-management/iteration-plan-<id>.md` | Al empezar cada iteración; se completa con su evaluación al cerrarla. El plan de la iteración siguiente puede publicarse antes de autorizarla, con su estado («planificada, ejecución no autorizada») |
 | Entorno | Caso de desarrollo | Este documento | Si cambia el proceso |
 | Implementación y pruebas | Código, pruebas y configuración | `queued_media_downloader/`, `tests/`, `pyproject.toml` | Continuo |
 
@@ -128,12 +128,13 @@ Todos funcionan desde un clon del repositorio, sin herramientas externas al proy
 | Script | Responsabilidad | Alcance |
 |---|---|---|
 | `scripts/run_checks.py` | Las seis comprobaciones con stop-on-error y el código de salida real de cada una | Reutilizable, cualquier sistema |
-| `scripts/check_requirements_model.py` | Enlaces, identificadores y matriz de completitud del modelo de requisitos; cobertura y estados de la realización de los casos de uso y de su aplicabilidad por plataforma (Parte 3 del diseño); `--write` regenera la matriz | Reutilizable, cualquier sistema |
+| `scripts/check_requirements_model.py` | Enlaces, identificadores y matriz de completitud del modelo de requisitos; cobertura y estados de la realización de los casos de uso y de su aplicabilidad por plataforma (Parte 3 del diseño); cobertura del plan de E3: cada flujo pendiente con una sola unidad, grafo de unidades sin ciclos, reglas y suplementarios pendientes con estrategia (consistencia documental, no evidencia de implementación); `--write` regenera la matriz | Reutilizable, cualquier sistema |
 | `scripts/check_commit_message.py` | Convenciones de los mensajes de commit | Reutilizable, cualquier sistema |
 | `scripts/windows/validation_campaign.ps1` | Ejecuciones de la validación en Windows identificadas por commit, colas aisladas y evidencia | Reutilizable, Windows |
 | `scripts/experiments/process_tree_termination.py` | Experimento de terminación de árboles de procesos (T33, ADR-0029), que la validación repite en Windows | Experimento; sus resultados históricos están en `doc/notes/experiments/` |
 | `scripts/experiments/requirements_qualification.py` | Experimentos de cualificación de decisiones de requisitos (reintentos de yt-dlp, copia de SQLite, cadena de causas) | Experimento; resultados en `doc/notes/experiments/requirements-qualification.md` |
 | `scripts/experiments/architecture_inventory.py` | Inventario estructural (módulos, clases por tipo, API pública, mecanismos variables, pruebas) y grafo de componentes con grimp | Experimento; resultados en `doc/notes/experiments/architecture-inventory-linux.json` |
+| `scripts/experiments/execution_alternatives.py` | Comparación de alternativas de ejecución: arranque, concurrencia, cancelación bloqueada, descendientes, aislamiento ante fallos, event loop, coste de eventos, memoria, programa cliente | Experimento; resultados en `doc/notes/experiments/execution-alternatives.md` |
 
 ### Mensajes de commit
 

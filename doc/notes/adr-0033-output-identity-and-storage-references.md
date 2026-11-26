@@ -1,6 +1,6 @@
 # ADR-0033: Identidad de los outputs separada de su ubicación (referencias de almacenamiento)
 
-- **Estado:** Propuesta (Analysis and Design, instrucción 2.3.0). Se acepta al diseñar el esquema de D-15 en E3.
+- **Estado:** Propuesta **cualificada** (instrucciones 2.3.0 y 2.4.0). El Responsable aceptó conceptualmente separar la identidad de la ubicación y el nombre `JobOutput`. El contrato está definido para E3 (U3), y solo queda pendiente el mecanismo de reclamación en móvil.
 - **Fecha:** 2026-11-26
 - **Relación:**
   - **generaliza** [ADR-0030](adr-0030-final-file-ownership-claims.md), sin cambiar sus garantías;
@@ -20,7 +20,10 @@ D-15 aprobó cero, uno o N outputs por job. La normalización de rutas de Window
 
 ## Decisión propuesta
 
-1. **Identidad del output:** `(identidad del job, clave del output)`. La clave es el tipo y su discriminante (`video`, `audio`, `subtitle:es`, `thumbnail`, `description`).
+1. **Identidad del output:** `(identidad del job, clave del output)`.
+   - La clave es el tipo más sus discriminantes, con un conjunto cerrado por tipo ([diseño, Parte 3, §16.16](../design/03-target-architecture-and-evolution.md#1616-contrato-de-adr-0033-cualificado-claves-de-output)). Por ejemplo, un subtítulo se distingue por `language`, `origin` (manual o automático) y `format`; `subtitle:es` no basta.
+   - Es un valor estructurado; su forma textual es solo una serialización.
+   - Un discriminante nuevo de un tipo existente cambia la versión del contrato.
 2. **Referencia de almacenamiento:** describe cómo se llega al archivo en el ambiente que lo produjo. En Windows es la ruta. No forma parte de la identidad y puede reasignarse.
 3. **Propiedad:** la reclamación del owner token se hace sobre la referencia de almacenamiento.
    - En Windows y POSIX sigue siendo el mecanismo de ADR-0030, extendido a cada output, sidecars incluidos (R-30).
@@ -31,6 +34,18 @@ D-15 aprobó cero, uno o N outputs por job. La normalización de rutas de Window
    - la migración crea el output principal de cada job completado, sin reescribir reclamaciones;
    - no se modifica ninguna migración publicada.
 6. **Nombre en el código:** `output` (por ejemplo `JobOutput`), nunca `result`. «Result» ya designa el resultado de una operación (`CancelJobResult`, `RunQueueResult`); se respeta «una palabra por concepto».
+
+## Identidad al importar y restaurar
+
+| Caso | Identidad |
+|---|---|
+| Restaurar la misma instalación | Se conserva: es el mismo job |
+| Restaurar en otra instalación | Ids locales conservados; sin propiedad de archivos hasta conciliar (BR-36) |
+| Importar una solicitud | Job nuevo con la misma parte portable de la identidad de la petición |
+| Importar historial | Jobs nuevos; la procedencia es una referencia de trazabilidad, no una identidad |
+| Trasladar un output | Misma identidad; nueva referencia de almacenamiento |
+
+El `job_id` local no es una identidad portable. No hace falta UUID: la identidad portable es la de la petición, derivada del contenido.
 
 ## Consecuencias
 

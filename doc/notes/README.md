@@ -11,7 +11,7 @@ Cada decisión se registra en un archivo con: contexto, opciones consideradas, d
 | [0005](adr-0005-vendored-ffmpeg-lgpl-shared.md) | ffmpeg incluido en el repositorio (LGPL compartida) | Aceptada (build concreta en 0018) |
 | [0006](adr-0006-ffmpeg-resolution-and-verification.md) | Resolución y verificación de ffmpeg | Aceptada (término actualizado por 0014) |
 | [0007](adr-0007-project-license-unlicense.md) | Licencia del proyecto: The Unlicense | Aceptada (material de referencia en 0025) |
-| [0008](adr-0008-process-based-worker-pool.md) | Pool fijo de workers en procesos | Aceptada (a validar en el prototipo; completada por 0013; acotada por 0032: el proceso es el mecanismo de escritorio) |
+| [0008](adr-0008-process-based-worker-pool.md) | Pool fijo de workers en procesos | Aceptada (a validar en el prototipo; completada por 0013; acotada por 0032; revisada por 0034: Preserve y Specialize como mecanismo de escritorio) |
 | [0009](adr-0009-playlist-expansion-into-jobs.md) | Expansión de playlists en trabajos individuales | Aceptada (ajustada por 0012) |
 | [0010](adr-0010-sqlite-persistent-queue.md) | Cola persistente en SQLite | Aceptada (términos actualizados por 0014) |
 | [0011](adr-0011-code-conventions.md) | Convenciones de código | Aceptada (pendientes resueltos en 0017 y 0019) |
@@ -36,7 +36,8 @@ Cada decisión se registra en un archivo con: contexto, opciones consideradas, d
 | [0030](adr-0030-final-file-ownership-claims.md) | Propiedad de los archivos finales mediante reclamaciones | Aceptada; validación en Windows pendiente (generalización propuesta en 0033) |
 | [0031](adr-0031-site-waits-and-network-waits.md) | Aplazar jobs y esperar al sitio, a la red y al disco, sin PO Tokens ni cuentas | Propuesta |
 | [0032](adr-0032-reusable-engine-and-platform-capabilities.md) | Motor reutilizable con contratos independientes de la interfaz y capacidades de plataforma por responsabilidad | Aceptada (diseño concreto propuesto) |
-| [0033](adr-0033-output-identity-and-storage-references.md) | Identidad de los outputs separada de su ubicación | Propuesta |
+| [0033](adr-0033-output-identity-and-storage-references.md) | Identidad de los outputs separada de su ubicación | Propuesta cualificada (contrato definido para E3) |
+| [0034](adr-0034-single-coordinator-and-isolated-execution.md) | Coordinación única con ejecución intercambiable; el pool de procesos como mecanismo de escritorio | Propuesta, recomendada con evidencia |
 
 ## Convenciones de este registro
 

@@ -1,6 +1,6 @@
 # Diseño — Parte 3: arquitectura objetivo, contratos públicos y evolución multiplataforma
 
-- **Estado:** Analysis and Design (instrucción 2.3.0). Es diseño, no implementación: ningún componente marcado *propuesto* existe en el código.
+- **Estado:** Analysis and Design cerrado (instrucciones 2.3.0 y 2.4.0; la 2.4.0 añade la cualificación de la arquitectura de ejecución, §16). Es diseño, no implementación: ningún componente marcado *propuesto* existe en el código.
 - **Fecha:** 2026-11-26
 - **Base:**
   - [Parte 1](01-architecture.md): arquitectura vigente;
@@ -47,7 +47,7 @@
 
 ### 2.1 Inventario por componente
 
-Los conteos son del [inventario](../notes/experiments/architecture-inventory-linux.json): 85 módulos, 6.896 líneas y 395 funciones de prueba. Con la parametrización, pytest ejecuta 586 pruebas y deselecciona 14 (las marcadas `windows`); 579 antes de esta etapa, más 7 de la comprobación del modelo.
+Los conteos son del [inventario](../notes/experiments/architecture-inventory-linux.json): 85 módulos, 6.896 líneas y 397 funciones de prueba. Con la parametrización, pytest ejecuta 593 pruebas y deselecciona 14 (las marcadas `windows`). El código del producto no cambió desde 2.2.0: las pruebas nuevas son de la comprobación del modelo (579 → 586 en 2.3.0 → 593 en 2.4.0).
 
 | Componente | Módulos / líneas | Clases (tipo) | API pública | Responsabilidad | Autoridad |
 |---|---|---|---|---|---|
@@ -374,7 +374,7 @@ Detalle en [ADR-0033](../notes/adr-0033-output-identity-and-storage-references.m
 
 | Concepto | Contrato |
 |---|---|
-| Identidad del output | `(job identity, clave del output)`. La clave es el tipo y su discriminante (`video`, `audio`, `subtitle:es`, `thumbnail`), estable aunque el output se traslade |
+| Identidad del output | `(job identity, clave del output)`. La clave es el tipo y sus discriminantes, con un conjunto cerrado por tipo (§16.16), estable aunque el output se traslade |
 | Tipo y obligatoriedad | Lo pedido es obligatorio salvo que se marque opcional (D-15) |
 | Nombre visible | El nombre que verá el User |
 | Referencia de almacenamiento | Cómo se llega al archivo en *este* ambiente. En Windows es una ruta. En Android puede ser un URI de documento con permiso persistente; en iOS, un bookmark (Documental) |
@@ -399,7 +399,7 @@ La propuesta de §13.2 del análisis dejaba el perfil de acceso y el proxy fuera
 | Destino (carpeta solicitada) | **Sí, como parte local** (BR-32: otra carpeta es una variante) | Se normaliza con el mecanismo del ambiente (en Windows, `realpath` + `normcase`). Al importar o restaurar en otra instalación esa parte se recalcula; el resto de la identidad es **portable** |
 | Configuración operativa (reintentos, ritmo, límites) | No | — |
 
-- La **clase de contexto de acceso** es el id estable del perfil de acceso (§6.4) o *anónimo*. No es un hash de las credenciales: renovar las cookies de un perfil no cambia la identidad.
+- La **clase de contexto de acceso** es el id estable del perfil de acceso (§6.4) más su revisión de contexto (§16.17), o *anónimo*. No es un hash de las credenciales: renovar las cookies de un perfil no cambia la identidad; cambiar la cuenta autorizada, sí.
 - Si el User indica que dos perfiles dan el mismo contenido, comparten clase. Es una opción del perfil y por defecto no la comparten.
 - **Parte portable y parte local.** La identidad tiene una parte portable (contenido, preferencias normalizadas, clase de contexto de acceso, versión del algoritmo) y una parte local (el destino). La parte portable es la que se compara entre instalaciones (UC-22, AAC-04). La identidad completa es la que detecta duplicados en una instalación.
 - BR-32 se actualiza en consecuencia (revisión de la instrucción 2.3.0, §45).
@@ -712,13 +712,14 @@ La ejecución local no hace confiable toda entrada, y las garantías no impiden 
 |---|---|---|---|---|
 | AR-01 | Componentes por niveles, sin ciclos | **Vigente** | — | `layers` |
 | AR-02 | Ningún componente salvo `command_line` importa `argparse` (las reglas no dependen de la CLI) | **Vigente desde esta etapa**; se cumple hoy (inventario) | Ahora | `forbidden` en `pyproject.toml` |
-| AR-03 | `command_line` no importa `sqlite3` ni las implementaciones de `workers` y `job_storage` | Objetivo; hoy no se cumple (A-1) | Al separar el ensamblaje (§4.2) | `forbidden` |
+| AR-03 | `command_line` no importa `sqlite3` ni las implementaciones de `workers` y `job_storage` | Objetivo; hoy no se cumple (A-1) | Al terminar U2 del [plan de E3](../project-management/iteration-plan-e3.md) | `forbidden` |
 | AR-04 | `jobs` no importa mecanismos variables (`sqlite3`, `subprocess`, `multiprocessing`, `ctypes`, `signal`, `argparse`) | **Vigente desde esta etapa**; se cumple hoy | Ahora | `forbidden` |
-| AR-05 | La presentación no importa `workers` (no consume `WorkerMessage`) | Objetivo; hoy no se cumple por `composition_root` (A-2) | Tras A-1 y A-2 | `forbidden` |
+| AR-05 | La presentación no importa `workers` (no consume `WorkerMessage`) | Objetivo; hoy no se cumple por `composition_root` (A-2) | Al terminar U2 | `forbidden` |
+| AR-08 | La coordinación (`job_queue`) no importa mecanismos de ejecución (`multiprocessing`, `subprocess`, `ctypes`, `signal`); de `workers` solo usa su API pública | **Vigente desde la instrucción 2.4.0**; se cumple hoy (inventario); el uso de la API pública ya lo exige el contrato `protected` | Ahora | `forbidden` |
 | AR-06 | La parte portable de la identidad de la petición y la identidad del output no dependen de `os.path` ni de la normalización de rutas | Objetivo | Al implementar D-15 y D-16 | Prueba compartida (no expresable con imports) |
 | AR-07 | Las políticas de programación no importan el lanzador de Windows | Objetivo | Al implementar D-13 | `forbidden`, si el lanzador es un módulo propio |
 
-- **Se activan ya AR-02 y AR-04,** porque protegen fronteras que hoy se cumplen.
+- **Se activan ya AR-02, AR-04 y AR-08,** porque protegen fronteras que hoy se cumplen.
 - **AR-03 y AR-05 no se activan** porque fallarían sobre el código actual. Su criterio de activación es la unidad de E3 correspondiente.
 - No se deshabilita ninguna regla existente.
 
@@ -748,6 +749,21 @@ La ejecución local no hace confiable toda entrada, y las garantías no impiden 
 | AAC-06 | Ningún secreto aparece en vistas, eventos, logs, informes, exportaciones ni avisos | Prueba de valores trampa (R-27) |
 | AAC-07 | Las garantías de ADR-0029 y ADR-0030 se mantienen tras cada cambio de la arquitectura | Pruebas vigentes, sin deselecciones nuevas |
 | AAC-08 | Una instalación existente se actualiza sin borrar su base de datos | Pruebas de migración desde cada versión publicada del esquema |
+| AAC-09 | La coordinación es única e independiente del mecanismo: `RunQueue` funciona igual con `ProcessWorkerPool` y con un doble en el mismo proceso | Pruebas de `job_queue` con `ScriptedWorkerPool` (vigentes) y suite compartida del contrato de ejecución (U2) |
+| AAC-10 | Cancelar sigue tres pasos (solicitud, interrupción, reconciliación); nunca `CANCELLED` por la sola solicitud de un job activo | Pruebas de `RunQueue` (vigentes) más un caso con un ejecutor que no confirma |
+| AAC-11 | En Windows, una operación bloqueada se interrumpe por terminación del árbol y no quedan descendientes | Pruebas `windows` (ADR-0029) en la campaña posterior |
+| AAC-12 | `COMPLETED` lo decide el coordinador a partir de los outputs obligatorios persistidos, con cualquier mecanismo | Pruebas de U3 y U5 |
+| AAC-13 | Ningún consumidor recibe `WorkerMessage` ni identificadores de workers | AR-05 más pruebas del canal (U2) |
+
+**Tipos de verificación de los criterios:**
+
+| Tipo | Criterios |
+|---|---|
+| Criterio de diseño | AAC-05, AAC-09 (revisión de contratos) |
+| Prueba durante la implementación | AAC-01 a AAC-04, AAC-06 a AAC-10, AAC-12, AAC-13 |
+| Validación en Windows | AAC-07 y AAC-11 en la campaña posterior a E3 |
+| Validación futura en Android | AAC-09 y AAC-10 con el ejecutor móvil; AAC-11 se sustituye por su garantía documentada (R-33) |
+| Validación futura en iOS | Igual que Android, más R-31 |
 
 ---
 
@@ -907,7 +923,7 @@ No se elige Flutter, React Native, Kotlin Multiplatform, Swift, C#, un framework
 | `media_extraction.failure_classifier` | Clasificación de fallos | Defecto (R-28) | Cadena de causas incompleta | **Extend** | D-12, BR-25 | Bajo | E3 |
 | `media_extraction.output_claims` | Propiedad de los archivos finales | Completo para un output | Ruta como identidad; los sidecars no se reclaman (R-30) | **Generalize** | ADR-0033 | Medio | A-6 |
 | `media_extraction.progress_event_translator` | Progreso | Completo | Confunde un tamaño conocido con uno estimado | **Extend** | §5.4 | Bajo | A-4 |
-| `workers` (`ProcessWorkerPool`, terminadores) | Ejecución aislada | Completo en escritorio | No hay implementación móvil | **Preserve**; implementación móvil **Defer** | `WorkerPool` | Ninguno ahora | ADR-0008, ADR-0029 |
+| `workers` (`ProcessWorkerPool`, terminadores) | Ejecución aislada | Completo en escritorio | Contrato con vocabulario de procesos en dos operaciones; el sobre `WorkerMessage` sale del componente (A-2) | **Preserve** y **Specialize** el pool como mecanismo de escritorio; **Generalize** mínimamente el contrato; ejecutor móvil **Defer** (ADR-0034) | `WorkerPool` | Bajo: dos operaciones y la firma de la observación | §16.7 a §16.9 |
 | `job_queue` (casos de uso) | Operaciones | Completo para UC-02 a UC-10 | Devuelve `Job`; `Present` expone `WorkerMessage` | **Extend** con operaciones; **Separate** la observación | §5.2, §5.3 | Bajo (un consumidor) | A-2, A-3 |
 | `job_queue.recover_interrupted_jobs` | Recuperación | Defecto (R-25) | No usa la evidencia local | **Extend** | D-9 | Medio | Análisis §13.11 |
 | `diagnostics` | Entorno | Parcial | No informa capacidades | **Extend** | §8.7, UC-16 | Bajo | — |
@@ -931,11 +947,11 @@ Ningún componente se clasifica **Replace**: no hay ninguna incompatibilidad dem
 - **Contratos públicos:**
   - la versión 1 se publica con el primer `--json`;
   - las vistas se prueban en la CLI antes de otra interfaz.
-- **Regresiones:** las pruebas vigentes (586) y la evidencia histórica de T42 se conservan; ninguna prueba se deselecciona para facilitar un cambio.
+- **Regresiones:** las pruebas vigentes (593) y la evidencia histórica de T42 se conservan; ninguna prueba se deselecciona para facilitar un cambio.
 - **Prohibiciones:**
   - no se modifica ninguna migración publicada;
   - no se pide al User borrar su base de datos (AAC-08).
-- La planificación de las unidades está en la [propuesta de E3](../project-management/iteration-plan-e3-proposal.md).
+- La planificación de las unidades está en el [plan de E3](../project-management/iteration-plan-e3.md).
 
 ---
 
@@ -947,38 +963,37 @@ Columnas:
 - **Varía por plataforma:** mecanismos de §8.1.
 - **Diseño:** *Realizado* (el diseño vigente ya lo cubre); *Definido* (este documento fija sus contratos); *Condicionado* (depende de una cualificación pendiente).
 
-Los datos, eventos, errores y pruebas de cada caso están en su especificación y en §5.
+Los datos, eventos, errores y pruebas de cada caso están en su especificación y en §5. La columna **Unidades de E3** se deriva de la cobertura del [plan de E3](../project-management/iteration-plan-e3.md#6-cobertura-de-los-flujos-pendientes); la ejecución de todos ellos sigue la arquitectura de §16.
 
 <!-- uc-realization:start -->
-| UC | Responsabilidades | Componentes actuales | Contratos que faltan | Varía por plataforma | Persistencia | Pruebas que demostrarán la conformidad | Diseño |
-|---|---|---|---|---|---|---|---|
-| UC-01 | Verificar dependencias y capacidades | `diagnostics`, `ffmpeg_discovery`, `media_extraction` | Capacidades (§8.7) | Instalación y dependencias | Ninguna | `tests/diagnostics` más capacidades | Definido |
-| UC-02 | Validar y persistir la petición | `job_queue.EnqueueMedia`, `JobStore` | Identidad de la petición (§6.2), perfiles (§6.4), vista (§5.2) | Ninguno | Jobs | `tests/job_queue` más identidad compartida | Definido |
-| UC-03 | Descargar, procesar, publicar, completar | `RunQueue`, `WorkerPool`, `MediaSource`, `OutputClaims`, applier | N outputs (§6.1), progreso (§5.4), errores (§5.5), reintentos (D-3) | Ejecución, multimedia, almacenamiento | Jobs, outputs, reclamaciones | `tests/media_extraction`, `tests/workers`; pruebas `windows` | Definido |
-| UC-04 | Expandir sin descargar | `yt_dlp_expansion`, applier | Ritmo (D-3) | Runtime de JavaScript | Hijos | `tests/media_extraction` | Realizado |
-| UC-05 | Cancelar cooperativa y forzadamente | `CancelJob`, bandeja, `ProcessTreeTerminator` | Código de error (§5.5) | Terminación | Bandeja | `tests/job_queue`, `tests/workers`; `windows` | Realizado |
-| UC-06 | Recuperar local primero | `RecoverInterruptedJobs`, `OutputClaims` | Evidencia por output (D-9), sesión (§4.2) | Almacenamiento | Jobs, reclamaciones | Criterio de regresión de R-25 | Definido |
-| UC-07 | Reintentar | `RetryJob` | Código de error | Ninguno | Jobs | `tests/job_queue` | Realizado |
-| UC-08 | Listar | `ListJobs` | Vista pública (§5.2) | Ninguno | Lectura | Pruebas de vistas | Definido |
-| UC-09 | Ver un job | `ShowJob` | Vista pública, errores (§5.5) | Ninguno | Lectura | Pruebas de vistas | Definido |
-| UC-10 | Purgar registros y parciales | `PurgeFinishedJobs`, `remove_partial_directory` | Evidencia por operación (análisis §13.12) | Almacenamiento | Jobs | `tests/job_queue` | Realizado |
-| UC-11 | Aplazar ante el sitio o la red | `RunQueue` (sin admisión) | Admisión (D-2), restricciones temporales (D-4) | Red (tipo de red en móvil) | Condición del job | Pruebas de admisión | Definido |
-| UC-14 | Pausar, continuar, detener | Bandeja, interrupción | Intención persistida (BR-42) | Ciclo de vida (§8.4) | Bandeja | Pruebas de la bandeja | Definido |
-| UC-15 | Consultar antes de encolar | `MediaSource` (extracción) | Operación y vista (§5.1) | Runtime de JavaScript | Ninguna | Servidor local | Definido |
-| UC-16 | Preparar un informe enmascarado | `diagnostics`, log | Enmascarado en el origen (SUP-SEC01) | Compartir el archivo | Ninguna | Valores trampa (R-27) | Definido |
-| UC-17 | Preservar ante fallos de almacenamiento | `failure_classifier` | Cadena de causas (BR-25), admisión por recurso | Almacenamiento (§8.8) | Condición del job | Criterio de regresión de R-28 | Definido |
-| UC-18 | Administrar perfiles de descarga | `configuration` (sin perfiles) | Identidad de perfiles (§6.4) | Ninguno | Perfiles | Pruebas compartidas de perfiles | Definido |
-| UC-19 | Administrar perfiles de acceso | — | Almacén de secretos (§8.9), clase de contexto de acceso (§6.2) | Credenciales | Perfiles y secretos | Valores trampa; `windows` (ACL) | Condicionado |
-| UC-20 | Administrar la configuración | `configuration` | Clases y precedencia (análisis §13.17) | Ubicación (A-8) | Archivo | `tests/configuration` | Definido |
-| UC-21 | Programar | — | Programación y lanzador (§8.5) | Programación | Programación | Pruebas de ventanas; `windows` (lanzador) | Condicionado |
-| UC-22 | Exportar e importar | — | Intercambio versionado (§6.5) | Selector de archivos | Ninguna nueva | Ida y vuelta entre instalaciones con rutas distintas (AAC-04) | Definido |
-| UC-23 | Respaldar y restaurar | `JobStore`, owner token | Copia coherente y reconciliación (§6.5) | Ubicación | Copia | Experimento E2 convertido en prueba; reconciliación | Definido |
-| UC-24 | Información complementaria | `MediaSource` | N outputs con sidecars (§6.1, R-30) | Multimedia | Outputs | Servidor local | Definido |
-| UC-25 | Administrar los outputs | `output_path` | Referencia de almacenamiento y autorización (§6.1, BR-17, BR-31) | Almacenamiento | Outputs | Pruebas compartidas de propiedad | Definido |
-| UC-26 | Verificar los outputs | `ffmpeg_discovery` | Verificación con ffprobe (§10.4) | Multimedia | Evidencia | ffprobe con archivos de prueba | Condicionado |
-| UC-27 | Administrar las dependencias | `diagnostics` | Procedimiento cualificado (D-8), capacidades | Distribución (§7.2) | Ninguna | Entorno aislado | Condicionado |
-| UC-28 | Recibir avisos | — | Canal de observación (§5.3), entrega (§8.6) | Avisos | Preferencias | Pruebas del canal; entrega sin permiso | Definido |
-<!-- uc-realization:end -->
+| UC | Responsabilidades | Componentes actuales | Contratos que faltan | Varía por plataforma | Persistencia | Pruebas que demostrarán la conformidad | Unidades de E3 | Diseño |
+|---|---|---|---|---|---|---|---|---|
+| UC-01 | Verificar dependencias y capacidades | `diagnostics`, `ffmpeg_discovery`, `media_extraction` | Capacidades (§8.7) | Instalación y dependencias | Ninguna | `tests/diagnostics` más capacidades | U6, U8, U12 | Definido |
+| UC-02 | Validar y persistir la petición | `job_queue.EnqueueMedia`, `JobStore` | Identidad de la petición (§6.2), perfiles (§6.4), vista (§5.2) | Ninguno | Jobs | `tests/job_queue` más identidad compartida | U6, U9, U12 | Definido |
+| UC-03 | Descargar, procesar, publicar, completar | `RunQueue`, `WorkerPool`, `MediaSource`, `OutputClaims`, applier | N outputs (§6.1), progreso (§5.4), errores (§5.5), reintentos (D-3) | Ejecución, multimedia, almacenamiento | Jobs, outputs, reclamaciones | `tests/media_extraction`, `tests/workers`; pruebas `windows` | U1, U3, U7, U8, U9 | Definido |
+| UC-04 | Expandir sin descargar | `yt_dlp_expansion`, applier | Ritmo (D-3) | Runtime de JavaScript | Hijos | `tests/media_extraction` | U7, U12 | Realizado |
+| UC-05 | Cancelar cooperativa y forzadamente | `CancelJob`, bandeja, `ProcessTreeTerminator` | Código de error (§5.5) | Terminación | Bandeja | `tests/job_queue`, `tests/workers`; `windows` | U2 | Realizado |
+| UC-06 | Recuperar local primero | `RecoverInterruptedJobs`, `OutputClaims` | Evidencia por output (D-9), sesión (§4.2) | Almacenamiento | Jobs, reclamaciones | Criterio de regresión de R-25 | U5, U7 | Definido |
+| UC-07 | Reintentar | `RetryJob` | Código de error | Ninguno | Jobs | `tests/job_queue` | U5 | Realizado |
+| UC-08 | Listar | `ListJobs` | Vista pública (§5.2) | Ninguno | Lectura | Pruebas de vistas | U4, U7 | Definido |
+| UC-09 | Ver un job | `ShowJob` | Vista pública, errores (§5.5) | Ninguno | Lectura | Pruebas de vistas | U3, U4, U7 | Definido |
+| UC-10 | Purgar registros y parciales | `PurgeFinishedJobs`, `remove_partial_directory` | Evidencia por operación (análisis §13.12) | Almacenamiento | Jobs | `tests/job_queue` | U5, U11 | Realizado |
+| UC-11 | Aplazar ante el sitio o la red | `RunQueue` (sin admisión) | Admisión (D-2), restricciones temporales (D-4) | Red (tipo de red en móvil) | Condición del job | Pruebas de admisión | U7, U8 | Definido |
+| UC-14 | Pausar, continuar, detener | Bandeja, interrupción | Intención persistida (BR-42) | Ciclo de vida (§8.4) | Bandeja | Pruebas de la bandeja | U7 | Definido |
+| UC-15 | Consultar antes de encolar | `MediaSource` (extracción) | Operación y vista (§5.1) | Runtime de JavaScript | Ninguna | Servidor local | U12 | Definido |
+| UC-16 | Preparar un informe enmascarado | `diagnostics`, log | Enmascarado en el origen (SUP-SEC01) | Compartir el archivo | Ninguna | Valores trampa (R-27) | U12 | Definido |
+| UC-17 | Preservar ante fallos de almacenamiento | `failure_classifier` | Cadena de causas (BR-25), admisión por recurso | Almacenamiento (§8.8) | Condición del job | Criterio de regresión de R-28 | U8 | Definido |
+| UC-18 | Administrar perfiles de descarga | `configuration` (sin perfiles) | Identidad de perfiles (§6.4) | Ninguno | Perfiles | Pruebas compartidas de perfiles | U6, U11 | Definido |
+| UC-19 | Administrar perfiles de acceso | — | Almacén de secretos (§8.9), clase de contexto de acceso (§6.2) | Credenciales | Perfiles y secretos | Valores trampa; `windows` (ACL) | U6 | Condicionado |
+| UC-20 | Administrar la configuración | `configuration` | Clases y precedencia (análisis §13.17) | Ubicación (A-8) | Archivo | `tests/configuration` | U6, U11 | Definido |
+| UC-21 | Programar | — | Programación y lanzador (§8.5) | Programación | Programación | Pruebas de ventanas; `windows` (lanzador) | U10 | Condicionado |
+| UC-22 | Exportar e importar | — | Intercambio versionado (§6.5) | Selector de archivos | Ninguna nueva | Ida y vuelta entre instalaciones con rutas distintas (AAC-04) | U11 | Definido |
+| UC-23 | Respaldar y restaurar | `JobStore`, owner token | Copia coherente y reconciliación (§6.5) | Ubicación | Copia | Experimento E2 convertido en prueba; reconciliación | U11 | Definido |
+| UC-24 | Información complementaria | `MediaSource` | N outputs con sidecars (§6.1, R-30) | Multimedia | Outputs | Servidor local | U9 | Definido |
+| UC-25 | Administrar los outputs | `output_path` | Referencia de almacenamiento y autorización (§6.1, BR-17, BR-31) | Almacenamiento | Outputs | Pruebas compartidas de propiedad | U5 | Definido |
+| UC-26 | Verificar los outputs | `ffmpeg_discovery` | Verificación con ffprobe (§10.4) | Multimedia | Evidencia | ffprobe con archivos de prueba | U5 | Condicionado |
+| UC-27 | Administrar las dependencias | `diagnostics` | Procedimiento cualificado (D-8), capacidades | Distribución (§7.2) | Ninguna | Entorno aislado | U12 | Condicionado |
+| UC-28 | Recibir avisos | — | Canal de observación (§5.3), entrega (§8.6) | Avisos | Preferencias | Pruebas del canal; entrega sin permiso | U10 | Definido |<!-- uc-realization:end -->
 
 **Contratos compartidos.** Satisfacen a varios casos a la vez, y cada uno tiene una autoridad:
 
@@ -1097,8 +1112,480 @@ No se reabre ninguna resolución funcional. Se revisan las soluciones técnicas 
 | Protección de secretos en Windows | Ninguna | ACL, DPAPI, Credential Manager | UC-19 | Campaña de Windows posterior |
 | Rendimiento del motor embebido | Ninguna | — | Todos en móvil | Medición |
 | Valores de D-2 a D-5, D-10, D-20, D-21 | Pendientes de medición (análisis §9) | — | — | E3 y la campaña de Windows |
+| Ejecutor móvil en hilos | Experimentos de §16.7: sin cancelación de operaciones bloqueadas ni aislamiento ante fallos | Hilos con cancelación cooperativa; procesos para ffmpeg y el runtime de JavaScript en Android | Garantías menores en móvil (R-33) | Prueba en dispositivo de la suite compartida del contrato de ejecución |
+| Tiempos de arranque y memoria en Windows | Solo Linux (§16.7) | — | SUP-P04, reciclado | Medición en la campaña de Windows |
+| Memoria con extractores reales | 30 jobs con el extractor genérico | Medir con sitios reales en la campaña | Reciclado de workers | Medición de SUP-P04 |
 
 Ninguna capacidad móvil se declara demostrada por inferencia.
+
+---
+
+## 16. Arquitectura de ejecución: cualificación de ADR-0008
+
+Instrucción 2.4.0. Resolución en [ADR-0034](../notes/adr-0034-single-coordinator-and-isolated-execution.md). Experimentos: [execution-alternatives](../notes/experiments/execution-alternatives.md).
+
+### 16.1 Necesidades frente a mecanismos
+
+| Necesidad (aprobada) | Mecanismo actual | Disposición del mecanismo |
+|---|---|---|
+| Ejecutar N jobs a la vez (SUP-P01) | `ProcessWorkerPool` de `worker_count` procesos | Preserve en escritorio (§16.9) |
+| Aislar jobs entre sí (SUP-R03, SUP-R04) | Un proceso por worker, contexto `spawn` | Preserve en escritorio; otra plataforma documenta su garantía |
+| Cancelar una ejecución bloqueada (UC-05 A2) | Terminar el árbol del worker tras `cancellation_grace_seconds` | Preserve |
+| Sin descendientes supervivientes (SUP-R02) | Job Object (Windows), grupo de procesos y `pidfd` (POSIX) | Preserve (ADR-0029) |
+| Comunicar avance y resultado | `WorkerMessage` por una cola entre procesos | `WorkerMessage` queda interno; el coordinador recibe `(job_id, JobEvent)` (A-2) |
+| Administrar la concurrencia | Número de workers libres | Generalize: la capacidad no es solo el número de workers (§16.10) |
+| Preservar los jobs | SQLite | Preserve |
+| Recuperar ejecuciones interrumpidas | `RecoverInterruptedJobs` al iniciar la sesión | Preserve; Extend con evidencia local (R-25) |
+| Acotar la memoria acumulada | Reciclar un worker tras `max_jobs_per_worker` (20) | Preserve mientras no se mida lo contrario (§16.7) |
+
+### 16.2 Flujo vigente reconstruido desde el código
+
+```mermaid
+---
+config:
+  theme: base
+  darkMode: true
+  themeVariables:
+    background:         "#0f172a"
+    primaryColor:       "#1e293b"
+    primaryTextColor:   "#f1f5f9"
+    primaryBorderColor: "#94a3b8"
+    lineColor:          "#cbd5e1"
+    secondaryColor:     "#334155"
+    tertiaryColor:      "#1e3a8a"
+    noteBkgColor:       "#1e3a8a"
+    noteTextColor:      "#f1f5f9"
+---
+flowchart TD
+    subgraph AnyProcess["Cualquier proceso (comandos de la CLI)"]
+        Enqueue["EnqueueMedia: job PENDING"]
+        CancelRetry["CancelJob, RetryJob: job requests"]
+    end
+    Store[("SQLite: jobs y bandeja de job requests")]
+    subgraph RunProcess["Proceso de run: único dueño del estado de los jobs"]
+        Recover["RecoverInterruptedJobs"]
+        Coordinator["RunQueue: selección, despacho, cancelación, plazos"]
+        Applier["JobEventApplier: transiciones y persistencia"]
+    end
+    subgraph Workers["ProcessWorkerPool (spawn)"]
+        WorkerLoop["worker_loop: un MediaSource por worker"]
+        MediaSource["YtDlpMediaSource: extracción, descarga, postprocesamiento"]
+        External["ffmpeg y deno (procesos de yt-dlp)"]
+    end
+    Enqueue --> Store
+    CancelRetry --> Store
+    Recover --> Store
+    Store --> Coordinator
+    Coordinator -->|"RunJob, CancelJob"| WorkerLoop
+    WorkerLoop --> MediaSource
+    MediaSource --> External
+    WorkerLoop -->|"WorkerMessage"| Coordinator
+    Coordinator --> Applier
+    Applier --> Store
+    classDef default fill:#1e293b,stroke:#94a3b8,stroke-width:1px,color:#f1f5f9
+    classDef cluster fill:#1e3a8a,stroke:#94a3b8,stroke-width:1px,color:#f1f5f9
+    classDef store fill:#1a2535,stroke:#64748b,color:#94a3b8
+    class Store store
+```
+
+| Paso | Autoridad (código) | Detalle verificado |
+|---|---|---|
+| Solicitud | La interfaz (`command_line`) llama a `job_queue` | `EnqueueMedia.execute(urls, download_options)` valida todas las URL y crea los jobs en una transacción |
+| Job | `jobs.Job` (inmutable) y `job_lifecycle` | Cada transición devuelve una copia; `InvalidJobTransitionError` impide las ilegales |
+| Cola | `JobStore` (SQLite) | Solo el proceso de `run` cambia el estado de jobs existentes (SUP-C04). Los demás comandos escriben **job requests** en la bandeja y `run` las aplica |
+| Selección | `RunQueue._submit_pending_jobs` con `get_next_pending(limit)` | `limit` = workers libres |
+| Admisión | No existe todavía (D-2) | Todo `PENDING` es elegible |
+| Despacho | `WorkerPool.submit` | `NoIdleWorkerError` si no hay worker libre |
+| Asignación de recursos | Un worker por job | No hay otra contabilidad (fragmentos, ffmpeg, ancho de banda) |
+| Ejecución | `worker_loop` → `MediaSource.expand` o `download` | Una `MediaSource` por worker; un `YoutubeDL` nuevo por job |
+| Comunicación | `publish(JobEvent)` → `WorkerMessage` por una `multiprocessing.Queue` → un hilo receptor por worker | `sequence_number` por worker para detectar pérdidas en los logs |
+| Extracción, descarga, postprocesamiento | yt-dlp dentro del worker; ffmpeg y deno como procesos hijos | Hooks cada `progress_interval_seconds` |
+| Publicación de outputs | yt-dlp mueve el archivo; `OutputClaims` reclama antes (ADR-0030) | — |
+| Persistencia y finalización | `JobEventApplier` en el proceso de `run` | `COMPLETED` solo al aplicar `JobCompleted` con una salida válida (T44) |
+| Recuperación | `RecoverInterruptedJobs` antes de ejecutar (BR-19) | Los `RUNNING` vuelven a `PENDING` |
+| Cancelación | Job request → `CANCELLATION_REQUESTED` → petición cooperativa → plazo → `terminate_worker_running` | El coordinador aplica `JobCancelled` en nombre del worker terminado |
+| Liberación de recursos | El pool libera el worker al recibir un evento final; recicla y reemplaza los caídos | `JobFailed(WORKER_CRASHED)` en nombre de un worker caído |
+
+**Coordinación y ejecución ya están separadas**, sin un paquete nuevo:
+- **coordinación:** `RunQueue`, `JobEventApplier`, `JobStore` y la bandeja;
+- **ejecución:** `MediaSource`, que no conoce procesos;
+- **unión:** `WorkerPool` conecta las dos.
+
+### 16.3 Inventario del mecanismo de workers
+
+| Elemento | Responsabilidad | Mecanismos | Consumidores | Garantía | Depende de procesos | Reutilizable en otra arquitectura |
+|---|---|---|---|---|---|---|
+| `WorkerPool` (Protocol) | Ejecutar jobs y devolver lo que publican | — | `RunQueue` | Contrato de 6 operaciones | Su vocabulario, en parte (`terminate_worker_running`, `count_idle_workers`) | Sí, generalizando dos operaciones (§16.9) |
+| `ProcessWorkerPool` | Pool fijo con reciclado, reemplazo de caídos y terminación del árbol | `multiprocessing` (spawn), colas, hilos receptores | `composition_root` | Aislamiento, terminación forzada, reemplazo | Sí | No: es el mecanismo de escritorio |
+| `WorkerMessage` | Sobre de transporte: `worker_id`, `job_id`, `sequence_number`, `job_event` | — | `RunQueue`; `JobPresenter` (A-2) | Orden por worker | El `worker_id` | El `JobEvent` sí; el sobre no |
+| `worker_loop` | Bucle del worker: crea la `MediaSource`, ejecuta jobs, convierte errores inesperados en `JobFailed(UNKNOWN)` | Colas | `ProcessWorkerPool` | Un error de un job no mata al worker | Sí | La conversión de errores |
+| `WorkerMessageSender.publisher_for` | Publicar eventos y lanzar `JobCancelledError` si hay una cancelación pedida | Callback | `worker_loop` | Cancelación cooperativa en cada evento no final | No | **Sí**: es el punto de cancelación cooperativa de cualquier ejecutor |
+| `JobCancellationListener` | Recibir cancelaciones en un hilo aparte | Hilo, cola | `worker_loop` | — | La cola | La idea |
+| `RunJob`, `ShutDown`, `CancelJob` (`worker_instructions`) | Instrucciones al worker | — | Pool y worker | — | Sí (serializables) | No |
+| `worker_logging` | Llevar los registros del worker al proceso principal | `QueueHandler` | Pool | Un solo log | Sí | No |
+| `ProcessQueueReceiver` | Hilo que vacía una cola entre procesos | Hilo | Pool | — | Sí | No |
+| `ProcessTreeTerminator`, `WindowsProcessTreeTerminator`, `PosixProcessTreeTerminator` | Terminar el árbol de un worker | Job Object; grupo de procesos y `pidfd` | Pool | Sin descendientes supervivientes (T33) | Sí | No |
+| `console_interrupts` (workers) | El worker ignora `Ctrl+C` | `signal`, `SetConsoleCtrlHandler` | `worker_loop` | Solo el proceso principal decide | Sí | No |
+| `console_interruption` (command_line) | Primer y segundo `Ctrl+C` | `signal` | `run_command` | Interrupción sin intención (D-6) | No | La semántica |
+| `RunQueue` | Coordinar: job requests, plazos de cancelación, despacho, aplicación | — | `run_command` | Dueño único del estado durante la sesión | No (usa el Protocol) | **Sí** |
+| `JobEventApplier` | Aplicar eventos al estado persistido | — | `RunQueue` | Transiciones válidas; duplicados al descargar | No | **Sí** |
+
+**Limitaciones demostradas:**
+- la cancelación cooperativa solo actúa cuando el job publica un evento, así que no actúa durante la extracción, los reintentos ni ffmpeg (código de `publisher_for`; experimento `blocked_cancellation`);
+- la presentación recibe el sobre de transporte (A-2; experimento `consumer_without_cli`).
+
+### 16.4 Autoridad sobre el estado
+
+| Dato | Quién lo modifica | Cómo se evita la concurrencia |
+|---|---|---|
+| Estado del job | `JobEventApplier` y `RunQueue` (dentro de `run`). Además, `EnqueueMedia` crea, `PurgeFinishedJobs` borra terminados y `RecoverInterruptedJobs` corre antes de ejecutar | Un solo proceso de `run` por instalación (cola ocupada, T42-D12); los demás comandos solo crean, borran terminados o escriben job requests |
+| Estado de ejecución | El pool (worker asignado, terminado) | Interno; no se persiste |
+| Elegibilidad | `RunQueue` (todo `PENDING`) | — |
+| Estado de un output | Hoy `output_path` desde el applier; con D-15, el applier (U3) | Mismo dueño |
+| Intentos | `RetryJob` (vía la bandeja) y `Job.retry` | Bandeja |
+| Resultado de cancelación | `RunQueue` (aplica `JobCancelled` del worker o en nombre del terminado) | Solicitud, interrupción y reconciliación son tres pasos (§16.11) |
+| Resultado de recuperación | `RecoverInterruptedJobs` | Antes de despachar nada |
+| Identidad | `JobStore.create` (id) y `jobs` (media key) | Transacción |
+| Output claims | `OutputClaims` dentro del worker (`O_EXCL`) | El sistema de archivos es la autoridad atómica, también entre procesos |
+| Recursos disponibles | `count_idle_workers` | — |
+
+- **Hay un único propietario lógico:** la sesión de `run`. Las interfaces le envían mensajes persistidos (la bandeja) y los workers, eventos.
+- **Patrón a preservar:**
+  - Ghost-Downloader-3 lo adopta para su motor (su ADR-0012: un hilo dueño del estado y un único punto de entrada);
+  - Seal concentra el estado en `DownloaderV2`.
+- **Regla:** ninguna alternativa introduce un segundo dueño del estado.
+
+### 16.5 Mecanismos de las referencias
+
+| Referencia (commit, licencia) | Recepción y estado | Coordinación | Ejecución de yt-dlp | Cancelación | Recuperación | Aplicable |
+|---|---|---|---|---|---|---|
+| Ghost-Downloader-3 (`b824a78`, GPL-3.0) | `TaskService`; estado en un hilo despachador; persistencia en `tasks.jsonl`; conflictos de nombre resueltos en disco con marcadores `O_EXCL` (su ADR-0014) | Un event loop en un hilo (`CoroutineRunner`); `maxTaskNum` tareas a la vez | yt-dlp **solo extrae** (`asyncio.to_thread(probeFormats)`); los bytes los descarga su motor HTTP (`HttpTaskStep`); ffmpeg como proceso (`FFmpegStep`); QuickJS-NG como proceso, `libqjs.so` en Android | `task.cancel()` de asyncio; ffmpeg con `process.kill()` (solo el hijo directo); el hilo de extracción no se interrumpe | Tareas desde `tasks.jsonl`; el disco es la autoridad de los nombres | El dueño único del estado y la autoridad del disco sobre los nombres, que ya tenemos. **No se adopta** el modo solo extracción: duplicaría fragmentos, HLS y DASH, reintentos, directos y postprocesamiento de yt-dlp |
+| Seal (`5a4f5fb`, GPL-3.0) | `DownloaderV2`: un mapa observable de tareas | Corrutinas de Kotlin; `MAX_CONCURRENCY = 3`; servicio en primer plano mientras haya tareas | youtubedl-android **ejecuta yt-dlp como proceso**, con un `processId` por tarea | `YoutubeDL.destroyProcessById` | Las tareas en curso se restauran como canceladas y el User las reinicia | Coordinar con corrutinas no significa prescindir de procesos: Seal aísla cada descarga en un proceso |
+| VoiceStudio (`d906140`, AGPL-3.0) | FastAPI y asyncio | Pool vigilado con presupuestos de GPU (`gpu_gateway`) | Trabajo nativo en hilos; motores aislados en *sidecars* (procesos con su propio intérprete, limpieza por grupo de procesos) | `inference_cancellation`: las llamadas nativas en proceso no se cancelan; **solo los sidecars pueden terminarse antes** | Planes reanudables propios | Confirma §16.7: lo que debe poder terminarse se aísla en un proceso |
+| VoiceBlueprintPro (`e9a2a63`, AGPL-3.0) | Derivado de VoiceStudio (27 diferencias en `backend/services`) | Igual | Igual | Igual | Igual | Sin mecanismos de ejecución distintos |
+| YTDownload-2026 (`0abda8e`, sin licencia) | `DownloadCoordinator` con `ThreadPoolExecutor` | Hilos | yt-dlp como librería en un hilo | `future.cancel()` solo antes de empezar; después, un `Event` en el hook de progreso | Historial en repositorio | Contraejemplo: cancelación solo cooperativa |
+| Kannagi | Ventana WPF | Un proceso `yt-dlp.exe` por descarga | Ejecutable externo; progreso por expresiones regulares sobre stdout | `Ctrl+C` al proceso; no termina su árbol | — | Contraejemplo: errores y progreso por texto (A-3, A-5) |
+
+### 16.6 yt-dlp y FFmpeg: niveles de concurrencia y operaciones bloqueantes
+
+| Nivel | Quién lo crea | Control en el producto | Valor actual |
+|---|---|---|---|
+| Jobs concurrentes | `RunQueue` + pool | `worker_count` | 1 por defecto |
+| Fragmentos de un job | yt-dlp (`ThreadPoolExecutor`, `downloader/fragment.py`) | `concurrent_fragment_downloads` (SUP-P09) | 1 (no se fija) |
+| ffmpeg por job | yt-dlp (`Popen`, `postprocessor/ffmpeg.py`) | — | Uno a la vez; la unión copia streams; recodificar usa los hilos de los códecs |
+| Runtime de JavaScript | yt-dlp (`Popen`, `jsc/_builtin`) | — | Un proceso por resolución |
+| Escritura en SQLite | Proceso de `run` | — | Un escritor |
+
+Limitar los workers no limita toda la concurrencia: con `concurrent_fragment_downloads > 1` o al recodificar, un job consume más de una conexión o de un núcleo. Por eso la admisión (U8) contabiliza recursos por clase (§16.10).
+
+| Operación bloqueante | Contexto que bloquea | Afecta a | Límite de tiempo | Interrupción |
+|---|---|---|---|---|
+| Extracción (HTTP, JSON) | Hilo del job | Ese job | `socket_timeout` por lectura (20 s por defecto en yt-dlp) | Solo terminando el proceso; el hook no se llama (experimento) |
+| Retos de JavaScript | Hilo del job esperando al runtime | Ese job | — | Terminar el árbol |
+| DNS y conexión | Hilo del job | Ese job | `socket_timeout` | Terminar el proceso |
+| Transferencia | Hilo del job o de sus fragmentos | Ese job | `socket_timeout` por lectura | Cooperativa en cada bloque (hook) o terminando |
+| Reintentos (`RetryManager`) | Hilo del job | Ese job | Según `retries` | Terminando el proceso |
+| Escritura y renombrado (`file_access_retries`) | Hilo del job | Ese job | Reintentos de yt-dlp | Terminando |
+| ffmpeg y ffprobe | Proceso hijo; el hilo del job espera | Ese job | Ninguno | Terminar el árbol (ADR-0029) |
+| SQLite ocupado | Proceso de `run` | Toda la coordinación | `busy_timeout` más `BusyQueueWaiting` (espera sin abandonar, T42-D12) | No hace falta: tiempo acotado y recuperable |
+| Colas entre procesos | Hilos receptores | Ningún job | `collect_events(0,5 s)` | — |
+
+### 16.7 Experimentos y mediciones
+
+**Condiciones:**
+- Linux, 2 CPU, Python 3.13.18, yt-dlp 2026.11.23;
+- servidor local limitado a 2 MiB/s por conexión;
+- mediana de 3 repeticiones salvo indicación;
+- datos: [execution-alternatives-linux.json](../notes/experiments/execution-alternatives-linux.json).
+
+| Experimento | Resultado | Conclusión |
+|---|---|---|
+| Arranque de un proceso `spawn` con yt-dlp importado y un `YoutubeDL` creado | 0,263 s (0,245–0,384; 5 repeticiones). Dentro del hijo, importar y crear: 0,049 s | Un proceso por job cuesta unos 0,26 s, despreciable frente a una descarga real |
+| `YoutubeDL` nuevo en un intérprete caliente | 0,032 s (20 repeticiones) | Crear un `YoutubeDL` por job (como hoy) no es un coste relevante |
+| 4 descargas de 1 MiB en **secuencia** (baseline) | 2,107 s; 90,6 MiB de memoria del árbol | Referencia individual: 0,5 s por descarga |
+| 4 en **hilos** | 0,691 s; 88,8 MiB | La concurrencia funciona en un solo proceso: la descarga libera el GIL |
+| 4 con **un proceso por job** | 2,138 s; 370,7 MiB; 9 procesos | Con 2 CPU, el arranque concurrente de 4 intérpretes domina |
+| 4 en un **pool ya arrancado** | 0,594 s; 327,2 MiB; 6 procesos | Tan rápido como los hilos; unos 60 MiB por worker |
+| Cancelar a los 0,5 s una descarga **bloqueada** (el servidor no responde) | Hilo cooperativo: se detuvo 2,561 s después, por el `socket_timeout` de 3 s, con **0 llamadas al hook**; `future.cancel()` devolvió `False`. Proceso terminado: 0,002 s | Un hilo no detiene una operación bloqueada: espera al timeout. Un proceso, sí |
+| Hijo externo (como ffmpeg) al cancelar | Lanzado desde un hilo: **sobrevive**. Desde un líder de grupo terminado con `killpg`: no sobrevive | Sin un proceso por ejecución no hay un árbol que terminar. T33 ya lo demostró con Job Object y grupo de procesos |
+| Fallo nativo (`os.abort`) en un job | En hilos del mismo proceso: el proceso termina con −6 y **el otro job no termina**. En procesos separados: el otro termina con 0 | El aislamiento ante fallos nativos exige procesos |
+| Event loop con una descarga de yt-dlp | En la corrutina: retardo máximo del loop de 0,526 s, la descarga entera. Con `asyncio.to_thread`: 0,006 s | yt-dlp es síncrono: en un event loop va a un hilo o a un proceso, y su cancelación es la de ese hilo o proceso |
+| Coste por evento | Entre procesos: 7,29 µs por mensaje; en el mismo proceso: 1,35 µs (20 000 mensajes) | Con un evento cada 0,5 s por job, el transporte entre procesos es irrelevante |
+| Memoria de descargas sucesivas en un proceso | 59,6 MiB tras 1 job; 61,0 MiB tras 30 | 1,4 MiB con el extractor genérico. **No basta** para retirar el reciclado: no ejercita extractores, cachés ni retos de YouTube |
+| Programa cliente sin `command_line` | Encoló, ejecutó, consultó, recuperó y canceló: job `COMPLETED` con su output, sin importar `command_line` | Viable, pero exige seis módulos internos (implementaciones de `job_storage`, `media_extraction` y `workers`), y la observación llega como `WorkerMessage`. Es la evidencia de A-1 y A-2 |
+
+**Evidencia reutilizada:**
+- terminación del árbol y ausencia de huérfanos al matar el proceso principal: T33, en Linux y Windows;
+- cola ocupada: T42-D12, pruebas de `BusyQueueWaiting`;
+- recuperación tras cerrar `run`: pruebas de UC-06.
+
+**Límites:**
+- solo Linux; los tiempos de Windows, donde `spawn` es el único método, se miden en la campaña posterior;
+- descargas locales;
+- la memoria no incluye extractores reales.
+
+### 16.8 Garantías por alternativa y comparación
+
+| Alternativa | Garantías | Recursos (medidos) | Complejidad | Windows | Android | iOS | Evidencia | Disposición |
+|---|---|---|---|---|---|---|---|---|
+| A. Pool persistente de procesos (vigente) | Cancelación forzada, sin descendientes, aislamiento ante fallos | 0,594 s para 4 jobs; ~60 MiB por worker, también ocioso | Pool con reciclado y reemplazo (380 líneas) | Demostrada en desarrollo; T33 y T42 en Windows | `multiprocessing` sin soporte oficial (documental) | No hay procesos (documental) | Experimental, documental | **Preserve** en escritorio; **Specialize** |
+| B. Un proceso por job | Las mismas que A | 2,138 s para 4 en 2 CPU; libera la memoria al terminar; +0,26 s por job | Menos código; el registro en el terminador se repite en cada job | Viable (inferido) | Igual que A | No | Experimental | **Descartada por ahora**: sin ventaja obligatoria; se reconsidera si SUP-P04 lo exige |
+| C. Hilos | **Pierde** la cancelación de operaciones bloqueadas, la terminación de descendientes y el aislamiento ante fallos | 0,691 s; 88,8 MiB | Baja | **Incompatible** con UC-05 A2, SUP-R02, SUP-R04 | Candidata para el ejecutor futuro, con garantía menor | Única opción en proceso | Experimental | **Descartada** en Windows; **Defer** como ejecutor móvil |
+| D. Event loop ejecutando yt-dlp | Bloquea el loop durante toda la operación | 0,526 s de retardo | Baja | Incompatible | — | — | Experimental | **Descartada** |
+| D′. Event loop que delega en hilos | Las de C | Las de C | Añade un loop sin necesidad | Incompatible | Posible | Posible | Experimental | **Descartada** como arquitectura; el loop no aporta garantías |
+| E. Coordinación única con ejecución intercambiable | Las del mecanismo que se elija | — | Ya existe: `RunQueue` + `WorkerPool` + `MediaSource` | A dentro | C dentro (futuro) | C dentro, con R-31 | Inspección del código | **Recomendada** (es la vigente, formalizada) |
+| F. Mecanismos nativos (WorkManager, servicio en primer plano, BackgroundTasks) | Alojan el ciclo de vida; no ejecutan Python ni yt-dlp por sí mismos | — | — | Programador de tareas para arrancar (D-13) | Servicio en primer plano como anfitrión | BGProcessingTask sin garantías | Documental | **Defer**: son anfitriones de la sesión, no ejecutores |
+
+**Primero se eliminan las alternativas que incumplen requisitos obligatorios.** En Windows son tres:
+- cancelar una operación bloqueada (UC-05 A2);
+- no dejar descendientes (SUP-R02);
+- que el fallo de un job no detenga los demás (SUP-R03, SUP-R04).
+
+C, D y D′ los incumplen. Entre A y B:
+- B no demuestra ninguna garantía que A no tenga;
+- su ventaja (memoria ociosa, sin reciclado) es una preferencia;
+- su coste es real: sustituir el pool, rehacer sus pruebas y la evidencia de T33 y T42.
+
+**Conclusión:** se conserva A.
+
+### 16.9 Arquitectura recomendada
+
+**E con A como mecanismo de escritorio:**
+
+1. **Coordinación única (Preserve).**
+   - `RunQueue`, `JobEventApplier`, `JobStore` y la bandeja siguen siendo la única autoridad del estado.
+   - Las interfaces le hablan por la bandeja persistida, como hoy los comandos.
+   - La admisión (U7, U8) se añade a esta coordinación, no a otra.
+2. **Contrato de ejecución (Generalize, mínimo).** `WorkerPool` conserva su papel con dos cambios:
+   - `collect_events` entrega eventos con alcance de job (`job_id`, `JobEvent`); el sobre `WorkerMessage` queda interno de `workers` (A-2);
+   - la capacidad se expresa como una consulta de capacidad (hoy, workers libres), y la terminación forzada puede no estar soportada: devuelve `False`, la cancelación queda cooperativa y se informa.
+
+   A otra implementación no se le exige `worker_id`, un handle de proceso ni el reciclado.
+3. **Ejecución de escritorio (Specialize, Preserve).** `ProcessWorkerPool` con `ProcessTreeTerminator`, sin cambios de comportamiento, para Windows y POSIX.
+4. **Unidad de ejecución independiente de procesos (Preserve).** `MediaSource` más `publish` con `JobCancelledError` ya son el contrato que cualquier ejecutor reutiliza, con la conversión de errores inesperados de `worker_loop`.
+5. **Sin `asyncio`.**
+   - La coordinación es un bucle síncrono con una espera acotada (`collect_events`, 0,5 s).
+   - Los plazos nuevos (aplazamientos, `Retry-After`, ventanas) se calculan como el siguiente vencimiento.
+   - Una GUI aloja la sesión en un hilo o un proceso propio y habla con ella por la bandeja y las consultas.
+6. **Ejecutores de otras plataformas (Defer).**
+   - Un ejecutor en hilos con cancelación cooperativa.
+   - Su garantía menor se documenta: una operación bloqueada se detiene por timeout.
+   - En Android, ffmpeg y el runtime de JavaScript pueden seguir siendo procesos (Seal, Ghost-Downloader-3); en iOS no hay procesos (R-31).
+7. **Nombre `workers`.** Se conserva: representa una capacidad del dominio (ejecutar jobs en workers, vocabulario vigente). Lo específico de procesos se distingue por el nombre de sus módulos (`process_worker_pool`, `*_process_tree_terminator`).
+
+**Mecanismos:**
+- **Dejan de ser necesarios:** ninguno.
+- **Cambian:** la firma de la observación (A-2) y el significado de dos operaciones del contrato.
+
+### 16.10 Admisión y recursos
+
+La capacidad deja de ser solo «workers libres». La admisión (U7, U8) consulta, para cada job elegible:
+
+| Clase de recurso | Fuente | Unidad |
+|---|---|---|
+| Unidades de ejecución | Contrato de ejecución | Jobs |
+| Sitio | Restricciones y ritmo (D-2 a D-4) | Jobs por sitio y plazos |
+| Almacenamiento | Estimación por output y espacio reservado (D-5) | Bytes por unidad |
+| Ancho de banda | Reparto global (D-20) | Bytes por segundo |
+| Conexiones de fragmentos | `concurrent_fragment_downloads` | Conexiones |
+| Ventana y pausa | Programación (D-13) e intención de pausa (D-6) | Tiempo |
+| Conectividad | Condición de red (BR-05, BR-06) | Sí o no |
+
+Son datos que consulta una política de `job_queue`, no un sistema genérico de recursos.
+
+### 16.11 Cancelación
+
+Toda cancelación sigue tres pasos:
+1. **Solicitud:** una job request persistida.
+2. **Interrupción efectiva:** el ejecutor se detiene.
+3. **Reconciliación:** el coordinador decide y persiste el estado.
+
+Nunca se declara `CANCELLED` por la sola solicitud. Solo un job `PENDING` se cancela directamente, porque no tiene ejecución que interrumpir.
+
+| Situación | Pool de procesos (Windows) | Ejecutor en hilos (futuro) | Qué se preserva |
+|---|---|---|---|
+| Pendiente | `CANCELLED` al procesar la petición | Igual | — |
+| Activo y descargando | Cooperativa en el siguiente evento; si no confirma en el plazo, terminar el árbol | Solo cooperativa | Parciales |
+| Expansión | Igual que activo; los hijos no terminados se cancelan (BR-16) | Igual | — |
+| Playlist expandida con hijos activos | Cada hijo según su estado | Igual | — |
+| Operación bloqueada (extracción, red, retos) | Terminar el árbol tras el plazo | Se detiene al vencer el timeout: **garantía menor, documentada** | — |
+| Durante ffmpeg | Terminar el árbol, ffmpeg incluido | Terminar el hijo si el ejecutor lo controla (Android); no aplica en iOS | El parcial previo |
+| Información complementaria | Como la descarga | Igual | Outputs publicados y reclamados |
+| Publicación de outputs | La reclamación ya existe; un archivo publicado es propio (BR-31) | Igual | Propiedad |
+| Persistencia | En el proceso de `run`: transacción atómica | Igual | Consistencia de SQLite |
+
+Si el ejecutor no confirma ni puede terminar, el job queda `CANCELLATION_REQUESTED` hasta su evento final o hasta el cierre de la sesión; `RecoverInterruptedJobs` lo concilia al volver.
+
+### 16.12 Interrupción, cierre y recuperación
+
+| Suceso | Jobs activos | Descendientes | Parciales y outputs | Reclamaciones | Transacciones | Eventos pendientes |
+|---|---|---|---|---|---|---|
+| Cierre normal | Terminan, o siguen `RUNNING` si se interrumpieron | Terminados con el árbol | Se conservan | Se conservan | Confirmadas | Se aplican los recibidos |
+| `Ctrl+C` (primero y segundo) | Detenidos sin cambiar de estado (UC-05 A6) | Terminados | Se conservan | Se conservan | — | Se descartan los de jobs interrumpidos |
+| Terminación del coordinador | `RUNNING` sin worker | Job Object o grupo los terminan (T33) | Se conservan | Se conservan | SQLite revierte la incompleta | Se pierden; la recuperación no depende de ellos |
+| Caída de una unidad de ejecución | `JobFailed(WORKER_CRASHED)` en su nombre | Terminados | Se conservan | Se conservan | — | — |
+| Reinicio, suspensión, hibernación, terminación por el sistema | Como la terminación del coordinador | Igual | Igual | Igual | Igual | Igual |
+
+**Recuperación según los outputs** (D-9, BR-23; U5):
+
+| Outputs al recuperar | Resultado |
+|---|---|
+| Ninguno | Vuelve a `PENDING` y se reanuda desde los parciales |
+| Uno parcial | Igual |
+| Todos los obligatorios publicados, propios y verificados | `COMPLETED` sin peticiones al sitio |
+| Varios parciales | Vuelve a `PENDING`; los publicados y verificados no se repiten |
+| Opcionales incompletos | No impiden completar; se informan |
+
+La recuperación no depende de que la unidad de ejecución haya enviado su mensaje final: se basa en la identidad, la propiedad, la integridad y la evidencia. El significado de `COMPLETED` es el mismo con cualquier mecanismo: lo decide el coordinador a partir de los outputs obligatorios persistidos, nunca un ejecutor.
+
+### 16.13 Eventos internos y públicos (A-2)
+
+| Acontecimiento | Clase | Público |
+|---|---|---|
+| `WorkerMessage` | Mensaje de transporte | No |
+| `JobStarted` | Operación iniciada | Sí, con el estado aplicado |
+| `DownloadProgressed`, `PostprocessingProgressed` | Observación transitoria | Sí, sin garantía de entrega |
+| `FormatSelected`, `SingleMediaFound`, `PlaylistEntriesFound` | Cambio aplicado y persistido | Sí, como cambio de estado |
+| `JobCompleted`, `JobFailed`, `JobCancelled` | Resultado final **solo una vez aplicado** (puede quedar `FAILED`, T44) | Sí: lo público es el estado persistido, no el evento del worker |
+| Avisos (D-14) | Notificación | Derivada del estado aplicado |
+
+| Consumidor | Necesita |
+|---|---|
+| CLI | Estado aplicado y progreso transitorio |
+| GUI y aplicación móvil | Lo mismo, más las vistas (§5.2) |
+| Programa cliente | Lo mismo, versionado |
+| Avisos | Cambios persistidos |
+| Diagnóstico | Además, `sequence_number` en los logs (interno) |
+
+### 16.14 Resolución de A-1 a A-8
+
+| Hallazgo | Problema | Diseño recomendado | Contrato | Unidad E3 | Evidencia | Pendiente |
+|---|---|---|---|---|---|---|
+| A-1 | Ensamblaje y sesión en la CLI | `queue_installation` (§16.15) | Abrir la instalación, sesión, cerrar | U2 | Experimento `consumer_without_cli`: seis módulos internos | Implementación y AAC-02 |
+| A-2 | `WorkerMessage` llega a la presentación | Observación con `(job_id, JobEvent)` y el job aplicado | Canal de observación (§16.13) | U2 | `run_queue.py:34`; experimento | Activar AR-05 al terminar U2 |
+| A-3 | Las consultas devuelven `Job` | Vistas solo donde hay un consumidor: `JobView` y `JobOutputView`; no un DTO por entidad | Vistas versionadas (§5.2) | U4 | `list_jobs.py` | Esquema v1 |
+| A-4 | Progreso sin tipo de tamaño | `total_kind` y `stage` | §5.4 | U4; U8 para directos | `progress_event_translator.py:54` | — |
+| A-5 | Clasificación en parte por texto | Cadena de causas (BR-25) | Errores (§5.5) | U1 | Experimento de cadena de causas (2.2.0) | Traducciones de Windows |
+| A-6 | La ruta como identidad del output | ADR-0033 | `JobOutput` | U3 | `output_claims.py` | Reclamación móvil |
+| A-7 | `partial_directory` y `download_directory` absolutos en la entidad | El destino es la parte local de la identidad; los parciales se derivan de la referencia de almacenamiento | ADR-0033 | U3 | `job.py:144` | — |
+| A-8 | Estado por defecto en el checkout | La interfaz aporta la ubicación al abrir la instalación | Apertura de la instalación (§16.15) | U2 (contrato) y U6 (configuración) | `settings_loader.py:72` | — |
+
+Ninguno está resuelto: la resolución es documental hasta que su unidad lo implemente y lo pruebe.
+
+### 16.15 Ensamblaje del producto (A-1) y programa cliente
+
+| Responsabilidad | Hoy | Destino |
+|---|---|---|
+| Construcción de dependencias del producto | `open_job_store*`, `_open_queue_database`, `open_worker_pool`, `create_process_tree_terminator`, `output_claims_directory`, `create_ffmpeg_locator` | `queue_installation` |
+| Configuración | `load_command_settings` (CLI) sobre `load_settings` | La CLI lee los argumentos; `configuration` resuelve |
+| Apertura e inicialización de la instalación | Crear la carpeta de estado, migrar, traducir la cola ocupada | `queue_installation` |
+| Sesión (verificar ffmpeg, recuperar, ejecutar, cerrar) | `run_command._run_queue` | `queue_installation` |
+| Presentación, códigos de salida, señales, log de la CLI | `run_command`, `job_presenter`, `console_interruption`, `log_file` | Se quedan en `command_line` |
+
+**Cohesión.**
+- `queue_installation` tiene una responsabilidad: abrir una instalación y ofrecer sus operaciones y su sesión.
+- No absorbe la presentación ni las reglas, que siguen en `job_queue`.
+- Es el único que conoce las implementaciones: hereda la excepción de ADR-0017 B.
+- El nombre queda **propuesto**: sigue el término *installation* del vocabulario y revela la intención (naming #9).
+
+**Criterio del programa cliente (AAC-02, ampliado).** Una prueba de U2 que, sin importar `command_line`, sin `argparse` y sin leer stdout:
+1. abre una instalación aislada en una carpeta temporal;
+2. encola un medio del servidor local;
+3. inicia la sesión;
+4. consulta el estado y los outputs;
+5. pide una cancelación;
+6. reabre la instalación y recupera un job interrumpido;
+7. cierra los recursos.
+
+Solo usa la API pública de `queue_installation` y `job_queue`. La línea base es el experimento `consumer_without_cli`, que hoy lo consigue con seis módulos internos.
+
+### 16.16 Contrato de ADR-0033 cualificado: claves de output
+
+La clave de un output es su **tipo** más los **discriminantes** propios de ese tipo, con un conjunto cerrado por tipo. Se representa como un valor estructurado; su forma textual es solo una serialización.
+
+| Tipo | Discriminantes | Ejemplos de outputs distintos |
+|---|---|---|
+| `video` (principal) | — | — |
+| `audio` (principal, o único con `audio_only`) | — | — |
+| `audio_track` (pistas adicionales) | `language`, `format_id` | Audio `es` y `en` de un mismo contenido |
+| `subtitle` | `language` (código del sitio, sin normalizar: `es`, `es-419`, `pt-BR`), `origin` (`manual` o `automatic`), `format` (`vtt`, `srt`, `ass`) | `es` manual frente a `es` automático; `es` frente a `es-419`; `vtt` frente a `srt` convertido |
+| `chapter` (al dividir por capítulos) | `index` | Capítulo 3 |
+| `thumbnail` | `format` | `jpg` frente a `webp` |
+| `metadata` (`info.json`) | — | — |
+| `description` | — | — |
+| `comments`, `chat` (información estructurada) | `format` | — |
+
+- Los segmentos de SponsorBlock y los capítulos incrustados no son outputs: modifican el output principal o sus metadatos.
+- Un tipo nuevo se añade con sus discriminantes; un discriminante nuevo de un tipo existente cambia la versión del contrato.
+- La identidad completa es `(job identity, clave)`.
+
+**Importación y restauración:**
+
+| Caso | Identidad |
+|---|---|
+| Restaurar la misma instalación | Se conserva: es el mismo job (owner token) |
+| Restaurar en otra instalación | Los jobs restaurados conservan su id local, pero no la propiedad de los archivos hasta conciliarla (BR-36) |
+| Importar una solicitud | Job nuevo, con la misma parte portable de la identidad de la petición |
+| Importar historial | Jobs nuevos con una referencia de origen (instalación y job de procedencia) para la trazabilidad, que no es identidad |
+| Trasladar un output | Misma identidad; nueva referencia de almacenamiento |
+| Reutilizar un id local | Imposible: migración 0003 |
+
+No se introduce UUID: la identidad portable ya es la de la petición, derivada del contenido.
+
+### 16.17 Contexto de acceso autorizado (revisión de §6.2)
+
+La clase de contexto de acceso es **el id del perfil más una revisión de contexto**:
+- la revisión cambia cuando el User declara otra cuenta autorizada en el perfil;
+- renovar la credencial de la misma cuenta no la cambia.
+
+| Suceso | Efecto en la clase |
+|---|---|
+| Renovar la credencial | Igual |
+| Cambiar la cuenta autorizada | Nueva revisión: las peticiones nuevas son distintas de las anteriores |
+| Cambian los permisos de la cuenta | El producto no puede saberlo. Si una petición resulta «ya descargada» con otro acceso, el User puede repetirla con autorización (UC-25) |
+| Modificar el perfil (proxy, nombre) | Igual |
+| Eliminar el perfil | Los jobs pendientes fallan al enviarse con «perfil no disponible» (§6.4) |
+| Recrear con el mismo nombre | Id nuevo, clase nueva |
+| Restaurar la configuración | Ids y revisiones restaurados |
+| Importar una solicitud | Conserva la clase solo si el perfil existe con el mismo id y la misma revisión; si no, el User elige un perfil |
+
+Conservar el id no garantiza que el acceso sea equivalente. La revisión es el contrato y se cualifica con el User, no deduciéndola de las credenciales. Nunca se exponen secretos.
+
+### 16.18 Consecuencias técnicas en D-1 a D-21
+
+Ninguna resolución funcional cambia. Cambia, o se precisa, la solución técnica de estas decisiones:
+
+| Decisión | Consecuencia de la arquitectura de ejecución |
+|---|---|
+| D-2 Continuidad | La admisión vive en la coordinación única; un aplazamiento es un vencimiento que calcula el bucle de `RunQueue`, no un temporizador de un event loop |
+| D-3 Ritmo | El ritmo por sitio se aplica al despachar; los reintentos siguen en yt-dlp |
+| D-4 Restricciones temporales | `Retry-After` se convierte en un vencimiento de la admisión |
+| D-5 Almacenamiento | Clase de recurso de la admisión (§16.10) |
+| D-6 Pausa | La intención persiste en la bandeja; la pausa inmediata usa la cancelación en tres pasos sin aplicar `JobCancelled` (como `Ctrl+C`) |
+| D-9 Recuperación | No depende del mensaje final del ejecutor (§16.12) |
+| D-10 Directos | Un directo activo ocupa una unidad de ejecución con una duración máxima; su cancelación es la del pool |
+| D-12 Fallos de almacenamiento | El clasificador se ejecuta dentro del worker; su resultado viaja como `JobFailed` |
+| D-13 Programación | El lanzador inicia la sesión; la ventana es un dato de la admisión |
+| D-14 Avisos | Consumen el estado aplicado del canal de observación (§16.13) |
+| D-15 Outputs | `COMPLETED` lo decide el coordinador a partir de los outputs obligatorios persistidos (AAC-12) |
+| D-16 Identidad | Sin cambios; la clase de contexto de acceso incluye la revisión (§16.17) |
+| D-17 Contratos públicos | El programa cliente usa `queue_installation` y el canal de observación sin `WorkerMessage` |
+| D-20 Ancho de banda | El reparto se calcula al despachar; los fragmentos cuentan como conexiones |
+
+### 16.19 Cómo intervinieron Clean Code y Naming Principles en la selección
+
+| Regla (referencia) | Efecto en la decisión |
+|---|---|
+| Use cases drive architecture (naming #12) | La arquitectura se juzgó por los requisitos obligatorios de UC-05, SUP-R02 y SUP-R04, no por el estilo del mecanismo |
+| Frameworks are plugins (naming #10) | `asyncio`, Qt o las corrutinas no son la autoridad: no se introduce un event loop que la coordinación no necesita |
+| Dependencies point inward (naming #11) | La coordinación no importa mecanismos de ejecución (AR-08, activada) |
+| Architecture reveals intent (naming #9) | `workers` se conserva: nombra una capacidad del dominio; los módulos nombran el mecanismo (`process_worker_pool`) |
+| ISP (principle/isp) | El contrato de ejecución no obliga a otra implementación a tener `worker_id`, un handle de proceso ni reciclado |
+| SRP y SoC (principle/srp, sod) | El ensamblaje y la sesión salen de la CLI a `queue_installation`, sin llevar la presentación ni las reglas |
+| DRY (principle/dry) | Una sola coordinación para todos los mecanismos; una sola recuperación |
+| KISS y YAGNI (principle/kiss, yagni) | Sin framework de ejecutores, broker de mensajes ni registro de recursos; se conserva lo que funciona |
+| Composición (design-pattern/composition) | La ejecución se compone de `MediaSource`, `publish` y el pool; la cancelación cooperativa es la misma función en todo mecanismo |
+| Testability without framework (naming #13) | La coordinación ya se prueba con `ScriptedWorkerPool`; el programa cliente prueba la sesión sin CLI |
 
 ## Fuentes
 

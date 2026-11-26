@@ -1,6 +1,6 @@
 # Lista de riesgos
 
-- **Versión:** 1.7 (Analysis and Design multiplataforma, 2026-11-26). 1.6: alcance aceptado y resolución de decisiones
+- **Versión:** 1.8 (cierre de Analysis and Design: arquitectura de ejecución, 2026-11-26). 1.7: Analysis and Design multiplataforma. 1.6: alcance aceptado y resolución de decisiones
 - **Fecha:** 2026-11-26
 - **Revisión:** al cerrar cada iteración
 
@@ -31,6 +31,18 @@ Un riesgo no se elimina porque exista una solución documentada; un defecto no s
 | R-30 | Riesgo con tratamiento propuesto (D-15, BR-31, ADR-0033) | UC-03 A16 y A17, UC-24 | Todo archivo escrito por un job tiene su reclamación |
 | R-31 | Riesgo identificado | UC-03, UC-04, UC-15, UC-21, UC-24, UC-26 en iOS | Experimentos de §15 de la [Parte 3](../design/03-target-architecture-and-evolution.md#15-limitaciones-y-cualificaciones-pendientes): un proveedor de retos de JavaScript en proceso y una unión sin ejecutable |
 | R-32 | Riesgo con tratamiento propuesto (ADR-0032, A-1 a A-3) | Todas las interfaces futuras | Reglas AR-03 y AR-05 activas; AAC-02 y AAC-03 |
+| R-33 | Riesgo identificado | UC-05, UC-06, UC-03 en Android e iOS | Suite compartida del contrato de ejecución con el ejecutor móvil; la garantía menor documentada (§16.11 de la Parte 3) |
+
+**Tratamiento en el [plan de E3](iteration-plan-e3.md):**
+- R-24 y R-28 → U1;
+- R-14 y R-30 → U3;
+- R-25 → U5;
+- R-26 → U8;
+- R-27 → U4 y U6;
+- R-29 → U9;
+- R-32 → U2 y U4.
+
+R-31 y R-33 son posteriores a E3. Ningún riesgo se mitiga con un cambio documental: su criterio de regresión se cumple en la unidad que lo implementa.
 
 | ID | Riesgo | Prob. | Impacto | Exposición | Mitigación | Iteración | Estado |
 |---|---|---|---|---|---|---|---|
@@ -64,5 +76,6 @@ Un riesgo no se elimina porque exista una solución documentada; un defecto no s
 | R-30 | Implementar los resultados complementarios o múltiples (UC-03 A16 y A17, UC-24) con el contrato actual de un archivo por job deja archivos sin reclamación, que otro job o una purga podrían tocar | 2 | 3 | **6** | Decidir D-15 antes de implementar cualquiera de esos escenarios (BR-31) | E3 | **Abierto:** análisis del §13.1 |
 | R-31 | En iOS no hay procesos: los postprocessors de FFmpeg y los retos de JavaScript de yt-dlp usan `Popen`, y la ejecución en segundo plano no está garantizada. La viabilidad de descargar y unir en iOS no está demostrada | 3 | 3 | **9** | Contratos que no impidan la ejecución local ni la híbrida (ADR-0032); no prometer capacidades no demostradas; experimentos futuros en dispositivo | Posterior a E3 | Abierto |
 | R-32 | Al añadir interfaces, el ensamblaje del producto (A-1), el transporte del pool (A-2) o las entidades internas (A-3) se duplican o se filtran en cada interfaz, y las reglas divergen | 3 | 3 | **9** | Separar el ensamblaje, el canal de observación y las vistas en E3 (U3); reglas AR-03 y AR-05 | E3 (U3) | Abierto, con tratamiento propuesto |
+| R-33 | Un ejecutor en hilos, la única opción en iOS y la oficialmente soportada en Android, no puede detener una operación bloqueada (espera al `socket_timeout`), no termina descendientes y no aísla los fallos nativos (experimentos de [ejecución](../notes/experiments/execution-alternatives.md)) | 3 | 2 | **6** | Mantener el pool de procesos en escritorio (ADR-0034); en móvil, cancelación cooperativa con un timeout acotado, ffmpeg y el runtime de JavaScript como procesos terminables donde existan (Android), y la garantía menor documentada | Posterior a E3 | Abierto |
 | R-23 | La validación en Windows depende de traspasos paso a paso y de YouTube: la mitad de la sesión es espera, y un bloqueo detiene pasos que no prueban YouTube | 3 | 2 | **6** | Bloques con comprobación automática, medios locales y resumen de resultados ([casos de uso de la validación](../process/validation-use-case-model.md)) | E3 | **Abierto:** medido el 2026-11-25 (51 % de espera); VUC-04 a VUC-08 propuestos |
 | R-19 | Un worker que muere mientras se asocia a su Job Object detiene `run` o deja procesos o jobs inconsistentes | 1 | 2 | 2 | Hasta 3 intentos de arranque, cada intento fallido terminado y liberado; si todos fallan, apagado inmediato, error con código 1 y jobs `RUNNING` recuperables | E2 | Mitigado (Linux, con dobles); el comportamiento nativo es un criterio explícito de T42 |
