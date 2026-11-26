@@ -221,7 +221,7 @@ Estado al 2026-11-26, tras la auditoría previa a la aceptación (T49) y la cons
 |---|---|---|
 | Implementación | `IMPLEMENTATION_COMPLETE` | Esta matriz |
 | Verificación de desarrollo | `DEVELOPMENT_VERIFICATION_PASSED` | `scripts/run_checks.py` sobre el commit publicado (§8.3) |
-| Validación en Windows | `WINDOWS_VALIDATION_PENDING` | Campaña T42 sin ejecutar |
+| Validación en Windows | `WINDOWS_VALIDATION_PENDING` | Campaña T42 en curso: [registro de resultados](t42-results.md) |
 | Evaluación de E2 | Pendiente | §6, tras la campaña |
 | Aceptación final | `FINAL_ACCEPTANCE_PENDING` | Decisión del Responsable con los resultados de Windows |
 

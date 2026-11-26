@@ -59,7 +59,19 @@ Tras la ejecución no quedó ningún proceso del experimento.
 
 ## Resultados en Windows
 
-**Pendiente: se ejecuta en la campaña final de validación en Windows** ([plan de E2, §7](../../project-management/iteration-plan-e2.md#7-campaña-final-de-validación-en-windows)). Los resultados de Linux no son evidencia para Windows. Pegar aquí la tabla que escribe el script y guardar el JSON junto a este documento. Lo que D1 necesita confirmar:
+**Primera ejecución: campaña T42, `t42-candidate-1`, 2026-11-25** (Windows 11 Home 10.0.26200, Python 3.12.13; JSON en [`t33-windows-results-candidate-1.json`](t33-windows-results-candidate-1.json)).
+
+| Escenario | `worker_kill_only` | `taskkill_tree` | `job_object` |
+|---|---|---|---|
+| `terminate_tree` | hijo y nieto vivos (el parcial pasó de 12 288 a 417 792 bytes) ✔ | ninguno ✔ | **ninguno**, `job_active_processes` = 0 ✔ |
+| `isolation_other_tree_alive` | otro árbol vivo ✔ | otro árbol vivo, objetivo sin procesos ✔ | otro árbol vivo, objetivo sin procesos ✔ |
+| `worker_crashed_then_terminate` | `ERROR` (T42-D2) | `ERROR` (T42-D2) | **ninguno** ✔ |
+| `main_process_killed` | `ERROR` (T42-D2) | `ERROR` (T42-D2) | **ninguno** ✔ |
+| `terminate_tree`, asignación tardía | — | — | `ERROR` (T42-D2) |
+
+Los `ERROR` son `PermissionError` al borrar la carpeta temporal: en Windows, `TerminateProcess` es asíncrono y la limpieza no esperaba a que los procesos que el escenario deja vivos a propósito soltaran el parcial. Es un defecto del experimento, no del producto (T42-D2); corregido en `t42-candidate-2`, donde se repite el paso 4. Los cuatro escenarios de `job_object`, los que confirman D1, sí se observaron y dieron *ninguno vivo*.
+
+**Antes de la campaña: se ejecuta en la campaña final de validación en Windows** ([plan de E2, §7](../../project-management/iteration-plan-e2.md#7-campaña-final-de-validación-en-windows)). Los resultados de Linux no son evidencia para Windows. Pegar aquí la tabla que escribe el script y guardar el JSON junto a este documento. Lo que D1 necesita confirmar:
 
 | Escenario | `worker_kill_only` | `taskkill_tree` | `job_object` |
 |---|---|---|---|

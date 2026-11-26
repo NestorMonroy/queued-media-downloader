@@ -1,0 +1,154 @@
+{
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python": "3.12.13",
+  "executable": "D:\\Proyectos\\queued-media-downloader\\eval\\queued-media-downloader\\.venv\\Scripts\\python.exe",
+  "base_executable": "C:\\Users\\yollo\\AppData\\Roaming\\uv\\python\\cpython-3.12-windows-x86_64-none\\python.exe",
+  "observations": [
+    {
+      "scenario": "terminate_tree",
+      "strategy": "worker_kill_only",
+      "alive_after": [
+        "child",
+        "grandchild"
+      ],
+      "details": {
+        "partial_bytes_kept": 417792,
+        "partial_bytes_before": 12288,
+        "partial_is_intact": true,
+        "repeated_terminate": "no error"
+      }
+    },
+    {
+      "scenario": "isolation_other_tree_alive",
+      "strategy": "worker_kill_only",
+      "alive_after": [
+        "worker",
+        "child",
+        "grandchild"
+      ],
+      "details": {
+        "target_alive_after": [
+          "child",
+          "grandchild"
+        ]
+      }
+    },
+    {
+      "scenario": "worker_already_dead",
+      "strategy": "worker_kill_only",
+      "alive_after": [
+        "ERROR"
+      ],
+      "details": {
+        "error": "PermissionError(13, 'El proceso no tiene acceso al archivo porque est\u00e1 siendo utilizado por otro proceso')"
+      }
+    },
+    {
+      "scenario": "main_process_dies",
+      "strategy": "worker_kill_only",
+      "alive_after": [
+        "ERROR"
+      ],
+      "details": {
+        "error": "PermissionError(13, 'El proceso no tiene acceso al archivo porque est\u00e1 siendo utilizado por otro proceso')"
+      }
+    },
+    {
+      "scenario": "terminate_tree",
+      "strategy": "taskkill_tree",
+      "alive_after": [],
+      "details": {
+        "taskkill": [
+          "0: CORRECTO: el proceso con PID 6336 (proceso secundario de PID 11800)\nha sido terminado.\nCORRECTO: el proceso con PID 11800 (proceso secundario de PID 10004)\nha sido terminado.\nCORRECTO: el proceso con PID 10004 (proceso secundario de PID 7884)\nha sido terminado.\nCORRECTO: el proceso con PID 7884 (proceso secundario de PID 3464)\nha sido terminado.\nCORRECTO: el proceso con PID 3464 (proceso secundario de PID 24928)\nha sido terminado.",
+          "128: "
+        ],
+        "partial_bytes_kept": 20480,
+        "partial_bytes_before": 12288,
+        "partial_is_intact": true,
+        "repeated_terminate": "no error"
+      }
+    },
+    {
+      "scenario": "isolation_other_tree_alive",
+      "strategy": "taskkill_tree",
+      "alive_after": [
+        "worker",
+        "child",
+        "grandchild"
+      ],
+      "details": {
+        "target_alive_after": []
+      }
+    },
+    {
+      "scenario": "worker_already_dead",
+      "strategy": "taskkill_tree",
+      "alive_after": [
+        "ERROR"
+      ],
+      "details": {
+        "error": "PermissionError(13, 'El proceso no tiene acceso al archivo porque est\u00e1 siendo utilizado por otro proceso')"
+      }
+    },
+    {
+      "scenario": "main_process_dies",
+      "strategy": "taskkill_tree",
+      "alive_after": [
+        "ERROR"
+      ],
+      "details": {
+        "error": "PermissionError(13, 'El proceso no tiene acceso al archivo porque est\u00e1 siendo utilizado por otro proceso')"
+      }
+    },
+    {
+      "scenario": "terminate_tree",
+      "strategy": "job_object",
+      "alive_after": [],
+      "details": {
+        "job_total_processes": 5,
+        "job_active_processes": 0,
+        "partial_bytes_kept": 8192,
+        "partial_bytes_before": 8192,
+        "partial_is_intact": true,
+        "repeated_terminate": "no error"
+      }
+    },
+    {
+      "scenario": "isolation_other_tree_alive",
+      "strategy": "job_object",
+      "alive_after": [
+        "worker",
+        "child",
+        "grandchild"
+      ],
+      "details": {
+        "target_alive_after": []
+      }
+    },
+    {
+      "scenario": "worker_crashed_then_terminate",
+      "strategy": "job_object",
+      "alive_after": [],
+      "details": {
+        "job_total_processes": 5,
+        "job_active_processes": 0
+      }
+    },
+    {
+      "scenario": "main_process_killed",
+      "strategy": "job_object",
+      "alive_after": [],
+      "details": {}
+    },
+    {
+      "scenario": "terminate_tree",
+      "strategy": "job_object_assigned_late",
+      "alive_after": [
+        "ERROR"
+      ],
+      "details": {
+        "error": "PermissionError(13, 'El proceso no tiene acceso al archivo porque est\u00e1 siendo utilizado por otro proceso')"
+      }
+    }
+  ]
+}

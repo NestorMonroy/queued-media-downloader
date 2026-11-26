@@ -97,7 +97,7 @@ uv run pytest -m windows -o addopts=
 uv run pytest -m network -o addopts=
 ```
 
-**Se espera:** todo pasa. Las 3 pruebas `network` están clasificadas como `BLOCKED_BY_ENVIRONMENT` en el entorno de desarrollo (su proxy rechaza YouTube con HTTP 403); en Windows, con acceso a internet, deben pasar. Si fallan, anotar la causa antes de clasificar el defecto (§Clasificación de defectos): un 403 o un bloqueo de red es *Entorno*. Anotar, para cada `pytest`, el número de pruebas **pasadas, fallidas y omitidas por separado**, y que la sesión no informa `REAL USER DATA CHANGED`. Las 10 pruebas `windows` son: 4 del terminador de árboles de procesos (`tests/workers/test_process_tree_terminator.py`), 3 de la build de ffmpeg incluida (`tests/vendor/`) y 3 de reclamaciones de nombres finales (`tests/media_extraction/test_output_claims.py`: mayúsculas y separadores, archivo existente con otra capitalización, ruta de más de 260 caracteres con un archivo abierto). La suite normal incluye en Windows la prueba de interrupción real de la §5.1 (`tests/job_queue/test_real_interruption_recovery.py`) y las pruebas del terminador parametrizadas para la plataforma. Se omiten en Windows, por diseño, las 4 pruebas de `Ctrl+C` con señales POSIX (equivalente: paso 7), 2 del localizador de ffmpeg con un script POSIX y 1 de nombres que distinguen mayúsculas.
+**Se espera:** todo pasa. Las 3 pruebas `network` están clasificadas como `BLOCKED_BY_ENVIRONMENT` en el entorno de desarrollo (su proxy rechaza YouTube con HTTP 403); en Windows, con acceso a internet, deben pasar. Si fallan, anotar la causa antes de clasificar el defecto (§Clasificación de defectos): un 403 o un bloqueo de red es *Entorno*. Anotar, para cada `pytest`, el número de pruebas **pasadas, fallidas y omitidas por separado**, y que la sesión no informa `REAL USER DATA CHANGED`. En Windows, `pytest -m windows` selecciona 16 pruebas: las 6 del terminador parametrizadas para la plataforma llevan allí también la marca `windows`, además de estas 10: 4 del terminador de árboles de procesos (`tests/workers/test_process_tree_terminator.py`), 3 de la build de ffmpeg incluida (`tests/vendor/`) y 3 de reclamaciones de nombres finales (`tests/media_extraction/test_output_claims.py`: mayúsculas y separadores, archivo existente con otra capitalización, ruta de más de 260 caracteres con un archivo abierto). La suite normal incluye en Windows la prueba de interrupción real de la §5.1 (`tests/job_queue/test_real_interruption_recovery.py`) y las pruebas del terminador parametrizadas para la plataforma. Se omiten en Windows, por diseño, las 4 pruebas de `Ctrl+C` con señales POSIX (equivalente: paso 7), 2 del localizador de ffmpeg con un script POSIX y 1 de nombres que distinguen mayúsculas.
 
 ### Paso 4. Experimento de T33 (ADR-0029)
 
@@ -105,7 +105,7 @@ uv run pytest -m network -o addopts=
 Invoke-CampaignStep "step4-t33-experiment" @("uv", "run", "python", "scripts/experiments/process_tree_termination.py", "--json", "C:\qmd-t42\t42-candidate-1\evidence\t33-windows-results.json")
 ```
 
-**Se espera:** para `job_object`, *ninguno vivo* en los cinco escenarios, también en `main_process_killed`. Pegar la tabla en el [documento del experimento](../notes/experiments/t33-process-tree-termination.md#resultados-en-windows), donde está el resultado esperado de cada estrategia.
+**Se espera:** para `job_object`, *ninguno vivo* en sus cuatro escenarios (`terminate_tree`, `isolation_other_tree_alive`, `worker_crashed_then_terminate` y `main_process_killed`); para el control `job_object_assigned_late`, hijo y nieto vivos; ninguna fila `ERROR`. Pegar la tabla en el [documento del experimento](../notes/experiments/t33-process-tree-termination.md#resultados-en-windows), donde está el resultado esperado de cada estrategia.
 
 ### Paso 5. Casos de uso
 
@@ -270,6 +270,8 @@ Usar el script del [paso 6 del guion de E1](evaluation-guide-e1.md#paso-6-medici
 **Se espera:** picos de memoria anotados por proceso; la memoria del worker no crece con el número de entradas de la playlist. Con esos valores se fija SUP-P04.
 
 ## Registro de resultados
+
+Los resultados reales de cada candidato se registran en [t42-results.md](t42-results.md); esta tabla es la plantilla.
 
 Candidato evaluado: `t42-candidate-__` (hash en `evidence\candidate.txt`) · Fecha: ________ · Evaluador: ________
 
