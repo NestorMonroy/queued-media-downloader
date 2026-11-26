@@ -134,8 +134,18 @@ Consola del Evaluador; sin archivo de evidencia todavía. `Start-ValidationRun` 
 | T42-D12 | 5.7-r2 | *Producto, general* | Mayor | Si otro programa retiene la base de datos más de `busy_timeout` (5 s) mientras `run` trabaja, `run` terminaba con código 1 a mitad de la cola, con un mensaje falso ("nothing was changed"), cortaba los workers en plena descarga o unión y dejaba los jobs `RUNNING` hasta el siguiente `run` | Corregido: `run` envuelve el job store y la bandeja de job requests (`BusyQueueWaiting`), avisa una vez por espera y repite la operación hasta que la cola queda libre; los comandos cortos siguen terminando sin cambios (UC-02 A3). Pruebas `test_run_waits_for_a_busy_queue_and_completes_the_job` (bloqueo real de 6,5 s) y `test_busy_queue_waiting.py`; UC-03 A10. **Pendiente de confirmar en Windows** |
 | T42-D9 | 5.6 | *Procedimiento de validación* | Menor | `Invoke-ValidationSuites` borra las variables de la cola para las pruebas y no las restablecía: las órdenes siguientes del programa usaron la carpeta de estado por omisión (`state\` del clon), fuera de la evidencia; en un clon de uso real habría sido la cola del usuario. El guion pedía volver a la cola 5.2 sin dar una forma de hacerlo | Corregido: las suites restablecen la cola activa, y `Use-ValidationQueue "<bloque>"` vuelve a una cola ya creada (también para la segunda ventana de 5.4, 5.5 y 5.7). **Pendiente de confirmar en Windows** |
 
+### Revisión del archivo de evidencia (`qmd-evidence-ddffe96.7z`, sin descargas)
+
+- `run.txt`: commit `ddffe96`, igual al `main` publicado. `exit-codes.txt`: todos los pasos registrados con código 0.
+- **T42-D8 confirmado en la evidencia:** `queue-5.3.log` guarda la raya de los títulos como U+FFFD.
+- **5.4 confirmado:** la playlist se creó a las 22:46:37, después de arrancar `run --keep-waiting` (22:45:32), y su expansión empezó un segundo después.
+- **Líneas repetidas de la consola** (`Job 13: started` en 5.3, `Job 16: completed` en 5.4): el log de cada cola muestra una sola extracción del job 13 y un solo traslado del archivo final del job 16. Vienen de la copia de la consola, no del programa.
+- **Reciclado de workers observado** (UC-03 A6): `Recycling worker 1` en 5.3; el job siguiente lo hizo el worker 2.
+- **Cierre de T42-D12, después de mover el archivo:** en `5.7-r2`, el archivo final del job 2 (60 146 726 bytes) está en `downloads` y su reclamación es del job 2, pero el job quedó sin `output_path`: el worker lo terminó y `run` cayó al guardar `JobCompleted`. Al recuperarlo, el reintento falló por el bloqueo de YouTube antes de llegar al archivo. Cuando YouTube lo permita, `retry 2` en esa cola debe completarlo sin volver a descargar (`test_finished_download_run_again_completes_without_downloading`).
+
 ### Observaciones
 
+- **O-2 Columnas sin uso.** `started_at` y `finished_at` de la tabla `jobs` (migraciones 0001 y 0003; diseño, Parte 2, modelo de datos) nunca se escriben: siguen vacías en todos los jobs de la evidencia. Ningún caso de uso las lee. Se decide fuera de la campaña si se rellenan o se quitan con una migración.
 - **O-1 Clasificación del bloqueo antibots.** `UNAVAILABLE` agrupa contenidos retirados y el bloqueo temporal de YouTube; el mensaje del sitio los distingue, y `retry` sirve para los dos. Separar un motivo propio (por ejemplo, el sitio pide una sesión) cambia la clasificación de dominio (`FailureReason`, UC-03 A2) y se decide fuera de la campaña.
 
 ### Pendiente en Windows tras esta ejecución
