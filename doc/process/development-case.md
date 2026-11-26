@@ -88,6 +88,14 @@ Ejecuta, en orden, `ruff format --check .`, `ruff check .`, `mypy`, `lint-import
 5. Actualizar la lista de riesgos y registrar las decisiones nuevas como ADR.
 6. Escribir la evaluación en el plan de la iteración; el Responsable del proyecto decide si la iteración se cierra.
 
+### Mensajes de commit
+
+Estilo de Tim Pope, en inglés: asunto en imperativo de 50 caracteres como máximo, con mayúscula y sin punto final; una línea en blanco; cuerpo que explica qué y por qué, con líneas de 72 caracteres como máximo. Antes de cada commit:
+
+```text
+uv run python scripts/check_commit_message.py RUTA_DEL_MENSAJE
+```
+
 ### Estados del producto: cinco conceptos distintos
 
 | Estado | Qué significa | Quién lo establece y con qué evidencia |

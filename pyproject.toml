@@ -70,7 +70,7 @@ max-complexity = 8
 [tool.mypy]
 python_version = "3.11"
 strict = true
-files = ["queued_media_downloader", "tests"]
+files = ["queued_media_downloader", "tests", "scripts"]
 # Nombres de módulo desde la raíz del proyecto, como los importan las pruebas
 # (tests.doubles.fake_media_source), aunque tests/ no tenga __init__.py.
 explicit_package_bases = true
