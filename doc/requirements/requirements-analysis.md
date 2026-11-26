@@ -433,8 +433,8 @@ La relación entre decisiones está en el §13.10.
 |---|---|---|---|---|---|---|
 | D-15 Resultados | Cero, uno o N resultados por job; lo pedido es obligatorio salvo que se marque opcional; completar exige todos los obligatorios | Job con N resultados registrados (tipo, obligatoriedad, estado, ruta, reclamación y evidencia de publicación); `output_path` se conserva como resultado principal por compatibilidad | Inspección de `Job`, `JobCompleted`, `output_claims` y de la migración 0003 (§13.1) | Recomendada con evidencia | 03, 05, 06, 07, 09, 10, 24, 25, 26 | Diseño del esquema en Analysis and Design |
 | D-16 Identidad | Separar la identidad del contenido de la del resultado pedido; las variantes son legítimas | Identidad de la petición = media key + especificación normalizada del resultado, con versión del algoritmo de identidad; «ya descargado» como `SKIPPED` informativo | Inspección de `has_active_download` y de la migración 0002 (§13.2) | Recomendada con evidencia | 02, 03, 18, 22, 23, 24 | La equivalencia de selectores solo es sintáctica |
-| D-18 Transformaciones | Las transformaciones ligadas a la obtención, sin editor general | Postprocessors de yt-dlp y ffmpeg incluido (§13.3, §13.4) | Inspección de yt-dlp; configuración de la build | Recomendada con evidencia; recodificar a H.264 o HEVC, **pendiente de decisión excepcional** (R-29) | 02, 03, 15 | `ffmpeg -encoders` en Windows; patentes |
-| D-19 Perfiles | Las preferencias que determinan el resultado se fijan al encolar | Copiar en el job las opciones de resultado; referenciar el acceso por nombre y resolverlo al enviar | Las download options ya se fijan al encolar (UC-02; pruebas de `enqueue`) | **Cualificada** | 02, 18, 19, 20 | — |
+| D-18 Transformaciones | Las transformaciones ligadas a la obtención, sin editor general | Postprocessors de yt-dlp y ffmpeg incluido (§13.3, §13.4) | Inspección de yt-dlp; configuración de la build | Recomendada con evidencia; recodificar a H.264 o HEVC: necesidad conservada, distribución de codificadores **no aprobada**; R-29 abierto (disposición 2.3.0) | 02, 03, 15 | `ffmpeg -encoders` en Windows; patentes |
+| D-19 Perfiles | Las preferencias que determinan el resultado se fijan al encolar | Copiar en el job las opciones de resultado; referenciar el acceso por un **id estable** del perfil (no por su nombre visible, revisión 2.3.0) y resolverlo al enviar | Las download options ya se fijan al encolar (UC-02; pruebas de `enqueue`) | **Cualificada** | 02, 18, 19, 20 | — |
 | D-9 Recuperación | Recuperación local primero | Evidencia por resultado: registro, reclamación con owner token, publicación y comprobación estructural con ffprobe frente a lo esperado registrado antes de publicar | ADR-0030; recorrido de las fronteras de interrupción (§13.11) | Recomendada con evidencia | 06, 07, 23, 26 | Registrar la expectativa (duración, streams) antes de publicar |
 | D-11 Purga y archivos | Registros y archivos separados; borrar es explícito y autorizado | Nivel de evidencia por operación (§13.12); registrar tamaño, fecha y, opcionalmente, hash al publicar | ADR-0030; YTDownload-2026 como antiejemplo | Recomendada con evidencia | 10, 25 | Coste del hash: pendiente de medición |
 | D-5 Almacenamiento preventivo | Comprobación adaptativa, sin un límite fijo | Estimar con `filesize` o `filesize_approx`, más el espacio reservado por los jobs activos de la unidad y la medición sobre el antecesor existente | yt-dlp suma `filesize_approx` de los formatos unidos y la estima por `tbr` × duración (`YoutubeDL.py`) | **Pendiente de medición** (factor de unión, margen) y **de Windows** (cuotas en `shutil.disk_usage`) | 01, 17 | SUP-P07 |
@@ -450,8 +450,8 @@ La relación entre decisiones está en el §13.10.
 | D-8 Dependencias | Administración controlada, verificable y reversible | Consultar y diagnosticar (UC-01); adoptar versiones cualificadas del repositorio (`uv.lock`); candidata en un entorno aislado; ningún cambio con jobs activos | ADR-0002, SUP-S01, procedimiento de actualización | Recomendada; candidata **condicionada** | 01, 27 | Procedencia de las candidatas |
 | D-10 Directos | Directos y programados dentro del alcance | Programado (`live_status == "is_upcoming"`, `release_timestamp`): la cola lo aplaza hasta su hora, sin `wait_for_video` en un worker. Activo: yt-dlp, con duración máxima configurable | `YoutubeDL.py` (`wait_for_video` espera dentro del proceso) | Recomendada con evidencia; recursos **pendientes de medición** | 03, 11, 14, 17, 21 | Reanudación de directos |
 | D-14 Avisos | Avisos configurables de los sucesos operativos | Registro de sucesos JSON (biblioteca estándar) y resumen; la notificación de Windows necesita una dependencia o PowerShell | La biblioteca estándar no tiene API de notificaciones | Registro **cualificado**; notificación de Windows **pendiente por evidencia insuficiente** | 20, 28 | Dependencia para las notificaciones |
-| D-17 Integración | Requisito transversal; CLI primero; lógica reutilizable sin `argparse` | Contrato JSON versionado y errores estructurados; API Python = los módulos de caso de uso de ADR-0017 cuando sean estables; modelo de confianza por interfaz (§13.7) | ADR-0001, ADR-0017; `job_queue/*` ya separados de `command_line` | Recomendada con evidencia | Todos | Esquemas del contrato |
-| D-21 Retención y privacidad (nueva) | Necesidad aprobada en la instrucción 2.2.0, §32 | Retención por clase de dato (§13.14): purga del historial configurable, rotación de logs vigente, exportaciones y respaldos sin secretos | `log_file.py`, UC-10, BR-34 | Recomendada; valores **pendientes de decisión excepcional** (plazos por defecto) | 10, 20, 22, 23 | Plazos de retención |
+| D-17 Integración | Requisito transversal; CLI primero; lógica reutilizable sin `argparse` | Contrato JSON versionado y errores estructurados; API Python = los módulos de caso de uso de ADR-0017 cuando sean estables; modelo de confianza por interfaz (§13.7) | ADR-0001, ADR-0017; `job_queue/*` ya separados de `command_line` | Recomendada con evidencia; ampliada en Analysis and Design ([Parte 3, §5](../design/03-target-architecture-and-evolution.md#5-contratos-públicos-evolución-de-d-17), ADR-0032) | Todos | Esquemas del contrato |
+| D-21 Retención y privacidad (nueva) | Retención diferenciada y configurable por naturaleza del dato, sin plazo universal (disposición del Responsable, instrucción 2.3.0, §52) | Retención por clase de dato (§13.14): purga del historial configurable, rotación de logs vigente, exportaciones y respaldos sin secretos | `log_file.py`, UC-10, BR-34 | Recomendada; política funcional **aprobada**; plazos configurables **pendientes de medición** | 10, 20, 22, 23 | Plazos de retención |
 
 **Conteo:**
 - **Resoluciones funcionales:** 21 resueltas, 20 de ellas aprobadas por el Responsable; D-21 tiene una necesidad aprobada y sus valores, pendientes.
@@ -462,7 +462,8 @@ La relación entre decisiones está en el §13.10.
   - dependen de Windows: 5 (D-1, D-5, D-12, D-13, D-18);
   - necesitan evidencia adicional: 2 (D-14, D-7 con SOCKS);
   - contradicciones: 1, resuelta (§13.16);
-  - requieren una decisión excepcional del Responsable: 2 (R-29 en D-18, plazos en D-21).
+  - cuestiones excepcionales: 2, con disposición del Responsable (instrucción 2.3.0): R-29 en D-18 (necesidad funcional conservada; distribución universal de codificadores no aprobada; sigue abierto en lo técnico y lo jurídico) y D-21 (política funcional aprobada; plazos pendientes de medición).
+- **Reconciliación multiplataforma** (Windows, Android, iOS): [diseño, Parte 3, §14](../design/03-target-architecture-and-evolution.md#14-reconciliación-de-d-1-a-d-21).
 
 ### 9.2 Detalle por decisión
 
@@ -910,9 +911,9 @@ Se conservan las garantías de R-14 y de ADR-0030: la identidad nunca da la prop
 | Efecto | Opciones | ¿En la identidad? |
 |---|---|---|
 | Cambia el resultado esperado | Selector o preajuste (normalizado), solo audio, contenedor, conversión, códecs, pistas, idiomas, subtítulos, capítulos, secciones, segmentos, transformaciones, complementarios pedidos | Sí |
-| Cambia el destino | Carpeta de descargas y plantilla de salida (con la ruta normalizada como en ADR-0030) | Sí |
+| Cambia el destino | Carpeta de descargas y plantilla de salida (con la ruta normalizada como en ADR-0030) | Sí, como **parte local** de la identidad; se recalcula al importar o restaurar en otra instalación ([diseño, Parte 3, §6.2](../design/03-target-architecture-and-evolution.md#62-identidad-de-la-petición-y-contexto-de-acceso-d-16)) |
 | Cambia la operación | Descarga o solo información (UC-24) | Sí |
-| Cambia el acceso | Perfil de acceso, proxy | No. El resultado con acceso puede diferir (más calidad, contenido de miembros); el formato elegido se registra en el job (`selected_format_id`). Si el User quiere ambas variantes, las distingue por destino |
+| Cambia el acceso | Perfil de acceso; proxy | **Revisado en Analysis and Design** (instrucción 2.3.0, §45). La **clase de contexto de acceso** (id opaco del perfil, o anónimo) sí forma parte de la identidad: una sesión autorizada puede cambiar el contenido, los formatos o las pistas disponibles, y el User no debe cambiar de carpeta para distinguir dos objetivos distintos. Las credenciales y el proxy no forman parte de ella ([diseño, Parte 3, §6.2](../design/03-target-architecture-and-evolution.md#62-identidad-de-la-petición-y-contexto-de-acceso-d-16)) |
 | Condiciones de ejecución | Timeout, reintentos, workers, ritmo, límite de ancho de banda, fragmentos | No |
 | Observabilidad | Nivel de log, intervalo de progreso | No |
 
@@ -1196,8 +1197,8 @@ stateDiagram-v2
     RUNNING --> PENDING : deferred by an external condition, or interrupted and recovered
     RUNNING --> CANCELLATION_REQUESTED : cancel
     CANCELLATION_REQUESTED --> CANCELLED : worker stopped
-    RUNNING --> COMPLETED : all required results published
-    RUNNING --> FAILED : a required result failed
+    RUNNING --> COMPLETED : all required outputs published
+    RUNNING --> FAILED : a required output failed
     RUNNING --> SKIPPED : duplicate or already downloaded
     FAILED --> PENDING : retry
     CANCELLED --> PENDING : retry
@@ -1211,6 +1212,25 @@ Un job con N resultados, una condición externa y una cancelación a la vez:
 - `RUNNING → PENDING` por un aplazamiento no gasta intentos (BR-04).
 
 ### 13.14 Privacidad y retención (D-21)
+
+**Disposición del Responsable (instrucción 2.3.0, §52):** se aprueba una retención diferenciada y configurable por naturaleza del dato, sin un plazo universal. Ningún valor por defecto de 7, 30 o 90 días se fija sin evidencia; los plazos configurables quedan **pendientes de medición**.
+
+| Información | Política funcional inicial |
+|---|---|
+| Jobs pendientes | Preservar |
+| Jobs interrumpidos | Preservar para recuperación |
+| Historial | Conservar hasta una acción explícita o una política configurada |
+| Archivos definitivos | No eliminar automáticamente |
+| Parciales recuperables | Preservar mientras sean necesarios |
+| Credenciales temporales | Eliminar cuando dejen de ser necesarias |
+| Logs | Retención y rotación configurables |
+| Cachés | Limpieza según su función |
+| Respaldos | Política explícita |
+| Evidencia de desarrollo | Preservar conforme a la trazabilidad |
+
+En móvil, el sistema puede limpiar cachés y directorios temporales por su cuenta; la política del producto no depende de que no lo haga ([diseño, Parte 3, §8.8](../design/03-target-architecture-and-evolution.md#88-almacenamiento-d-5-d-11-d-12)).
+
+Detalle por dato (análisis previo, compatible con la disposición):
 
 | Dato | Obligatorio para operar | Retención recomendada | Protección | Efecto de borrarlo |
 |---|---|---|---|---|
@@ -1230,7 +1250,7 @@ El «modo privado» (no conservar el registro de lo descargado) no equivale a la
 - la purga borra registros, pero los logs y la caché conservan rastros;
 - un modo sin historial requiere además no registrar títulos ni URLs en el log.
 
-Queda como alternativa de D-21.
+La disposición distingue privacidad de retención: la purga automática no es un modo privado. El modo privado sigue como alternativa de D-21, sin aprobar.
 
 ### 13.15 Seguridad transversal
 
@@ -1320,6 +1340,14 @@ Ningún valor se fija sin medición.
 
 ## 14. Impacto en la arquitectura (insumo para Analysis and Design)
 
+**Situación posterior:** Analysis and Design (instrucción 2.3.0) tomó este insumo en el [diseño, Parte 3](../design/03-target-architecture-and-evolution.md), que tiene:
+- el inventario y los acoplamientos;
+- los contratos públicos y las capacidades por ambiente;
+- la matriz de evolución, la realización de los 26 casos de uso y la aplicabilidad por plataforma;
+- [ADR-0032](../notes/adr-0032-reusable-engine-and-platform-capabilities.md) y [ADR-0033](../notes/adr-0033-output-identity-and-storage-references.md).
+
+La cobertura de T52 a T67 se reconcilia en la [propuesta de E3](../project-management/iteration-plan-e3-proposal.md#4-reconciliación-de-t52-a-t67).
+
 | Componente (ADR-0017) | Contrato actual | Necesidad | Clasificación |
 |---|---|---|---|
 | `jobs` | `Job` con `output_path`; `DownloadOptions`; `MediaKey`; `JobStatus` | N resultados (D-15), identidad de la petición (D-16), condición de aplazamiento (D-2) | Generalizar un contrato |
@@ -1386,6 +1414,7 @@ Ningún valor se fija sin medición.
 - IIBA, *A Guide to the Business Analysis Body of Knowledge (BABOK Guide)* v3, copia entregada por el Responsable: capítulos 6, 7 y 10.
 - Wiki de yt-dlp, *Extractors* y *PO-Token-Guide*: texto entregado por el Responsable el 2026-11-26.
 - yt-dlp 2026.11.23: `yt_dlp/options.py`, `yt_dlp/__init__.py`, `yt_dlp/YoutubeDL.py`, `yt_dlp/utils/_utils.py` (`RetryManager`), `yt_dlp/networking/`, `yt_dlp/extractor/youtube/_video.py` y `_base.py`, `yt_dlp/extractor/common.py` (`raise_no_formats`).
+- Ghost-Downloader-3 `b824a78` (GPL-3.0, solo ideas; examinado en Analysis and Design, [diseño, Parte 3](../design/03-target-architecture-and-evolution.md#fuentes)).
 - Seal `5a4f5fb`, VoiceStudio `d9061408`, VoiceBlueprintPro `e9a2a63`, YTDownload-2026 `0abda8e`, Kannagi (`upstream/source/yt-dlp-gui-kannagi`), FFmpeg `329157f5` y n9.0.2-39: rutas en §5.1 y §6.1.
 - Consolas y evidencia de la ejecución `20261125-222227-ddffe96cb470` ([registro de la campaña](../project-management/t42-results.md)).
 - Historial: el análisis detallado de VoiceStudio (flujos, actores y trazabilidad) se publicó en `doc/requirements/benchmarking/voicestudio-use-cases.md` (commit `14bd247`) y se integró aquí y en los artefactos canónicos; el archivo se retiró en esta versión.

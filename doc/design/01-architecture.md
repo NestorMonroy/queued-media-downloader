@@ -249,6 +249,7 @@ ignore_imports = ["queued_media_downloader.media_extraction.** -> yt_dlp"]
 
 - **Un contrato `protected` por componente, no uno compartido:** en la prueba, proteger varios componentes en un solo contrato autoriza a cada paquete a usar el interior de los demás.
 - **Regla 5** también se validó, con el wheel de yt-dlp 2026.10.26 instalado: un `import yt_dlp` desde `workers/` rompe el contrato. El patrón `media_extraction.**` autoriza a todo el componente; que `media_source.py` no importe `yt_dlp` se revisa en código (los patrones de `import-linter` trabajan por segmentos completos del nombre).
+- **Reglas 7 y 8** (instrucción 2.3.0; [Parte 3, §9.1](03-target-architecture-and-evolution.md#91-reglas-de-dependencia), AR-02 y AR-04): solo `command_line` importa `argparse`, y `jobs` no importa mecanismos variables (`sqlite3`, `subprocess`, `multiprocessing`, `ctypes`, `signal`, `argparse`, `yt_dlp`). Se cumplen desde su activación y se comprobó que un `import argparse` en `jobs` rompe las dos.
 
 ---
 
@@ -495,4 +496,4 @@ stateDiagram-v2
 
 ## 7. Continúa en
 
-[Parte 2: flujos, persistencia y operación](02-flows-persistence-and-operations.md).
+[Parte 2: flujos, persistencia y operación](02-flows-persistence-and-operations.md). La arquitectura objetivo, los contratos públicos y la evolución multiplataforma están en la [Parte 3](03-target-architecture-and-evolution.md).

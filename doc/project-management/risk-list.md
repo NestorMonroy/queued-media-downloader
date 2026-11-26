@@ -1,6 +1,6 @@
 # Lista de riesgos
 
-- **Versión:** 1.6 (alcance aceptado y resolución de decisiones, 2026-11-26)
+- **Versión:** 1.7 (Analysis and Design multiplataforma, 2026-11-26). 1.6: alcance aceptado y resolución de decisiones
 - **Fecha:** 2026-11-26
 - **Revisión:** al cerrar cada iteración
 
@@ -27,8 +27,10 @@ Un riesgo no se elimina porque exista una solución documentada; un defecto no s
 | R-26 | Riesgo con tratamiento propuesto (D-10, BR-24) | UC-03 E1 | Un directo programado no ocupa un worker; uno activo respeta la duración máxima |
 | R-27 | Riesgo identificado; tratamiento propuesto (BR-34, BR-35, SUP-SEC01) | UC-19 | Prueba con valores trampa en todas las salidas |
 | R-28 | **Defecto** | UC-03 A2 | Los cinco caminos del catálogo de condiciones (§3.2) terminan con la condición de almacenamiento correcta |
-| R-29 | Riesgo; **pendiente de decisión excepcional del Responsable** (patentes) | UC-03 A19 | Decisión sobre recodificar a H.264 o HEVC |
-| R-30 | Riesgo con tratamiento propuesto (D-15, BR-31) | UC-03 A16 y A17, UC-24 | Todo archivo escrito por un job tiene su reclamación |
+| R-29 | Riesgo; **abierto** con disposición del Responsable (2.3.0): necesidad funcional conservada, distribución universal de codificadores no aprobada | UC-03 A19, UC-02 A14 | Cualificación técnica y jurídica por plataforma: licencia de FFmpeg y de cada librería, capacidad de codificar y de decodificar, codificadores del sistema, distribución en Windows, Android e iOS |
+| R-30 | Riesgo con tratamiento propuesto (D-15, BR-31, ADR-0033) | UC-03 A16 y A17, UC-24 | Todo archivo escrito por un job tiene su reclamación |
+| R-31 | Riesgo identificado | UC-03, UC-04, UC-15, UC-21, UC-24, UC-26 en iOS | Experimentos de §15 de la [Parte 3](../design/03-target-architecture-and-evolution.md#15-limitaciones-y-cualificaciones-pendientes): un proveedor de retos de JavaScript en proceso y una unión sin ejecutable |
+| R-32 | Riesgo con tratamiento propuesto (ADR-0032, A-1 a A-3) | Todas las interfaces futuras | Reglas AR-03 y AR-05 activas; AAC-02 y AAC-03 |
 
 | ID | Riesgo | Prob. | Impacto | Exposición | Mitigación | Iteración | Estado |
 |---|---|---|---|---|---|---|---|
@@ -58,7 +60,9 @@ Un riesgo no se elimina porque exista una solución documentada; un defecto no s
 | R-25 | La recuperación de un job interrumpido tras escribir su archivo final vuelve a consultar al sitio: con el sitio restringido, el job falla aunque el archivo esté completo | 2 | 2 | 4 | Completar con evidencia local (UC-06 A11, BR-23, D-9) | E3 | **Defecto** de UC-06 A4. **Abierto:** ocurrió en la campaña T42 (cola 5.7-r2) |
 | R-26 | Una transmisión en directo ocupa un worker sin límite | 2 | 2 | 4 | Regla para los directos (BR-24, D-10) | E3 | **Abierto:** sin regla |
 | R-27 | Si se adoptan cookies o un proxy con contraseña (D-1, D-7), una credencial aparece en el log, en `diagnose` o en la evidencia | 1 | 3 | 3 | Limpieza de datos sensibles con pruebas de valores trampa (SUP-SEC01) | E3 | **Condicionado** a D-1 y D-7 |
-| R-29 | Recodificar a H.264 o HEVC con los codificadores de la build incluida (`libopenh264`, `libkvazaar`) puede requerir licencias de patentes que el proyecto no tiene; la licencia de patentes de OpenH264 cubre los binarios que distribuye Cisco, no los compilados desde el código | 2 | 3 | **6** | No adoptar la recodificación a esos códecs sin resolver D-18; preferir el remux y la conversión de audio | E3 | **Condicionado** a D-18 |
+| R-29 | Recodificar a H.264 o HEVC con los codificadores de la build incluida (`libopenh264`, `libkvazaar`) puede requerir licencias de patentes que el proyecto no tiene; la licencia de patentes de OpenH264 cubre los binarios que distribuye Cisco, no los compilados desde el código | 2 | 3 | **6** | No distribuir codificadores de esos códecs sin cualificación técnica y jurídica; preferir el remux y la conversión de audio; ofrecer recodificar solo si la capacidad está disponible y permitida (diseño, Parte 3, §8.7). La necesidad funcional se conserva y la distribución LGPL vigente no cambia (disposición 2.3.0). No se emiten conclusiones legales | E3 (U9) | **Abierto** |
 | R-30 | Implementar los resultados complementarios o múltiples (UC-03 A16 y A17, UC-24) con el contrato actual de un archivo por job deja archivos sin reclamación, que otro job o una purga podrían tocar | 2 | 3 | **6** | Decidir D-15 antes de implementar cualquiera de esos escenarios (BR-31) | E3 | **Abierto:** análisis del §13.1 |
+| R-31 | En iOS no hay procesos: los postprocessors de FFmpeg y los retos de JavaScript de yt-dlp usan `Popen`, y la ejecución en segundo plano no está garantizada. La viabilidad de descargar y unir en iOS no está demostrada | 3 | 3 | **9** | Contratos que no impidan la ejecución local ni la híbrida (ADR-0032); no prometer capacidades no demostradas; experimentos futuros en dispositivo | Posterior a E3 | Abierto |
+| R-32 | Al añadir interfaces, el ensamblaje del producto (A-1), el transporte del pool (A-2) o las entidades internas (A-3) se duplican o se filtran en cada interfaz, y las reglas divergen | 3 | 3 | **9** | Separar el ensamblaje, el canal de observación y las vistas en E3 (U3); reglas AR-03 y AR-05 | E3 (U3) | Abierto, con tratamiento propuesto |
 | R-23 | La validación en Windows depende de traspasos paso a paso y de YouTube: la mitad de la sesión es espera, y un bloqueo detiene pasos que no prueban YouTube | 3 | 2 | **6** | Bloques con comprobación automática, medios locales y resumen de resultados ([casos de uso de la validación](../process/validation-use-case-model.md)) | E3 | **Abierto:** medido el 2026-11-25 (51 % de espera); VUC-04 a VUC-08 propuestos |
 | R-19 | Un worker que muere mientras se asocia a su Job Object detiene `run` o deja procesos o jobs inconsistentes | 1 | 2 | 2 | Hasta 3 intentos de arranque, cada intento fallido terminado y liberado; si todos fallan, apagado inmediato, error con código 1 y jobs `RUNNING` recuperables | E2 | Mitigado (Linux, con dobles); el comportamiento nativo es un criterio explícito de T42 |

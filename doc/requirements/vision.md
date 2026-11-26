@@ -2,7 +2,7 @@
 
 - **Proyecto:** queued-media-downloader
 - **Fase RUP:** Inicio
-- **Versión:** 1.2 (2026-11-26; **alcance de 26 casos de uso aceptado por el Responsable**). 1.1: alcance revisado en la reconciliación de exclusiones. 1.0: 2026-11-23, borrador para revisión
+- **Versión:** 1.3 (2026-11-26; **orientación multiplataforma**, instrucción 2.3.0). 1.2: alcance de 26 casos de uso aceptado por el Responsable. 1.1: alcance revisado en la reconciliación de exclusiones. 1.0: 2026-11-23, borrador para revisión
 
 ---
 
@@ -17,6 +17,18 @@
 
 ## 2. Posicionamiento
 
+**Formulación del producto:** un motor reutilizable para administrar de forma persistente, configurable, segura, recuperable y eficiente la obtención de contenidos multimedia y su información complementaria. Sus contratos funcionales no dependen de la interfaz de usuario y está preparado para evolucionar hacia aplicaciones en Windows, Android e iOS, respetando las capacidades y restricciones de cada plataforma ([ADR-0032](../notes/adr-0032-reusable-engine-and-platform-capabilities.md)).
+
+| Dimensión | Disposición |
+|---|---|
+| Alcance funcional | Los 26 casos de uso aceptados, un único modelo para todas las interfaces |
+| Interfaz inicial | Línea de comandos |
+| Plataforma inicial | Windows x64: la primera que se implementa y se acepta, no una restricción permanente |
+| Alcance de implementación inmediato | La CLI de Windows (E3, cuando se autorice) |
+| Evolución futura | Aplicación gráfica para Windows y aplicaciones para Android e iOS; no autorizadas todavía |
+| Restricciones de la evolución | Las capacidades de cada plataforma: en iOS no hay procesos y la ejecución en segundo plano no está garantizada; en Android está limitada (R-31; [diseño, Parte 3, §7](../design/03-target-architecture-and-evolution.md#7-cualificación-multiplataforma)) |
+| Validación integral en Windows | Después de implementar el alcance aceptado |
+
 | | |
 |---|---|
 | **Para** | usuarios de Windows que descargan contenidos con frecuencia |
@@ -24,7 +36,7 @@
 | **queued-media-downloader es** | un descargador con cola persistente construido sobre la librería yt-dlp |
 | **que** | encola, ejecuta, cancela, reintenta y reanuda descargas, con ffmpeg incluido |
 | **a diferencia de** | yt-dlp por línea de comandos (sin cola persistente ni cancelación por elemento) y de interfaces gráficas como yt-dlp-gui (que delegan en ejecutables externos que el usuario debe obtener y colocar) |
-| **nuestro producto** | usa yt-dlp como librería, con un motor diseñado para que una interfaz gráfica futura lo reutilice sin cambios |
+| **nuestro producto** | usa yt-dlp como librería, con un motor cuyas reglas y contratos reutilizarán sin duplicarse las interfaces futuras (gráfica, Android, iOS) |
 
 ## 3. Interesados
 
@@ -55,7 +67,7 @@ Formulación del alcance: **administrar de manera persistente, configurable, seg
 
 ## 5. Restricciones
 
-- **Plataforma:** Windows 10/11 x64 ([ADR-0004](../notes/adr-0004-windows-x64-target-platform.md)).
+- **Plataforma:** Windows 10/11 x64 en esta versión ([ADR-0004](../notes/adr-0004-windows-x64-target-platform.md); primera plataforma, no restricción permanente según [ADR-0032](../notes/adr-0032-reusable-engine-and-platform-capabilities.md)).
 - **Dependencias fijadas:** yt-dlp 2026.11.23 ([ADR-0002](../notes/adr-0002-pinned-yt-dlp-version.md)) y ffmpeg 9.0 LGPL incluido ([ADR-0018](../notes/adr-0018-ffmpeg-build-selection.md)).
 - **Instalación:** `git clone` → `uv sync` → `uv run`; sin Python preinstalado ([ADR-0003](../notes/adr-0003-packaging-with-uv-and-pyproject.md)).
 - **Licencia:** The Unlicense, con la excepción LGPL de `vendor/ffmpeg/` ([ADR-0007](../notes/adr-0007-project-license-unlicense.md)).
@@ -76,11 +88,11 @@ Cada exclusión está cualificada en el [análisis, §12](requirements-analysis.
 - navegadores automatizados como Playwright (UC-19);
 - `--download-archive` (BR-32, ADR-0012).
 
-**Interfaces diferidas:** interfaz gráfica ([ADR-0001](../notes/adr-0001-project-scope.md)) y temas visuales; servidor MCP o API HTTP (D-17). El motor ya expone sus operaciones para que se reutilicen sin duplicar la lógica.
+**Interfaces diferidas:** interfaz gráfica de Windows, aplicaciones de Android e iOS ([ADR-0001](../notes/adr-0001-project-scope.md), aclarado por [ADR-0032](../notes/adr-0032-reusable-engine-and-platform-capabilities.md)) y temas visuales; servidor MCP o API HTTP (D-17). El motor ya expone sus operaciones para que se reutilicen sin duplicar la lógica.
 
 **Condiciones técnicas pendientes** (no excluyen el objetivo): recodificar a H.264 o HEVC (patentes, R-29); leer las cookies del navegador (UC-19 A10); probar versiones no cualificadas de yt-dlp (UC-27 A2).
 
-**Decisiones de soporte y distribución:** otras plataformas, incluido Windows ARM64 (SUP-C06); publicación en PyPI (SUP-C07).
+**Decisiones de soporte y distribución:** Windows ARM64 y otras plataformas de escritorio (SUP-C06); publicación en PyPI (SUP-C07). Android e iOS no son exclusiones: son evolución prevista, con su viabilidad por cualificar.
 
 ## 7. Criterios de éxito
 

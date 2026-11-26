@@ -567,3 +567,4 @@ Los comandos usan los mismos verbos que los casos de uso, para que haya una sola
 | Iteración perezosa con `process=False` en canales grandes | Validar en el prototipo |
 | Medición de ffmpeg y deno en un equipo modesto | Validar en el prototipo |
 | Configuración concreta de Ruff y mypy | Iteración E1 ([ADR-0019](../notes/adr-0019-code-quality-tools.md)) |
+| Arquitectura objetivo, contratos públicos y evolución multiplataforma | Analysis and Design en la [Parte 3](03-target-architecture-and-evolution.md) |

@@ -1,7 +1,7 @@
 # Especificación complementaria
 
 - **Fase RUP:** Inicio
-- **Versión:** 3.0 (2026-11-26; alcance aceptado; seguridad de entradas y rutas, retención, contrato programático). 2.1 (2026-11-26; reconciliación de exclusiones: interoperabilidad, compatibilidad multimedia, portabilidad, credenciales y respaldo). 2.0: consolidación del modelo de requisitos
+- **Versión:** 3.1 (2026-11-26; Analysis and Design: independencia de la interfaz, contratos públicos versionados, portabilidad de identidades, capacidades por ambiente, compatibilidad de instalaciones). 3.0 (2026-11-26; alcance aceptado; seguridad de entradas y rutas, retención, contrato programático). 2.1 (2026-11-26; reconciliación de exclusiones: interoperabilidad, compatibilidad multimedia, portabilidad, credenciales y respaldo). 2.0: consolidación del modelo de requisitos
 - **Técnica (BABOK v3):** 10.30 Non-Functional Requirements Analysis
 
 Cada requisito tiene un criterio verificable. El alcance está aceptado por el Responsable (2026-11-26). **Aceptado, sin implementar** indica que el requisito forma parte del producto y todavía no existe en el código. Los que dependen de una medición que falta lo indican como **pendiente**, con el método de cualificación, en lugar de inventar un valor.
@@ -67,6 +67,8 @@ Requisitos que no pertenecen a un caso de uso concreto, organizados según FURPS
 | SUP-S02 | Todo el código cumple las reglas de importación (`lint-imports`), el formato y el linter (Ruff) y la verificación de tipos estricta (mypy) | [ADR-0017](../notes/adr-0017-ffmpeg-inspired-public-api-and-dependency-graph.md), [ADR-0019](../notes/adr-0019-code-quality-tools.md) |
 | SUP-S03 | Identificadores en inglés según el vocabulario; docstrings y comentarios en español | [ADR-0011](../notes/adr-0011-code-conventions.md), [ADR-0019](../notes/adr-0019-code-quality-tools.md) |
 | SUP-S04 | Las reglas de la cola (`jobs/`, `job_queue/`) se prueban sin yt-dlp, sin SQLite y sin procesos | [Parte 1, §1](../design/01-architecture.md#1-principios-de-diseño) |
+| SUP-S05 | **Aceptado; vigente:** las reglas, los casos de uso y los componentes del motor no dependen de la interfaz: solo `command_line` importa `argparse`, y `jobs` no importa mecanismos que varían por ambiente (`sqlite3`, `subprocess`, `multiprocessing`, `ctypes`, `signal`, `yt_dlp`). Criterio: los contratos AR-02 y AR-04 de `lint-imports` | ADR-0032; [diseño, Parte 3](../design/03-target-architecture-and-evolution.md), §9.1 |
+| SUP-S06 | **Aceptado, sin implementar:** el ensamblaje del producto (abrir la instalación, componer las implementaciones, recuperar y ejecutar la sesión) existe una sola vez y ninguna interfaz lo duplica. Criterio: un programa cliente de prueba ejecuta una sesión completa sin `argparse` ni stdout (AAC-02); `command_line` no importa `sqlite3` (AR-03) | ADR-0032; [diseño, Parte 3](../design/03-target-architecture-and-evolution.md), §4.2 |
 
 ## Seguridad
 
@@ -103,6 +105,8 @@ Requisitos que no pertenecen a un caso de uso concreto, organizados según FURPS
 | SUP-I02 | **Aceptado, sin implementar:** el formato de intercambio de UC-22 es JSON con su versión, documentado; una versión anterior soportada se convierte al importar; nunca contiene secretos (BR-34). Criterio: pruebas de ida y vuelta por versión | UC-22 |
 
 | SUP-I03 | **Aceptado, sin implementar:** la confianza en las entradas depende de la interfaz (§13.7 del análisis). La CLI acepta URLs locales y privadas; un documento importado se valida (SUP-SEC05); una interfaz remota futura restringe las URLs privadas por defecto. Criterio: pruebas por origen de la entrada | D-17 |
+| SUP-I04 | **Aceptado, sin implementar:** las vistas, los eventos, los errores, el progreso y las capacidades que se ofrecen a los consumidores llevan la versión del contrato; los cambios compatibles solo añaden campos, y quitar o cambiar uno exige una versión mayor. No exponen el owner token, la ruta de los parciales ni secretos. Criterio: pruebas de esquema por versión y valores trampa (AAC-03, AAC-06) | D-17; [diseño, Parte 3](../design/03-target-architecture-and-evolution.md), §5 |
+| SUP-I05 | **Aceptado, sin implementar:** el canal de observación entrega el job event y el estado del job después de aplicarlo; ningún consumidor recibe el transporte interno de los workers. El progreso distingue un tamaño conocido, uno estimado y uno desconocido. Criterio: pruebas del canal; regla AR-05 | [diseño, Parte 3](../design/03-target-architecture-and-evolution.md), §5.3 y §5.4 |
 
 ## Retención y privacidad
 
@@ -120,8 +124,11 @@ Requisitos que no pertenecen a un caso de uso concreto, organizados según FURPS
 
 | ID | Requisito | Origen |
 |---|---|---|
-| SUP-C06 | La plataforma soportada es Windows 10/11 x64 (SUP-C01). Las demás (Windows ARM64, Linux, macOS) son **decisiones de soporte**, no casos de uso; los componentes fuera de `workers` y `ffmpeg_discovery` no dependen de Windows, como ya comprueban las pruebas en Linux. Criterio: las pruebas sin marca `windows` pasan en Linux | ADR-0004; revisión de exclusiones |
+| SUP-C06 | La plataforma soportada es Windows 10/11 x64 (SUP-C01): la primera que se implementa y se acepta, no una restricción permanente (ADR-0032). Windows ARM64, Linux y macOS son **decisiones de soporte**. La GUI de Windows y las aplicaciones de Android e iOS son **evolución prevista**, sin implementar y con su viabilidad por cualificar ([aplicabilidad por plataforma](../design/03-target-architecture-and-evolution.md#13-aplicabilidad-por-plataforma)). Los componentes fuera de `workers`, `ffmpeg_discovery` y `command_line` no dependen de Windows. Criterio: las pruebas sin marca `windows` pasan en Linux | ADR-0004, ADR-0032 |
 | SUP-C07 | La distribución es el clon con `uv sync` (ADR-0003). Publicar en PyPI es una alternativa de distribución, sin una necesidad que el procedimiento actual no cubra | Revisión de exclusiones |
+| SUP-C08 | **Aceptado, sin implementar:** la parte portable de la identidad de una petición y la identidad de cada output no dependen de rutas, de su normalización ni del sistema operativo. Criterio: son iguales en dos instalaciones con rutas distintas (AAC-04, AR-06) | ADR-0033; [diseño, Parte 3](../design/03-target-architecture-and-evolution.md), §6 |
+| SUP-C09 | **Aceptado, parcial:** cada responsabilidad que varía por ambiente (ejecución, terminación, almacenamiento, ubicación de la instalación, secretos, programación, avisos, multimedia) tiene su propio contrato, con un consumidor real y una suite de pruebas que cumple toda implementación; ningún contrato reúne varias. Ningún contrato funcional exige que un job sea un proceso. Criterio: AAC-05; las pruebas de `job_queue` pasan con `ScriptedWorkerPool` (hoy se cumple para `WorkerPool`, `JobStore` y `ProcessTreeTerminator`) | ADR-0032; [diseño, Parte 3](../design/03-target-architecture-and-evolution.md), §8 |
+| SUP-C10 | **Aceptado, sin implementar:** una instalación existente se actualiza a cada versión nueva sin borrar su base de datos, sus reclamaciones ni su historial. Criterio: prueba de migración desde cada versión publicada del esquema (AAC-08) | [diseño, Parte 3](../design/03-target-architecture-and-evolution.md), §11.2 |
 
 ## Restricciones de diseño e implementación (+)
 

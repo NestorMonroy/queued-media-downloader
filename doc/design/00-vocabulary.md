@@ -1,7 +1,7 @@
 # Diseño — Parte 0: vocabulario del proyecto
 
 - **Estado:** Borrador para revisión
-- **Fecha:** 2026-11-22
+- **Fecha:** 2026-11-22; términos de producto, interfaz, contrato público y capacidades añadidos el 2026-11-26 (instrucción 2.3.0)
 - **Base:** [principios de nombres](../reference/naming-principles/clean-code-naming-principles.md) y [guías de clean code](../reference/clean-code-guidelines/practise/naming.md)
 
 Este documento fija **una palabra por concepto** (principio #8). Todo identificador del código y todo término del diseño debe salir de aquí. Si hace falta un concepto nuevo, se añade aquí antes de usarlo.
@@ -33,20 +33,20 @@ Este documento fija **una palabra por concepto** (principio #8). Todo identifica
 | **insufficient storage** (almacenamiento insuficiente) | No hay espacio, o se excedió la cuota, para escribir en una unidad de destino o de estado ([UC-17](../requirements/use-cases/uc-17-preserve-work-under-storage-failures.md), [BR-08](../requirements/business-rules.md)). No incluye el acceso denegado ni el uso compartido | disk full (a secas, para la cuota), out of space (como error del job) |
 | **sharing violation** (conflicto de uso compartido) | Otro proceso retiene un archivo (`winerror` 32 o 33); suele ser transitorio ([BR-26](../requirements/business-rules.md)) | locked (a secas), access denied |
 | **cause chain** (cadena de causas) | Excepciones enlazadas por `DownloadError.exc_info`, `__cause__` y `__context__`; la condición se identifica en toda la cadena ([BR-25](../requirements/business-rules.md)) | inner error (a secas) |
-| **job result** (resultado) | Cada archivo que un job produce por su petición, con su tipo (multimedia principal, multimedia adicional, complementario) y su obligatoriedad ([BR-29](../requirements/business-rules.md)); propuesto, D-15 | output (a secas), artifact |
-| **required result** / **optional result** (resultado obligatorio u opcional) | Si su ausencia impide completar el job o solo deja un aviso ([BR-30](../requirements/business-rules.md)) | mandatory file |
+| **job output** (resultado) | Cada archivo o elemento que un job produce por su petición, con su tipo (multimedia principal, multimedia adicional, complementario) y su obligatoriedad ([BR-29](../requirements/business-rules.md)). En el código, `JobOutput` (ADR-0033): «result» ya designa el resultado de una operación (`CancelJobResult`, `RunQueueResult`); se respeta una palabra por concepto | job result (en código), artifact |
+| **required output** / **optional output** (resultado obligatorio u opcional) | Si su ausencia impide completar el job o solo deja un aviso ([BR-30](../requirements/business-rules.md)) | mandatory file |
 | **supplementary information** (información complementaria) | Subtítulos, descripción, metadatos, miniatura, capítulos e `info.json` que publica el sitio ([UC-24](../requirements/use-cases/uc-24-retrieve-supplementary-media-information.md)); nunca generada con IA | extras, sidecar (a secas) |
 | **variant** (variante) | Otra petición del mismo contenido con otra especificación de resultado ([BR-32](../requirements/business-rules.md)) | duplicate (si la especificación difiere) |
 | **download profile** (perfil de descarga) | Conjunto con nombre de download options validadas que se copia en el job al encolar ([UC-18](../requirements/use-cases/uc-18-manage-download-profiles.md), BR-33) | preset (a secas), template, config |
 | **access profile** (perfil de acceso) | Referencia con nombre a credenciales legítimas del User para ciertos sitios; nunca contiene el secreto ([UC-19](../requirements/use-cases/uc-19-manage-authorized-access-profiles.md), BR-34) | account, login, cookie profile |
 | **execution window** (ventana de ejecución) | Intervalo programado en el que `run` puede enviar jobs ([UC-21](../requirements/use-cases/uc-21-schedule-queue-execution.md), BR-37) | schedule (a secas, para la ventana), cron |
-| **program client** (programa cliente) | Otro programa que usa el producto sin interpretar texto para personas (SUP-I01) | bot, agent (a secas) |
+| **program client** (programa cliente) | Otro programa que usa el producto sin interpretar texto para personas (SUP-I01); es un *consumer* | bot, agent (a secas), consumidor programático |
 | **media identity** (identidad del contenido) | El contenido remoto: `MediaKey` (extractor + id) | content id |
 | **request identity** (identidad de la petición) | El resultado pedido: media key + especificación normalizada del resultado, con la versión del algoritmo ([BR-32](../requirements/business-rules.md), D-16). No incluye opciones operativas ni el acceso | request hash, fingerprint |
 | **job identity** (identidad del job) | El trabajo persistido: `job_id` + `created_at`, el **owner token** | id (a secas) |
-| **result identity** (identidad del resultado) | Cada resultado de un job: su tipo y su ruta final normalizada (D-15) | output (a secas, para un archivo) |
+| **output identity** (identidad del resultado) | La identidad del job más la clave del output (tipo y discriminante: `video`, `subtitle:es`). No incluye la ruta ([ADR-0033](../notes/adr-0033-output-identity-and-storage-references.md)) | result identity (en código), path (como identidad) |
 | **ownership evidence** (evidencia de propiedad) | Reclamación con el owner token y registro del resultado; no prueba la integridad ([BR-31](../requirements/business-rules.md)) | lock |
-| **output** | Término del código (`output_path`, output claim): el archivo final de un job. En los requisitos, «resultado» | — |
+| **output** | Término del código para un resultado (`output_path`, output claim, `JobOutput`). En los requisitos, «resultado» | result (para un archivo) |
 | **effective configuration** (configuración efectiva) | Valores que resultan de la precedencia argumentos > variables de entorno > `config.toml` > valores por defecto, con el perfil para las opciones de resultado (§13.17 del análisis) | settings (a secas) |
 | **verification** (verificación) | Comprobar la conformidad con un contrato: pruebas automáticas o UC-26 sobre un resultado | validation |
 | **validation** (validación) | Demostrar que el producto sirve a su propósito en la plataforma objetivo (campaña en Windows) | verification |
@@ -118,6 +118,24 @@ Una playlist (`EXPANSION`) se purga solo si todas sus entradas son purgables con
 | **contract** | Interfaz (`Protocol`) que un componente expone a los demás; el archivo se llama como el contrato (`job_store.py`) | port, interface (en nombres), common |
 | **implementation** | Clase que cumple un contrato (`SqliteJobStore`); es interna de su componente y solo la importa `command_line/composition_root.py` | adapter, impl |
 | **public API** | Lo que exporta el `__init__.py` de un componente: contratos y tipos. Es lo único que otros componentes pueden importar | facade, exports |
+| **product** (producto) | `queued-media-downloader`: sus reglas, contratos y capacidades, independientes de la interfaz ([ADR-0032](../notes/adr-0032-reusable-engine-and-platform-capabilities.md)) | app (para el producto) |
+| **application** (aplicación) | Un programa distribuible para una plataforma que ofrece el producto: la CLI de Windows y, en el futuro, la GUI de Windows y las aplicaciones de Android e iOS | product |
+| **interface** (interfaz) | La forma de interacción de una aplicación con el User (línea de comandos, ventana, pantalla táctil) | UI layer, frontend (a secas) |
+| **consumer** (consumidor) | Toda interfaz o programa cliente que usa los contratos públicos | client (a secas) |
+| **functional contract** (contrato funcional) | Lo que promete una operación según los casos de uso y las business rules, sea cual sea el transporte | — |
+| **public contract** (contrato público) | La representación versionada del contrato funcional para los consumidores: operaciones, vistas, eventos, errores, progreso y capacidades. No confundir con *contract* (Protocol entre componentes) | API (a secas) |
+| **view** (vista) | Representación pública de una entidad para una consulta, distinta de la entidad interna (`JobView`, nombre candidato) | DTO |
+| **installation** (instalación) | Una carpeta de estado con su cola, sus reclamaciones, su configuración y su log, en un ambiente | workspace, profile (para esto) |
+| **run session** (sesión de ejecución) | Abrir una instalación, recuperar los jobs interrumpidos y ejecutar la cola hasta terminar o detenerse | run loop |
+| **execution environment** (ambiente de ejecución) | Sistema operativo, runtime y permisos donde se ejecuta una aplicación | platform (cuando se habla de permisos o runtime) |
+| **platform capability** (capacidad del ambiente) | Una responsabilidad cuya implementación varía por ambiente (ejecución, almacenamiento, secretos, programación, avisos, multimedia), con su propio contrato | platform adapter |
+| **storage reference** (referencia de almacenamiento) | Cómo se llega a un output en un ambiente: una ruta en Windows; un URI o un bookmark en móvil. No es identidad | path (como identidad) |
+| **media source** (`MediaSource`) | Contrato que extrae y descarga un contenido; su implementación usa yt-dlp. El origen remoto es el *site* | downloader (para el contrato) |
+| **request** (petición) | Lo que el User pide obtener: URL, preferencias de resultado y clase de contexto de acceso. Distinto de *job request* (instrucción a una cola en ejecución) | order |
+| **access context class** (clase de contexto de acceso) | Identificador opaco del perfil de acceso, o anónimo, que forma parte de la identidad de la petición; nunca las credenciales | session (para esto) |
+| **execution policy** (política de ejecución) | Las reglas que aplica la *admission control*: ventanas, pausa, límites, aplazamientos | scheduler (para la política) |
+| **runtime** | Intérprete que ejecuta código: el de Python que ejecuta el producto, o el de JavaScript (deno) que usa yt-dlp para los retos de YouTube | engine (para el intérprete) |
+| **notification** (aviso) | Entrega de un suceso operativo por un canal del ambiente; nunca es autoridad del estado (D-14) | alert, toast (en nombres) |
 | **composition root** | Módulo de un programa que crea las implementaciones y las conecta (`command_line/composition_root.py`) | bootstrap, container, wiring |
 
 ## 4. Conceptos del proceso

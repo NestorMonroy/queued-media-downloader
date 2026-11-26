@@ -1,7 +1,7 @@
 # Modelo de casos de uso
 
 - **Fase RUP:** Elaboración
-- **Versión:** 3.0 (2026-11-26; **alcance de los 26 casos de uso aceptado por el Responsable**). 2.1: reconciliación de exclusiones, UC-18 a UC-28. 2.0 (2026-11-26; consolidación del modelo de requisitos). La 1.1 era la auditoría previa a la aceptación (T49).
+- **Versión:** 3.1 (2026-11-26; trazabilidad con la realización arquitectónica y la aplicabilidad por plataforma). 3.0 (2026-11-26; **alcance de los 26 casos de uso aceptado por el Responsable**). 2.1: reconciliación de exclusiones, UC-18 a UC-28. 2.0 (2026-11-26; consolidación del modelo de requisitos). La 1.1 era la auditoría previa a la aceptación (T49).
 - **Términos:** [vocabulario](../design/00-vocabulary.md)
 - **Razonamiento y evidencia:** [análisis de requisitos](requirements-analysis.md)
 
@@ -167,13 +167,13 @@ UC-03 y UC-04 los inicia el User con `run`; se ejecutan dentro de la cola y se c
 | UC-18 | Administrar perfiles de descarga | `profile` | No | Aceptado; sin implementar (D-19, cualificada) | [Completa](use-cases/uc-18-manage-download-profiles.md) |
 | UC-19 | Administrar perfiles de acceso autorizado | `access` | **Sí:** ciclo de vida de credenciales | Aceptado; sin implementar (D-1, D-7); A10 con condición técnica | [Completa](use-cases/uc-19-manage-authorized-access-profiles.md) |
 | UC-20 | Administrar la configuración | `config` | No | Aceptado; parcial | [Completa](use-cases/uc-20-manage-application-configuration.md) |
-| UC-21 | Programar la ejecución de la cola | `schedule` | Según D-13 | Aceptado; sin implementar (D-13) | [Completa](use-cases/uc-21-schedule-queue-execution.md) |
+| UC-21 | Programar la ejecución de la cola | `schedule` | **Sí:** programación persistida y lanzador por plataforma (D-13; [Parte 3, §8.5](../design/03-target-architecture-and-evolution.md#85-programación-d-13)) | Aceptado; sin implementar (D-13) | [Completa](use-cases/uc-21-schedule-queue-execution.md) |
 | UC-22 | Exportar e importar la cola y el historial | `export`, `import` | **Sí:** formato de intercambio | Aceptado; sin implementar (D-16, D-21) | [Completa](use-cases/uc-22-export-and-import-queue.md) |
 | UC-23 | Respaldar y restaurar la cola | `backup`, `restore` | **Sí:** copia coherente | Aceptado; parcial (UC-06 A8) | [Completa](use-cases/uc-23-back-up-and-restore-queue.md) |
 | UC-24 | Obtener la información complementaria de un contenido | `enqueue --info-only` | **Sí:** job sin resultado multimedia | Aceptado; sin implementar (D-15, D-16) | [Completa](use-cases/uc-24-retrieve-supplementary-media-information.md) |
 | UC-25 | Administrar los resultados descargados | `files` | **Sí:** registro de resultados | Aceptado; parcial (`output_path`) | [Completa](use-cases/uc-25-manage-downloaded-media.md) |
 | UC-26 | Verificar los resultados descargados | `verify` | No | Aceptado; sin implementar (D-9, D-15) | [Completa](use-cases/uc-26-verify-downloaded-media.md) |
-| UC-27 | Administrar las dependencias multimedia | `dependencies` | Según D-8 | Aceptado; sin implementar (D-8); A2 con condición técnica | [Completa](use-cases/uc-27-manage-media-dependencies.md) |
+| UC-27 | Administrar las dependencias multimedia | `dependencies` | **Sí:** procedimiento cualificado y capacidades (D-8; [Parte 3, §8.7](../design/03-target-architecture-and-evolution.md#87-capacidades-del-ambiente)) | Aceptado; sin implementar (D-8); A2 con condición técnica | [Completa](use-cases/uc-27-manage-media-dependencies.md) |
 | UC-28 | Recibir avisos operativos | — (`run`) | No | Aceptado; sin implementar (D-14) | [Completa](use-cases/uc-28-receive-operational-notifications.md) |
 
 ### 4.1 Capacidades transversales
@@ -267,8 +267,10 @@ No hay una baseline validada en Windows posterior a la campaña T42.
 | UC-08, UC-09 | `job_queue`, `job_storage` | `job_queue/list_jobs.py` (`ListJobs`, `ShowJob`) |
 | UC-10 | `job_queue`, `job_storage`, `media_extraction` (parciales y reclamaciones) | `job_queue/purge_finished_jobs.py` |
 | UC-11, UC-14, UC-17 (propuestos) | `job_queue`, `workers`, `media_extraction`, `job_storage` | `job_queue/run_queue.py` (planificación y aplazamientos); clasificación en `media_extraction` ([ADR-0031](../notes/adr-0031-site-waits-and-network-waits.md)) |
-| UC-15 (propuesto) | `media_extraction`, `command_line` | Sin diseñar |
-| UC-16 (propuesto) | `diagnostics`, `job_storage`, `command_line` | Sin diseñar |
-| UC-18 a UC-28 (propuestos o condicionados) | Se derivarán de los requisitos consolidados y de D-13 a D-20; ningún módulo, tabla ni evento nuevo se decide en esta etapa | Sin diseñar |
+| UC-15 | `media_extraction`, `command_line` | Definido en el diseño, Parte 3 |
+| UC-16 | `diagnostics`, `job_storage`, `command_line` | Definido en el diseño, Parte 3 |
+| UC-18 a UC-28 | Componentes actuales y propuestos en la realización de la Parte 3, §12 | Sin implementar |
+
+**Analysis and Design** (instrucción 2.3.0): la realización arquitectónica de los 26 casos de uso, con sus contratos, su estado de diseño y su aplicabilidad en Windows CLI, Windows GUI, Android e iOS, está en el [diseño, Parte 3, §12 y §13](../design/03-target-architecture-and-evolution.md#12-realización-de-los-26-casos-de-uso). El script de comprobación del modelo verifica que esas dos tablas cubren los 26 casos de uso con estados válidos. La matriz de completitud de §5 sigue siendo la del requisito y la implementación; el diseño y la plataforma no se duplican aquí.
 
 La trazabilidad por requisito (requisito, criterio, componentes, tareas, código, pruebas, evidencia, divergencias y pendientes en Windows) está en el [plan de E2, §8](../project-management/iteration-plan-e2.md#8-matriz-de-casos-de-uso-implementación-y-validación).

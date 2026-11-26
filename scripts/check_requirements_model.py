@@ -17,6 +17,13 @@ Comprobaciones (todas con stop-on-error en el código de salida):
    <!-- completeness-matrix:start --> y <!-- completeness-matrix:end --> de
    doc/requirements/use-case-model.md coincide con la que se calcula a partir
    de las especificaciones. Con --write, la reescribe.
+4. Diseño y plataformas: en doc/design/03-target-architecture-and-evolution.md,
+   las tablas entre <!-- uc-realization:start --> y <!-- uc-realization:end -->
+   y entre <!-- platform-applicability:start --> y
+   <!-- platform-applicability:end --> tienen una fila por cada caso de uso
+   aceptado, y solo esas, con estados de su vocabulario (DESIGN_STATES y
+   PLATFORM_STATES). «Disponible» en Windows CLI exige que el caso de uso tenga
+   pruebas automáticas (campo Verificación).
 
 Estado de un flujo (alternativo o de excepción): la marca explícita
 `[estado: IMPLEMENTACIÓN]` o `[estado: IMPLEMENTACIÓN; condicionado]` justo después
@@ -55,6 +62,19 @@ ANALYSIS = Path("doc/requirements/requirements-analysis.md")
 RISK_LIST = Path("doc/project-management/risk-list.md")
 MATRIX_START = "<!-- completeness-matrix:start -->"
 MATRIX_END = "<!-- completeness-matrix:end -->"
+DESIGN = Path("doc/design/03-target-architecture-and-evolution.md")
+REALIZATION_TABLE = "uc-realization"
+APPLICABILITY_TABLE = "platform-applicability"
+DESIGN_STATES = ("Realizado", "Definido", "Condicionado")
+PLATFORM_STATES = (
+    "Disponible",
+    "Parcial",
+    "Futura",
+    "Restringida",
+    "No demostrada",
+    "No aplicable",
+)
+PLATFORMS = ("Windows CLI", "Windows GUI", "Android", "iOS")
 
 FLOW_STATES = (
     "implementado",
@@ -317,6 +337,89 @@ def matrix_problems(root: Path, *, write: bool) -> list[str]:
     return [f"{USE_CASE_MODEL}: completeness matrix is out of date (run with --write)"]
 
 
+def marked_table_rows(text: str, name: str) -> list[list[str]] | None:
+    """Celdas de las filas de casos de uso de una tabla entre marcadores."""
+    start, end = f"<!-- {name}:start -->", f"<!-- {name}:end -->"
+    if start not in text or end not in text:
+        return None
+    table = text.split(start, 1)[1].split(end, 1)[0]
+    return [
+        [cell.strip() for cell in line.strip().strip("|").split("|")]
+        for line in table.splitlines()
+        if line.startswith("| UC-")
+    ]
+
+
+def coverage_problems(
+    name: str, rows: list[list[str]], accepted: set[str]
+) -> list[str]:
+    """Casos de uso aceptados ausentes, repetidos o desconocidos en una tabla."""
+    found = Counter(row[0] for row in rows)
+    problems = [
+        f"{DESIGN}: {name} lacks {identifier}"
+        for identifier in sorted(accepted - set(found))
+    ]
+    problems += [
+        f"{DESIGN}: {name} repeats {identifier}"
+        for identifier, count in sorted(found.items())
+        if count > 1
+    ]
+    problems += [
+        f"{DESIGN}: {name} has {identifier}, which is not an accepted use case"
+        for identifier in sorted(set(found) - accepted)
+    ]
+    return problems
+
+
+def design_problems(root: Path) -> list[str]:
+    """Cobertura y estados de la realización y de la aplicabilidad por plataforma."""
+    design_path = root / DESIGN
+    if not design_path.exists():
+        return [f"{DESIGN}: missing"]
+    text = design_path.read_text("utf-8")
+    use_cases = {row.identifier: row for row in use_case_rows(root)}
+    accepted = {
+        identifier
+        for identifier, row in use_cases.items()
+        if row.definition == "aceptado"
+    }
+    problems: list[str] = []
+    realization = marked_table_rows(text, REALIZATION_TABLE)
+    if realization is None:
+        problems.append(f"{DESIGN}: missing {REALIZATION_TABLE} markers")
+    else:
+        problems += coverage_problems(REALIZATION_TABLE, realization, accepted)
+        problems += [
+            f"{DESIGN}: {row[0]} has unknown design state {row[-1]!r}"
+            for row in realization
+            if row[-1] not in DESIGN_STATES
+        ]
+    applicability = marked_table_rows(text, APPLICABILITY_TABLE)
+    if applicability is None:
+        problems.append(f"{DESIGN}: missing {APPLICABILITY_TABLE} markers")
+        return problems
+    problems += coverage_problems(APPLICABILITY_TABLE, applicability, accepted)
+    for row in applicability:
+        for platform, state in zip(
+            PLATFORMS, row[1 : 1 + len(PLATFORMS)], strict=False
+        ):
+            if state not in PLATFORM_STATES:
+                problems.append(
+                    f"{DESIGN}: {row[0]} has unknown {platform} state {state!r}"
+                )
+        use_case = use_cases.get(row[0])
+        if (
+            row[1] == "Disponible"
+            and use_case is not None
+            and use_case.verification == "sin evidencia"
+        ):
+            problems.append(
+                f"{DESIGN}: {row[0]} is Disponible on Windows CLI"
+                " without automated tests"
+            )
+    return problems
+
+
 def main() -> int:
     """Ejecuta las verificaciones y devuelve 0 si el modelo es coherente."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -330,6 +433,7 @@ def main() -> int:
         *own_links,
         *identifier_problems(root),
         *matrix_problems(root, write=arguments.write),
+        *design_problems(root),
     ]
     for problem in problems:
         print(problem)

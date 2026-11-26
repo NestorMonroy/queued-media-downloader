@@ -1,0 +1,454 @@
+{
+  "python": "3.13.18",
+  "components": {
+    "(root)": {
+      "modules": [
+        "__init__.py",
+        "__main__.py"
+      ],
+      "lines": 32,
+      "classes": {},
+      "functions": 2,
+      "methods": 0,
+      "public_api": [],
+      "third_party": [],
+      "variable_mechanisms": {},
+      "module_count": 2
+    },
+    "command_line": {
+      "modules": [
+        "command_line/__init__.py",
+        "command_line/cancel_command.py",
+        "command_line/command_parser.py",
+        "command_line/command_settings.py",
+        "command_line/composition_root.py",
+        "command_line/console_interruption.py",
+        "command_line/diagnose_command.py",
+        "command_line/enqueue_command.py",
+        "command_line/exit_code.py",
+        "command_line/job_presenter.py",
+        "command_line/list_command.py",
+        "command_line/log_file.py",
+        "command_line/purge_command.py",
+        "command_line/retry_command.py",
+        "command_line/run_command.py"
+      ],
+      "lines": 1211,
+      "classes": {
+        "class": 2,
+        "enum": 1
+      },
+      "functions": 47,
+      "methods": 6,
+      "public_api": [
+        "main"
+      ],
+      "third_party": [],
+      "variable_mechanisms": {
+        "argparse": [
+          "command_line/cancel_command.py",
+          "command_line/command_parser.py",
+          "command_line/diagnose_command.py",
+          "command_line/enqueue_command.py",
+          "command_line/list_command.py",
+          "command_line/purge_command.py",
+          "command_line/retry_command.py",
+          "command_line/run_command.py"
+        ],
+        "sqlite3": [
+          "command_line/composition_root.py"
+        ],
+        "signal": [
+          "command_line/console_interruption.py"
+        ]
+      },
+      "module_count": 15
+    },
+    "configuration": {
+      "modules": [
+        "configuration/__init__.py",
+        "configuration/settings.py",
+        "configuration/settings_loader.py"
+      ],
+      "lines": 208,
+      "classes": {
+        "dataclass": 2,
+        "exception": 1
+      },
+      "functions": 11,
+      "methods": 0,
+      "public_api": [
+        "Settings",
+        "SettingsError",
+        "load_settings",
+        "project_root"
+      ],
+      "third_party": [],
+      "variable_mechanisms": {
+        "tomllib": [
+          "configuration/settings_loader.py"
+        ]
+      },
+      "module_count": 3
+    },
+    "diagnostics": {
+      "modules": [
+        "diagnostics/__init__.py",
+        "diagnostics/diagnose_environment.py"
+      ],
+      "lines": 155,
+      "classes": {
+        "enum": 1,
+        "dataclass": 1,
+        "class": 1
+      },
+      "functions": 1,
+      "methods": 6,
+      "public_api": [
+        "CheckOutcome",
+        "DiagnoseEnvironment",
+        "EnvironmentCheck"
+      ],
+      "third_party": [],
+      "variable_mechanisms": {
+        "sqlite3": [
+          "diagnostics/diagnose_environment.py"
+        ]
+      },
+      "module_count": 2
+    },
+    "ffmpeg_discovery": {
+      "modules": [
+        "ffmpeg_discovery/__init__.py",
+        "ffmpeg_discovery/checksum_cache.py",
+        "ffmpeg_discovery/ffmpeg_locator.py",
+        "ffmpeg_discovery/file_system_ffmpeg_locator.py",
+        "ffmpeg_discovery/vendored_build.py"
+      ],
+      "lines": 385,
+      "classes": {
+        "class": 2,
+        "enum": 1,
+        "dataclass": 1,
+        "exception": 1,
+        "protocol": 1
+      },
+      "functions": 7,
+      "methods": 13,
+      "public_api": [
+        "FfmpegInstallation",
+        "FfmpegLocator",
+        "FfmpegSource",
+        "FfmpegUnavailableError"
+      ],
+      "third_party": [],
+      "variable_mechanisms": {
+        "subprocess": [
+          "ffmpeg_discovery/file_system_ffmpeg_locator.py"
+        ]
+      },
+      "module_count": 5
+    },
+    "job_queue": {
+      "modules": [
+        "job_queue/__init__.py",
+        "job_queue/cancel_job.py",
+        "job_queue/enqueue_media.py",
+        "job_queue/job_event_applier.py",
+        "job_queue/list_jobs.py",
+        "job_queue/purge_finished_jobs.py",
+        "job_queue/recover_interrupted_jobs.py",
+        "job_queue/retry_job.py",
+        "job_queue/run_queue.py"
+      ],
+      "lines": 890,
+      "classes": {
+        "dataclass": 6,
+        "class": 9,
+        "exception": 1
+      },
+      "functions": 5,
+      "methods": 37,
+      "public_api": [
+        "CancelJob",
+        "CancelJobResult",
+        "EnqueueMedia",
+        "InvalidUrlError",
+        "JobDetails",
+        "ListJobs",
+        "PurgeFinishedJobs",
+        "PurgeResult",
+        "RecoverInterruptedJobs",
+        "RecoveryResult",
+        "RetryJob",
+        "RetryJobResult",
+        "RunQueue",
+        "RunQueueResult",
+        "ShowJob"
+      ],
+      "third_party": [],
+      "variable_mechanisms": {},
+      "module_count": 9
+    },
+    "job_storage": {
+      "modules": [
+        "job_storage/__init__.py",
+        "job_storage/busy_queue_waiting.py",
+        "job_storage/job_request_inbox.py",
+        "job_storage/job_store.py",
+        "job_storage/sqlite_connection.py",
+        "job_storage/sqlite_job_request_inbox.py",
+        "job_storage/sqlite_job_store.py",
+        "job_storage/sqlite_migrations.py"
+      ],
+      "lines": 767,
+      "classes": {
+        "class": 5,
+        "protocol": 2,
+        "exception": 5,
+        "dataclass": 1
+      },
+      "functions": 8,
+      "methods": 49,
+      "public_api": [
+        "BusyQueueWaiting",
+        "BusyQueueWaitingJobRequestInbox",
+        "BusyQueueWaitingJobStore",
+        "DuplicateActiveDownloadError",
+        "DuplicateOutputPathError",
+        "JobNotFoundError",
+        "JobRequestInbox",
+        "JobStore",
+        "JobStoreLockedError",
+        "JobStoreUnavailableError"
+      ],
+      "third_party": [],
+      "variable_mechanisms": {
+        "sqlite3": [
+          "job_storage/busy_queue_waiting.py",
+          "job_storage/sqlite_connection.py",
+          "job_storage/sqlite_job_request_inbox.py",
+          "job_storage/sqlite_job_store.py",
+          "job_storage/sqlite_migrations.py"
+        ]
+      },
+      "module_count": 8
+    },
+    "jobs": {
+      "modules": [
+        "jobs/__init__.py",
+        "jobs/download_options.py",
+        "jobs/failure_reason.py",
+        "jobs/job.py",
+        "jobs/job_events.py",
+        "jobs/job_kind.py",
+        "jobs/job_lifecycle.py",
+        "jobs/job_request.py",
+        "jobs/job_status.py",
+        "jobs/media_key.py",
+        "jobs/playlist_context.py",
+        "jobs/playlist_entry.py"
+      ],
+      "lines": 673,
+      "classes": {
+        "dataclass": 15,
+        "enum": 5,
+        "exception": 1
+      },
+      "functions": 3,
+      "methods": 22,
+      "public_api": [
+        "DownloadOptions",
+        "DownloadProgressed",
+        "FailureReason",
+        "FormatSelected",
+        "InvalidJobTransitionError",
+        "Job",
+        "JobCancelled",
+        "JobCompleted",
+        "JobEvent",
+        "JobFailed",
+        "JobId",
+        "JobKind",
+        "JobRequest",
+        "JobRequestId",
+        "JobRequestType",
+        "JobStarted",
+        "JobStatus",
+        "MediaKey",
+        "PlaylistContext",
+        "PlaylistEntriesFound",
+        "PlaylistEntry",
+        "PostprocessingProgressed",
+        "PostprocessingStage",
+        "SingleMediaFound"
+      ],
+      "third_party": [],
+      "variable_mechanisms": {},
+      "module_count": 12
+    },
+    "media_extraction": {
+      "modules": [
+        "media_extraction/__init__.py",
+        "media_extraction/failure_classifier.py",
+        "media_extraction/javascript_runtime.py",
+        "media_extraction/media_source.py",
+        "media_extraction/media_source_settings.py",
+        "media_extraction/output_claims.py",
+        "media_extraction/partial_files.py",
+        "media_extraction/playlist_output_template.py",
+        "media_extraction/progress_event_translator.py",
+        "media_extraction/recording_postprocessors.py",
+        "media_extraction/yt_dlp_expansion.py",
+        "media_extraction/yt_dlp_javascript_runtime.py",
+        "media_extraction/yt_dlp_media_source.py",
+        "media_extraction/yt_dlp_parameters.py",
+        "media_extraction/yt_dlp_playlist_entries.py",
+        "media_extraction/yt_dlp_versions.py"
+      ],
+      "lines": 1399,
+      "classes": {
+        "dataclass": 4,
+        "exception": 3,
+        "protocol": 1,
+        "class": 10
+      },
+      "functions": 36,
+      "methods": 34,
+      "public_api": [
+        "JavaScriptRuntime",
+        "JobCancelledError",
+        "MediaSource",
+        "MediaSourceSettings",
+        "OutputClaims",
+        "Publish",
+        "YtDlpVersions",
+        "installed_yt_dlp_versions",
+        "remove_partial_directory"
+      ],
+      "third_party": [
+        "yt_dlp"
+      ],
+      "variable_mechanisms": {},
+      "module_count": 16
+    },
+    "workers": {
+      "modules": [
+        "workers/__init__.py",
+        "workers/console_interrupts.py",
+        "workers/job_cancellation.py",
+        "workers/posix_process_tree_terminator.py",
+        "workers/process_queue_receiver.py",
+        "workers/process_tree_terminator.py",
+        "workers/process_worker_pool.py",
+        "workers/windows_process_tree_terminator.py",
+        "workers/worker_instructions.py",
+        "workers/worker_logging.py",
+        "workers/worker_loop.py",
+        "workers/worker_message.py",
+        "workers/worker_pool.py"
+      ],
+      "lines": 1176,
+      "classes": {
+        "protocol": 5,
+        "class": 5,
+        "exception": 2,
+        "dataclass": 5
+      },
+      "functions": 7,
+      "methods": 46,
+      "public_api": [
+        "POOL_SEQUENCE_NUMBER",
+        "POOL_WORKER_ID",
+        "NoIdleWorkerError",
+        "ProcessTreeTerminationError",
+        "WorkerMessage",
+        "WorkerPool"
+      ],
+      "third_party": [],
+      "variable_mechanisms": {
+        "ctypes": [
+          "workers/console_interrupts.py",
+          "workers/windows_process_tree_terminator.py"
+        ],
+        "signal": [
+          "workers/console_interrupts.py",
+          "workers/posix_process_tree_terminator.py"
+        ],
+        "multiprocessing": [
+          "workers/process_worker_pool.py",
+          "workers/process_worker_pool.py",
+          "workers/process_worker_pool.py"
+        ]
+      },
+      "module_count": 13
+    }
+  },
+  "graph": {
+    "components": [
+      "command_line",
+      "configuration",
+      "diagnostics",
+      "ffmpeg_discovery",
+      "job_queue",
+      "job_storage",
+      "jobs",
+      "media_extraction",
+      "workers"
+    ],
+    "edges": {
+      "command_line": [
+        "configuration",
+        "diagnostics",
+        "ffmpeg_discovery",
+        "job_queue",
+        "job_storage",
+        "jobs",
+        "media_extraction",
+        "workers"
+      ],
+      "configuration": [],
+      "diagnostics": [
+        "ffmpeg_discovery",
+        "media_extraction"
+      ],
+      "ffmpeg_discovery": [],
+      "job_queue": [
+        "job_storage",
+        "jobs",
+        "media_extraction",
+        "workers"
+      ],
+      "job_storage": [
+        "jobs"
+      ],
+      "jobs": [],
+      "media_extraction": [
+        "jobs"
+      ],
+      "workers": [
+        "jobs",
+        "media_extraction"
+      ]
+    },
+    "mutual_imports": []
+  },
+  "tests": {
+    "test_functions_by_directory": {
+      ".": 19,
+      "command_line": 68,
+      "configuration": 11,
+      "dependency_rules": 2,
+      "diagnostics": 8,
+      "ffmpeg_discovery": 14,
+      "job_queue": 62,
+      "job_storage": 45,
+      "jobs": 43,
+      "media_extraction": 85,
+      "vendor": 9,
+      "workers": 29
+    },
+    "test_functions": 395,
+    "windows_marks": 10
+  }
+}

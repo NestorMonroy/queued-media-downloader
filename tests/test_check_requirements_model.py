@@ -34,6 +34,21 @@ USE_CASE = """# UC-01: Encolar
 | Uno | **Windows** |
 """
 
+DESIGN = """# Diseño
+
+<!-- uc-realization:start -->
+| UC | Responsabilidades | Diseño |
+|---|---|---|
+| UC-01 | Encolar | Definido |
+<!-- uc-realization:end -->
+
+<!-- platform-applicability:start -->
+| UC | Windows CLI | Windows GUI | Android | iOS | Condición |
+|---|---|---|---|---|---|
+| UC-01 | Disponible | Futura | Restringida | No demostrada | — |
+<!-- platform-applicability:end -->
+"""
+
 
 def load_script() -> ModuleType:
     specification = importlib.util.spec_from_file_location("check_model", SCRIPT)
@@ -76,6 +91,7 @@ def repository(tmp_path: Path) -> Path:
         tmp_path / "doc/project-management/risk-list.md",
         "# Riesgos\n\n| R-01 | Riesgo |\n",
     )
+    write(tmp_path / "doc/design/03-target-architecture-and-evolution.md", DESIGN)
     subprocess.run(
         [sys.executable, str(SCRIPT), "--root", str(tmp_path), "--write"],
         check=True,
@@ -223,3 +239,68 @@ def test_a_flow_without_a_mark_fails(repository: Path) -> None:
 )
 def test_anchors_follow_github_rules(heading: str, anchor: str) -> None:
     assert load_script().github_anchor(heading) == anchor
+
+
+DESIGN_PATH = "doc/design/03-target-architecture-and-evolution.md"
+
+
+@pytest.mark.parametrize(
+    ("change", "message"),
+    [
+        (
+            ("| UC-01 | Encolar | Definido |\n", ""),
+            "uc-realization lacks UC-01",
+        ),
+        (
+            ("| UC-01 | Encolar | Definido |", "| UC-01 | Encolar | Casi |"),
+            "UC-01 has unknown design state 'Casi'",
+        ),
+        (
+            ("| Restringida |", "| Quizá |"),
+            "UC-01 has unknown Android state 'Quizá'",
+        ),
+        (
+            ("| UC-01 | Disponible |", "| UC-01 | Disponible |\n| UC-01 | Futura |"),
+            "platform-applicability repeats UC-01",
+        ),
+        (
+            (
+                "<!-- uc-realization:end -->",
+                "| UC-44 | Otro | Definido |\n<!-- uc-realization:end -->",
+            ),
+            "uc-realization has UC-44, which is not an accepted use case",
+        ),
+        (
+            ("<!-- platform-applicability:start -->", ""),
+            "missing platform-applicability markers",
+        ),
+    ],
+)
+def test_the_design_tables_cover_each_accepted_use_case_with_known_states(
+    repository: Path, change: tuple[str, str], message: str
+) -> None:
+    write(repository / DESIGN_PATH, DESIGN.replace(*change))
+
+    result = check(repository)
+
+    assert result.returncode == 1
+    assert message in result.stdout
+
+
+def test_available_on_windows_requires_automated_tests(repository: Path) -> None:
+    use_case = repository / "doc/requirements/use-cases/uc-01-enqueue.md"
+    use_case.write_text(
+        USE_CASE.replace("pruebas automáticas en desarrollo", "ninguna todavía"),
+        encoding="utf-8",
+    )
+    subprocess.run(
+        [sys.executable, str(SCRIPT), "--root", str(repository), "--write"],
+        check=False,
+        capture_output=True,
+        timeout=60,
+    )
+
+    result = check(repository)
+
+    assert result.returncode == 1
+    assert "UC-01 is Disponible on Windows CLI without automated tests" in result.stdout

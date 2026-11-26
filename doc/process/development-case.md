@@ -58,10 +58,10 @@ El Responsable del proyecto decidió implementar en E2 los casos de uso restante
 | Requisitos | Catálogo de condiciones de fallo | [requirements/failure-conditions.md](../requirements/failure-conditions.md) | Al encontrar una condición nueva o cambiar su tratamiento |
 | Requisitos | Análisis de requisitos (evidencia, referencias, decisiones pendientes) | [requirements/requirements-analysis.md](../requirements/requirements-analysis.md) | Al analizar un cambio de requisitos |
 | Requisitos | Modelo de casos de uso de la validación | [process/validation-use-case-model.md](validation-use-case-model.md) | Si cambia la campaña de Windows |
-| Análisis y diseño | Documento de arquitectura | [design/](../design/01-architecture.md) | Al cambiar la estructura o un flujo |
+| Análisis y diseño | Documento de arquitectura: vigente (Partes 1 y 2) y objetivo (Parte 3: contratos públicos, capacidades por ambiente, realización de los casos de uso, aplicabilidad por plataforma, matriz de evolución) | [design/](../design/01-architecture.md), [Parte 3](../design/03-target-architecture-and-evolution.md) | Al cambiar la estructura o un flujo; la Parte 3, al cambiar un contrato o la evaluación de una plataforma |
 | Análisis y diseño | Decisiones de arquitectura (ADR) | [notes/](../notes/README.md) | En cada decisión; las aceptadas no se editan |
 | Gestión del proyecto | Lista de riesgos | [project-management/risk-list.md](../project-management/risk-list.md) | Al cerrar cada iteración |
-| Gestión del proyecto | Plan de iteración (slices, tareas y camino crítico) | `project-management/iteration-plan-<id>.md` | Al empezar cada iteración; se completa con su evaluación al cerrarla |
+| Gestión del proyecto | Plan de iteración (slices, tareas y camino crítico) | `project-management/iteration-plan-<id>.md` | Al empezar cada iteración; se completa con su evaluación al cerrarla. Una propuesta (`iteration-plan-<id>-proposal.md`) prepara la iteración siguiente y no la inicia |
 | Entorno | Caso de desarrollo | Este documento | Si cambia el proceso |
 | Implementación y pruebas | Código, pruebas y configuración | `queued_media_downloader/`, `tests/`, `pyproject.toml` | Continuo |
 
@@ -77,7 +77,22 @@ Reglas del modelo:
 - la matriz de completitud no se edita a mano: la genera `scripts/check_requirements_model.py --write`, y `run_checks` comprueba que esté al día;
 - un solo modelo canónico: los hallazgos de una referencia se integran en sus artefactos, nunca en catálogos paralelos con identificadores propios;
 - los identificadores de los casos de uso no se renumeran; un caso de uso retirado conserva su id, que no se reutiliza;
-- cada concepto tiene una sola autoridad, y los demás documentos la enlazan.
+- cada concepto tiene una sola autoridad, y los demás documentos la enlazan;
+- **un modelo para todas las interfaces y plataformas** (ADR-0032): una GUI o una aplicación móvil no crean casos de uso propios. Sus diferencias se expresan como escenarios, restricciones, requisitos suplementarios, capacidades y criterios de aceptación, y la aplicabilidad de cada caso de uso por plataforma vive en la Parte 3 del diseño, §13, que el script del modelo comprueba.
+
+### Análisis y diseño: arquitectura multiplataforma
+
+- **Evidencia con su nivel:** código, inventario reproducible, referencia, documental, inferido o pendiente ([Parte 3](../design/03-target-architecture-and-evolution.md)). Una capacidad inferida no se declara demostrada.
+- **Inventario estructural:** se obtiene con `scripts/experiments/architecture_inventory.py`; los documentos citan sus conteos, no los copian a mano en catálogos paralelos.
+- **Reglas de dependencia:**
+  - una regla de arquitectura entra en `lint-imports` cuando el código actual ya la cumple;
+  - las reglas objetivo se documentan con su criterio de activación (Parte 3, §9.1);
+  - ninguna regla vigente se desactiva.
+- **Pruebas compartidas y específicas:**
+  - los criterios de aceptación de un caso de uso son los mismos en todas las plataformas;
+  - las pruebas de contrato se ejecutan en cualquier sistema;
+  - las de cada capacidad, con la marca de su plataforma;
+  - cada evidencia identifica plataforma, versión y commit.
 
 No se usan: modelo de negocio, caso de negocio, modelo de análisis separado del diseño, plan de despliegue separado (el despliegue es el README) ni plan de gestión de configuración separado (lo cubre [ADR-0020](../notes/adr-0020-repository-branching-and-lfs.md)).
 
@@ -95,7 +110,7 @@ No se usan: modelo de negocio, caso de negocio, modelo de análisis separado del
 uv run python scripts/run_checks.py
 ```
 
-Ejecuta, en orden, `ruff format --check .`, `ruff check .`, `mypy`, `lint-imports`, `scripts/check_requirements_model.py` (enlaces, identificadores y matriz de completitud del modelo de requisitos) y `pytest`, conserva la salida y el código de salida de cada uno y se detiene en el primero que falla (stop-on-error), con su código. No se usan tuberías ni truncados que oculten el código de salida real. Si alguna falla, no se hace commit, merge ni publicación.
+Ejecuta, en orden, `ruff format --check .`, `ruff check .`, `mypy`, `lint-imports`, `scripts/check_requirements_model.py` (enlaces, identificadores, matriz de completitud y tablas de realización y aplicabilidad por plataforma) y `pytest`, conserva la salida y el código de salida de cada uno y se detiene en el primero que falla (stop-on-error), con su código. No se usan tuberías ni truncados que oculten el código de salida real. Si alguna falla, no se hace commit, merge ni publicación.
 
 ### Cierre de cada iteración (evaluación)
 
@@ -113,11 +128,12 @@ Todos funcionan desde un clon del repositorio, sin herramientas externas al proy
 | Script | Responsabilidad | Alcance |
 |---|---|---|
 | `scripts/run_checks.py` | Las seis comprobaciones con stop-on-error y el código de salida real de cada una | Reutilizable, cualquier sistema |
-| `scripts/check_requirements_model.py` | Enlaces, identificadores y matriz de completitud del modelo de requisitos; `--write` regenera la matriz | Reutilizable, cualquier sistema |
+| `scripts/check_requirements_model.py` | Enlaces, identificadores y matriz de completitud del modelo de requisitos; cobertura y estados de la realización de los casos de uso y de su aplicabilidad por plataforma (Parte 3 del diseño); `--write` regenera la matriz | Reutilizable, cualquier sistema |
 | `scripts/check_commit_message.py` | Convenciones de los mensajes de commit | Reutilizable, cualquier sistema |
 | `scripts/windows/validation_campaign.ps1` | Ejecuciones de la validación en Windows identificadas por commit, colas aisladas y evidencia | Reutilizable, Windows |
 | `scripts/experiments/process_tree_termination.py` | Experimento de terminación de árboles de procesos (T33, ADR-0029), que la validación repite en Windows | Experimento; sus resultados históricos están en `doc/notes/experiments/` |
 | `scripts/experiments/requirements_qualification.py` | Experimentos de cualificación de decisiones de requisitos (reintentos de yt-dlp, copia de SQLite, cadena de causas) | Experimento; resultados en `doc/notes/experiments/requirements-qualification.md` |
+| `scripts/experiments/architecture_inventory.py` | Inventario estructural (módulos, clases por tipo, API pública, mecanismos variables, pruebas) y grafo de componentes con grimp | Experimento; resultados en `doc/notes/experiments/architecture-inventory-linux.json` |
 
 ### Mensajes de commit
 

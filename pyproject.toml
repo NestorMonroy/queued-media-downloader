@@ -208,3 +208,36 @@ forbidden_modules = ["yt_dlp"]
 ignore_imports = ["queued_media_downloader.media_extraction.** -> yt_dlp"]
 # Hasta que exista media_extraction, la excepción no coincide con ningún import.
 unmatched_ignore_imports_alerting = "none"
+
+# Las reglas y los casos de uso no dependen de la CLI: solo command_line usa
+# argparse (diseño, Parte 3, §9.1, regla AR-02; ADR-0032).
+[[tool.importlinter.contracts]]
+name = "Only command_line imports argparse"
+type = "forbidden"
+source_modules = [
+    "queued_media_downloader.configuration",
+    "queued_media_downloader.diagnostics",
+    "queued_media_downloader.ffmpeg_discovery",
+    "queued_media_downloader.job_queue",
+    "queued_media_downloader.job_storage",
+    "queued_media_downloader.jobs",
+    "queued_media_downloader.media_extraction",
+    "queued_media_downloader.workers",
+]
+forbidden_modules = ["argparse"]
+
+# Las entidades, identidades y estados no dependen de mecanismos que varían
+# entre interfaces o plataformas (diseño, Parte 3, §9.1, regla AR-04).
+[[tool.importlinter.contracts]]
+name = "jobs does not import variable mechanisms"
+type = "forbidden"
+source_modules = ["queued_media_downloader.jobs"]
+forbidden_modules = [
+    "argparse",
+    "ctypes",
+    "multiprocessing",
+    "signal",
+    "sqlite3",
+    "subprocess",
+    "yt_dlp",
+]
